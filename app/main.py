@@ -10,6 +10,15 @@ from fastapi.middleware.gzip import GZipMiddleware
 from app.common.dependencies import get_db
 from app.example_module.apis import router as example_router
 
+# Import your new modules’ routers
+from app.project.apis import router as project_router
+from app.location.apis import router as location_router
+from app.location_task.apis import router as location_task_router
+from app.monitoring_group.apis import router as monitoring_group_router
+from app.monitoring_sensor.apis import router as monitoring_sensor_router
+from app.monitoring_sensor_alert.apis import router as monitoring_sensor_alert_router
+from app.monitoring_sensor_baseline.apis import router as monitoring_sensor_baseline_router
+from app.monitoring_sensor_data.apis import router as monitoring_sensor_data_router
 
 # Lifespan (startup, shutdown)
 @asynccontextmanager
@@ -28,7 +37,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Heavyweight(FastAPI)",
+    title="RWM(FastAPI)",
     docs_url="/",
     swagger_ui_parameters={
         "defaultModelsExpandDepth": -1
@@ -63,3 +72,13 @@ async def health_check(_=Depends(get_db)):
 
 # Routers
 app.include_router(example_router, prefix="/example", tags=["Example Docs"])
+
+app.include_router(project_router, prefix="/projects", tags=["Projects"])
+app.include_router(location_router, prefix="/locations", tags=["Locations"])
+app.include_router(location_task_router, prefix="/location_tasks", tags=["Location Tasks"])
+app.include_router(monitoring_group_router, prefix="/monitoring_groups", tags=["Monitoring Groups"])
+app.include_router(monitoring_sensor_router, prefix="/monitoring_sensors", tags=["Monitoring Sensors"])
+app.include_router(monitoring_sensor_alert_router, prefix="/monitoring_sensor_alerts", tags=["Monitoring Sensor Alerts"])
+app.include_router(monitoring_sensor_baseline_router, prefix="/monitoring_sensor_baselines", tags=["Monitoring Sensor Baselines"])
+app.include_router(monitoring_sensor_data_router, prefix="/monitoring_sensor_data", tags=["Monitoring Sensor Data"])
+
