@@ -68,7 +68,7 @@ app.add_middleware(
 
 # Health Check
 @app.get("/health", status_code=200, include_in_schema=False)
-async def health_check(_=Depends(get_db)):
+async def health_check(db=Depends(get_db)):
     """This is the health check endpoint"""
     return {"status": "ok"}
 
