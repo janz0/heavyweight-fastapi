@@ -13,6 +13,7 @@ from app.common.dependencies import get_db
 from app.common import schemas
 
 # Import your new modules’ routers
+from app.user.apis import router as user_router
 from app.project.apis import router as project_router
 from app.location.apis import router as location_router
 from app.location_task.apis import router as location_task_router
@@ -78,6 +79,7 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(g
 
 # CRUD ROUTERS SECURED VIA DEPENDENCIES, MOVE TO INDIVIDUAL IF NECESSARY
 # Routers
+app.include_router(user_router)
 app.include_router(project_router, prefix="/projects", tags=["Projects"], dependencies=[Depends(get_current_user)])
 app.include_router(location_router, prefix="/locations", tags=["Locations"], dependencies=[Depends(get_current_user)])
 app.include_router(location_task_router, prefix="/location_tasks", tags=["Location Tasks"], dependencies=[Depends(get_current_user)])
