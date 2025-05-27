@@ -1,0 +1,22 @@
+:root {
+    /* Background & Text */
+    --color-bg-primary: #0D1117;
+    --color-bg-secondary: #282d36;
+    --color-text-primary: #C9D1D9;
+    --color-button-active: #F4C753;
+
+    /* Accent Colors */
+    --color-accent-1: #58A6FF;   /* Primary data series */
+    --color-accent-2: #F97583;
+    --color-accent-3: #A5D6A7;
+    --color-accent-4: #FFD33D;
+  
+    /* Utility & Alerts */
+    --color-warning: #FFD33D;
+    --color-error:   #FF4C4C;
+    --color-success: #A5D6A7;
+
+    /* page background: a slightly lighter, angled version */
+    --color-page-gradient-start: #16191F;  /* a touch lighter than bg-primary */
+    --color-page-gradient-end:   #32363F;  /* a touch lighter than bg-secondary */
+  }

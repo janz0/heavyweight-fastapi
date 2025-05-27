@@ -80,12 +80,12 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(g
 # CRUD ROUTERS SECURED VIA DEPENDENCIES, MOVE TO INDIVIDUAL IF NECESSARY
 # Routers
 app.include_router(user_router)
-app.include_router(project_router, prefix="/projects", tags=["Projects"], dependencies=[Depends(get_current_user)])
-app.include_router(location_router, prefix="/locations", tags=["Locations"], dependencies=[Depends(get_current_user)])
-app.include_router(location_task_router, prefix="/location_tasks", tags=["Location Tasks"], dependencies=[Depends(get_current_user)])
-app.include_router(monitoring_group_router, prefix="/monitoring_groups", tags=["Monitoring Groups"], dependencies=[Depends(get_current_user)])
-app.include_router(monitoring_sensor_router, prefix="/monitoring_sensors", tags=["Monitoring Sensors"], dependencies=[Depends(get_current_user)])
-app.include_router(monitoring_sensor_alert_router, prefix="/monitoring_sensor_alerts", tags=["Monitoring Sensor Alerts"], dependencies=[Depends(get_current_user)])
-app.include_router(monitoring_sensor_baseline_router, prefix="/monitoring_sensor_baselines", tags=["Monitoring Sensor Baselines"], dependencies=[Depends(get_current_user)])
-app.include_router(monitoring_sensor_data_router, prefix="/monitoring_sensor_data", tags=["Monitoring Sensor Data"], dependencies=[Depends(get_current_user)])
+app.include_router(project_router, prefix="/projects", tags=["Projects"], dependencies=[])
+app.include_router(location_router, prefix="/locations", tags=["Locations"], dependencies=[])
+app.include_router(location_task_router, prefix="/location_tasks", tags=["Location Tasks"], dependencies=[])
+app.include_router(monitoring_group_router, prefix="/monitoring_groups", tags=["Monitoring Groups"], dependencies=[])
+app.include_router(monitoring_sensor_router, prefix="/monitoring_sensors", tags=["Monitoring Sensors"], dependencies=[])
+app.include_router(monitoring_sensor_alert_router, prefix="/monitoring_sensor_alerts", tags=["Monitoring Sensor Alerts"], dependencies=[])
+app.include_router(monitoring_sensor_baseline_router, prefix="/monitoring_sensor_baselines", tags=["Monitoring Sensor Baselines"], dependencies=[])
+app.include_router(monitoring_sensor_data_router, prefix="/monitoring_sensor_data", tags=["Monitoring Sensor Data"], dependencies=[])
 

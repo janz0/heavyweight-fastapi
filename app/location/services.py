@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from app.location import schemas, selectors
 from app.location.models import Location
-
+from typing import List
 
 def create_location(db: Session, payload: schemas.LocationCreate) -> Location:
     obj = Location(**payload.dict())
@@ -28,3 +28,13 @@ def delete_location(db: Session, loc_id: UUID) -> None:
     if obj:
         db.delete(obj)
         db.commit()
+
+# app/location/services.py  (or wherever makes sense)
+
+def list_locations_for_project(
+    db: Session,
+    project_id: UUID,
+    skip: int = 0,
+    limit: int = 100
+) -> List[schemas.Location]:
+    return selectors.get_locations(db, skip=skip, limit=limit, project_id=project_id)

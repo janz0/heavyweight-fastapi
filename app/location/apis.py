@@ -14,6 +14,13 @@ def create_location(
 ):
     return services.create_location(db, payload)
 
+@router.get("/{loc_id}", response_model=schemas.Location)
+def get_location(loc_id: UUID, db: Session = Depends(get_db)):
+    obj = selectors.get_location(db, loc_id)
+    if not obj:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
+    return obj
+
 @router.get("/", response_model=List[schemas.Location])
 def list_locations(
     skip: int = 0,
@@ -21,13 +28,6 @@ def list_locations(
     db: Session = Depends(get_db),
 ):
     return selectors.get_locations(db, skip=skip, limit=limit)
-
-@router.get("/{loc_id}", response_model=schemas.Location)
-def get_location(loc_id: UUID, db: Session = Depends(get_db)):
-    obj = selectors.get_location(db, loc_id)
-    if not obj:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
-    return obj
 
 @router.patch("/{loc_id}", response_model=schemas.Location)
 def update_location(

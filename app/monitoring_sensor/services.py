@@ -3,14 +3,12 @@ from uuid import UUID
 from app.monitoring_sensor import schemas, selectors
 from app.monitoring_sensor.models import MonitoringSensor
 
-
 def create_monitoring_sensor(db: Session, payload: schemas.MonitoringSensorCreate) -> MonitoringSensor:
     obj = MonitoringSensor(**payload.dict())
     db.add(obj)
     db.commit()
     db.refresh(obj)
     return obj
-
 
 def update_monitoring_sensor(db: Session, sensor_id: UUID, payload: schemas.MonitoringSensorUpdate) -> MonitoringSensor:
     obj = selectors.get_monitoring_sensor(db, sensor_id)
