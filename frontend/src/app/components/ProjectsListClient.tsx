@@ -12,8 +12,7 @@ import {
   Popover,
   Button,
 } from '@chakra-ui/react';
-import { FiMoreVertical }       from 'react-icons/fi';
-import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { FiEdit2, FiTrash2, FiMoreVertical }       from 'react-icons/fi';
 import type { Project }         from '@/types/project';
 
 interface Props {
@@ -126,14 +125,14 @@ export default function ProjectsListClient({
                         variant="ghost"
                         size="sm"
                         onClick={() => onEdit?.(proj)}
-                      ><EditIcon />
+                      ><FiEdit2 />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         colorScheme="red"
                         onClick={() => onDelete?.(proj)}
-                      ><DeleteIcon />
+                      ><FiTrash2 />
                       </Button>
                     </VStack>
                   </Popover.Body>

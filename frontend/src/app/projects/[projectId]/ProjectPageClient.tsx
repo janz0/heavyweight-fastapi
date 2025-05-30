@@ -20,8 +20,7 @@ import {
   TabList,
   Tab,
 } from '@chakra-ui/tabs';
-import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import { FiMoreVertical } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiMoreVertical } from 'react-icons/fi';
 import { PushPinSimple } from 'phosphor-react';
 import { ProjectsBreadcrumb } from '@/app/components/ProjectsBreadcrumb';
 import { CreateProjectWizard } from '@/app/components/CreateProjectWizard';
@@ -126,7 +125,7 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
                         handleEditProject();
                         setOpenId(null);
                       }}
-                    ><EditIcon />
+                    ><FiEdit2 />
                     </Button>
                     <Button
                       variant="ghost"
@@ -137,7 +136,7 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
                         setOpenId(null);
                       }}
                     >
-                      <DeleteIcon />
+                      <FiTrash2 />
                     </Button>
                   </VStack>
                 </Popover.Body>

@@ -9,7 +9,7 @@ const BASE = `${API}/projects`
 export async function createProject(
   payload: ProjectPayload
 ): Promise<Project> {
-  const res = await fetch(`${BASE}/projects/`, {
+  const res = await fetch(`${BASE}/`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(payload),
@@ -25,7 +25,7 @@ export async function updateProject(
   id: string,
   payload: ProjectPayload
 ): Promise<Project> {
-  const res = await fetch(`${BASE}/projects/${id}`, {
+  const res = await fetch(`${BASE}/${id}`, {
     method:  'PATCH',  // match your @router.patch
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(payload),
@@ -38,7 +38,7 @@ export async function updateProject(
 }
 
 export async function getProject(id: string): Promise<Project> {
-  const res = await fetch(`${BASE}/projects/${id}`);
+  const res = await fetch(`${BASE}/${id}`);
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Fetch project failed (${res.status}): ${txt}`);
@@ -50,13 +50,13 @@ export async function listProjects(
   skip = 0,
   limit = 100
 ): Promise<Project[]> {
-  const res = await fetch(`${BASE}/projects/?skip=${skip}&limit=${limit}`);
+  const res = await fetch(`${BASE}/?skip=${skip}&limit=${limit}`);
   if (!res.ok) throw new Error(`List failed (${res.status})`);
   return (await res.json()) as Project[];
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/projects/${id}`, {
+  const res = await fetch(`${BASE}/${id}`, {
     method: 'DELETE',
   })
   if (!res.ok) {

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.common.dependencies import get_db
 from app.monitoring_sensor_alert import schemas, selectors, services
 
-router = APIRouter(prefix="/monitoring-sensor-alerts", tags=["MonitoringSensorAlerts"])
+router = APIRouter(prefix="/monitoring-sensor-alerts", tags=["Monitoring Sensor Alerts"])
 
 @router.post("/", response_model=schemas.MonitoringSensorAlert, status_code=status.HTTP_201_CREATED)
 def create_monitoring_sensor_alert(

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.common.dependencies import get_db
 from app.monitoring_group import schemas, selectors, services
 
-router = APIRouter(prefix="/monitoring-groups", tags=["MonitoringGroups"])
+router = APIRouter(prefix="/monitoring-groups", tags=["Monitoring Groups"])
 
 @router.post("/", response_model=schemas.MonitoringGroup, status_code=status.HTTP_201_CREATED)
 def create_monitoring_group(

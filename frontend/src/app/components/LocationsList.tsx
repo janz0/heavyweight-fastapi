@@ -1,8 +1,7 @@
 "use client";
 
 import { Box, Flex, VStack, Text, Spinner, IconButton, Popover, Button } from "@chakra-ui/react";
-import { FiMoreVertical } from "react-icons/fi";
-import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { FiEdit2, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import { useState } from "react";
 import Link from "next/link";
 import type { Location } from '@/types/location';
@@ -147,7 +146,7 @@ export function LocationsList({
                             onEdit?.(loc);
                             setOpenId(null);
                           }}
-                        ><EditIcon />
+                        ><FiEdit2 />
                         </Button>
                         <Button
                           variant="ghost"
@@ -157,7 +156,7 @@ export function LocationsList({
                             onDelete?.(loc);
                             setOpenId(null);
                           }}
-                        ><DeleteIcon />
+                        ><FiTrash2 />
                         </Button>
                       </VStack>
                     </Popover.Body>

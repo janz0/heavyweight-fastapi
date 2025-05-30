@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.common.dependencies import get_db
 from app.monitoring_sensor_data import schemas, selectors, services
 
-router = APIRouter(prefix="/monitoring-sensor-data", tags=["MonitoringSensorData"])
+router = APIRouter(prefix="/monitoring-sensor-data", tags=["Monitoring Sensor Data"])
 
 @router.post("/", response_model=schemas.MonitoringSensorData, status_code=status.HTTP_201_CREATED)
 def create_monitoring_sensor_data(

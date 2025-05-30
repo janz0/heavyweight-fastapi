@@ -37,8 +37,7 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-    const router = useRouter();
-  const name = "Jane Doe"; // dummy user name
+  const router = useRouter();
 
   // dummy chart data
   const chartData = {
@@ -113,7 +112,7 @@ export default function Dashboard() {
       {/* Welcome */}
       <Box px={6} pt={4}>
         <Text fontSize="2xl" fontWeight="bold">
-          Welcome, {name}!
+          Welcome!
         </Text>
         <Text color="textSecondary" mt={1}>
           Here's your real-time monitoring dashboard.

@@ -5,6 +5,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@/app/styles/globals.css"; // your global styles
 import { Provider as ChakraProvider } from "@/app/src/components/ui/provider";
 import { Toaster } from "@/components/ui/toaster";
+import Navbar from "./components/Navbar";
+import { AuthProvider } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,8 +34,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ChakraProvider>
+          <AuthProvider>
+          <Navbar />
           {children}
           <Toaster />
+          </AuthProvider>
         </ChakraProvider>
       </body>
     </html>

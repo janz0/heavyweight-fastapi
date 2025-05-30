@@ -22,6 +22,7 @@ from app.monitoring_sensor.apis import router as monitoring_sensor_router
 from app.monitoring_sensor_alert.apis import router as monitoring_sensor_alert_router
 from app.monitoring_sensor_baseline.apis import router as monitoring_sensor_baseline_router
 from app.monitoring_sensor_data.apis import router as monitoring_sensor_data_router
+from app.checklists.apis import router as checklists_router
 
 # Lifespan (startup, shutdown)
 @asynccontextmanager
@@ -80,12 +81,12 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(g
 # CRUD ROUTERS SECURED VIA DEPENDENCIES, MOVE TO INDIVIDUAL IF NECESSARY
 # Routers
 app.include_router(user_router)
-app.include_router(project_router, prefix="/projects", tags=["Projects"], dependencies=[])
-app.include_router(location_router, prefix="/locations", tags=["Locations"], dependencies=[])
-app.include_router(location_task_router, prefix="/location_tasks", tags=["Location Tasks"], dependencies=[])
-app.include_router(monitoring_group_router, prefix="/monitoring_groups", tags=["Monitoring Groups"], dependencies=[])
-app.include_router(monitoring_sensor_router, prefix="/monitoring_sensors", tags=["Monitoring Sensors"], dependencies=[])
-app.include_router(monitoring_sensor_alert_router, prefix="/monitoring_sensor_alerts", tags=["Monitoring Sensor Alerts"], dependencies=[])
-app.include_router(monitoring_sensor_baseline_router, prefix="/monitoring_sensor_baselines", tags=["Monitoring Sensor Baselines"], dependencies=[])
-app.include_router(monitoring_sensor_data_router, prefix="/monitoring_sensor_data", tags=["Monitoring Sensor Data"], dependencies=[])
-
+app.include_router(project_router, dependencies=[])
+app.include_router(location_router, dependencies=[])
+app.include_router(location_task_router, dependencies=[])
+app.include_router(monitoring_group_router, dependencies=[])
+app.include_router(monitoring_sensor_router, dependencies=[])
+app.include_router(monitoring_sensor_alert_router, dependencies=[])
+app.include_router(monitoring_sensor_baseline_router, dependencies=[])
+app.include_router(monitoring_sensor_data_router, dependencies=[])
+app.include_router(checklists_router, dependencies=[])

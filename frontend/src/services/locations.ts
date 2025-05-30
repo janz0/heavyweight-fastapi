@@ -10,7 +10,7 @@ export async function getLocation(
   locationId: string
 ): Promise<Location> {
   const res = await fetch(
-    `${BASE}/locations/${locationId}`
+    `${BASE}/${locationId}`
   );
   if (!res.ok) {
     const body = await res.text();
@@ -23,7 +23,7 @@ export async function listLocations(
   projectId: string
 ): Promise<Location[]> {
   const res = await fetch(
-    `${PROJECTS_BASE}/projects/${projectId}/locations?skip=0&limit=100`
+    `${PROJECTS_BASE}/${projectId}/locations?skip=0&limit=100`
   );
   if (!res.ok) throw new Error(`List failed (${res.status})`);
   return (await res.json()) as Location[];
@@ -33,7 +33,7 @@ export async function createLocation(
   payload: LocationPayload
 ): Promise<Location> {
   const res = await fetch(
-    `${BASE}/locations/`,
+    `${BASE}/`,
     {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,7 +53,7 @@ export async function updateLocation(
   payload: LocationPayload
 ): Promise<Location> {
   const res = await fetch(
-    `${BASE}/locations/${id}`,
+    `${BASE}/${id}`,
     {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -69,7 +69,7 @@ export async function updateLocation(
 
 export async function deleteLocation(id: string): Promise<void> {
   const res = await fetch(
-    `${BASE}/locations/${id}`,
+    `${BASE}/${id}`,
     { method: "DELETE" }
   );
   if (!res.ok) {

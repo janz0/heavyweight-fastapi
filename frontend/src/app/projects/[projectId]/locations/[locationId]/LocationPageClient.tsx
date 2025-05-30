@@ -19,7 +19,7 @@ import {
   Portal,
   CloseButton,
 } from '@chakra-ui/react';
-import { EditIcon } from '@chakra-ui/icons';
+import { FiEdit2 } from 'react-icons/fi';
 import { Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/tabs';
 import { FiMapPin } from 'react-icons/fi';
 import { ProjectsBreadcrumb } from '@/app/components/ProjectsBreadcrumb';
@@ -206,7 +206,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
             size="md"
             onClick={handleEdit}
           >
-            <EditIcon />
+            <FiEdit2 />
           </IconButton>
         </Flex>
 

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.common.dependencies import get_db
 from app.location_task import schemas, selectors, services
 
-router = APIRouter(prefix="/location-tasks", tags=["LocationTasks"])
+router = APIRouter(prefix="/location-tasks", tags=["Location Tasks"])
 
 @router.post("/", response_model=schemas.LocationTask, status_code=status.HTTP_201_CREATED)
 def create_location_task(

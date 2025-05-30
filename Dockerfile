@@ -1,15 +1,21 @@
+# ─── build frontend ─────────────────────
+FROM node:24.1.0-slim AS frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend .
+
+# ─── build + run backend ─────────────────
 FROM python:3.11
-
-
-ENV PYTHONUNBUFFERED=1
-
 WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . /app
+# bring in the already-installed frontend
+COPY --from=frontend /app/frontend /app/frontend
+COPY . .
 
-RUN pip install --no-cache -r requirements.txt
-
-# uvloop doesnt support windows
-# RUN pip install uvloop
+EXPOSE 8000 3000
+ENV PORT=3000
 
 CMD ["/bin/sh", "/app/start.sh"]
