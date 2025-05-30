@@ -5,13 +5,19 @@ COPY frontend/package*.json ./
 RUN npm install
 COPY frontend .
 
-# ─── build + run backend ─────────────────
-FROM python:3.11
+# ─── runtime ───────────────────────────
+FROM node:24.1.0-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# bring in the already-installed frontend
+# 1) Install Python & pip
+RUN apt-get update && apt-get install -y python3 python3-pip \
+  && rm -rf /var/lib/apt/lists/*
+
+# 2) Install Python deps
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# 3) Copy in app code
 COPY --from=frontend /app/frontend /app/frontend
 COPY . .
 
