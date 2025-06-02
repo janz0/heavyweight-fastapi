@@ -20,8 +20,12 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     try {
       await login(email, password);
       onSuccess?.();
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(String(err) || "Login failed");
+      }
     }
   };
 

@@ -12,7 +12,7 @@ import {
   Spacer,
   VStack,
 } from "@chakra-ui/react";
-import { MagnifyingGlass, List, Users, Warning, FolderSimple } from "phosphor-react";
+import { MagnifyingGlass, List, Warning, FolderSimple } from "phosphor-react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -115,7 +115,7 @@ export default function Dashboard() {
           Welcome!
         </Text>
         <Text color="textSecondary" mt={1}>
-          Here's your real-time monitoring dashboard.
+          Here`s your real-time monitoring dashboard.
         </Text>
       </Box>
 

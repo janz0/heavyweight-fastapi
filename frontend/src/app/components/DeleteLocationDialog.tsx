@@ -39,8 +39,18 @@ export function DeleteLocationDialog({ isOpen, onClose, location }: Props) {
       } else {
         router.refresh()
       }
-    } catch (err: any) {
-      toaster.create({ description: `Delete failed: ${err.message}`, type: 'error' })
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toaster.create({
+          description: `Delete failed: ${err.message}`,
+          type: 'error',
+        });
+      } else {
+        toaster.create({
+          description: `Delete failed: ${String(err)}`,
+          type: 'error',
+        });
+      }
     }
   }
 

@@ -2,7 +2,6 @@
 
 import { Box, Flex, VStack, Text, Spinner, IconButton, Popover, Button } from "@chakra-ui/react";
 import { FiEdit2, FiTrash2, FiMoreVertical } from "react-icons/fi";
-import { useState } from "react";
 import Link from "next/link";
 import type { Location } from '@/types/location';
 
@@ -29,7 +28,6 @@ export function LocationsList({
   onEdit,
   onDelete,
 }: LocationsListProps) {
-  const [openId, setOpenId] = useState<string | null> (null);
 
   if (loading) {
     return (
@@ -142,9 +140,8 @@ export function LocationsList({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(e) => {
+                          onClick={() => {
                             onEdit?.(loc);
-                            setOpenId(null);
                           }}
                         ><FiEdit2 />
                         </Button>
@@ -152,9 +149,8 @@ export function LocationsList({
                           variant="ghost"
                           size="sm"
                           colorScheme="red"
-                          onClick={(e) => {
+                          onClick={() => {
                             onDelete?.(loc);
-                            setOpenId(null);
                           }}
                         ><FiTrash2 />
                         </Button>

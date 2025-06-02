@@ -52,7 +52,7 @@ const sampleSensors: Sensor[] = [
 export function SensorsList({ locationId }: { locationId: string }) {
   // Use sample data for now
   const [sensors] = useState<Sensor[]>(sampleSensors);
-
+  console.log(locationId)
   return (
     <VStack gap={2} align="stretch" mt={2}>
       {sensors.map((sensor) => (

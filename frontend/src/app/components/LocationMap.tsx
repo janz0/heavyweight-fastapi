@@ -1,19 +1,27 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
-import {
-  Box,
-  Text,
-} from '@chakra-ui/react';
+import React, { useState, useRef, useCallback } from "react";
+import { Box, Text } from "@chakra-ui/react";
 import { Tabs, TabList, TabPanels, TabPanel, Tab } from "@chakra-ui/tabs";
-import Map, { Marker as MapMarker } from 'react-map-gl/maplibre';
-import 'maplibre-gl/dist/maplibre-gl.css';
+
+// 1) Import styles & components from react-map-gl/maplibre
+import Map, { Marker as MapMarker } from "react-map-gl/maplibre";
+import type {
+  MapLayerMouseEvent,
+  MapRef,
+  MarkerDragEvent
+} from "react-map-gl/maplibre";
+
+// 2) Import the **MapLibre-GL** type, not Mapbox-GL
+import type { Map as MaplibreMap } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
 import {
   GoogleMap,
   StreetViewPanorama,
   useJsApiLoader,
   Marker as GMarker,
-} from '@react-google-maps/api';
+} from "@react-google-maps/api";
 
 interface LocationMapProps {
   lat: number;
@@ -36,48 +44,67 @@ export function LocationMap({
   imageCoordinates,
   initialMarkers = [],
 }: LocationMapProps) {
-  // Map markers state
-  const [markers, setMarkers] = useState(
-    () => initialMarkers.map(([lon, lat]) => ({ lat, lon }))
+  // ─── State for markers ────────────────────────────────────────────────────
+  const [markers, setMarkers] = useState(() =>
+    initialMarkers.map(([lon, lat]) => ({ lat, lon }))
   );
-  const mapRef = useRef<any>(null);
-  const panoRef = useRef<google.maps.StreetViewPanorama|null>(null);
-  // Add marker on click
-  const handleMapClick = useCallback((evt: any) => {
-    const [lng, lat] = evt.lngLat;
+
+  // ─── Refs ─────────────────────────────────────────────────────────────────
+  // MapRef here is the React-Map-GL wrapper.  .getMap() will return a MaplibreMap.
+  const mapRef = useRef<MapRef>(null);
+  const panoRef = useRef<google.maps.StreetViewPanorama | null>(null);
+
+  // ─── 1) Click handler: extract lng/lat from MapLayerMouseEvent  ───────────
+  const handleMapClick = useCallback((evt: MapLayerMouseEvent) => {
+    const { lng, lat } = evt.lngLat;
     setMarkers((prev) => [...prev, { lat, lon: lng }]);
   }, []);
 
-  // Drag end updates marker position
-  const handleDragEnd = useCallback((evt: any, idx: number) => {
-    const [lng, lat] = evt.lngLat;
-    setMarkers((prev) =>
-      prev.map((m, i) => (i === idx ? { lat, lon: lng } : m))
-    );
-  }, []);
+  // ─── 2) Drag-end handler: same fix for LngLat  ─────────────────────────────
+  const handleDragEnd = useCallback(
+    (evt: MarkerDragEvent, idx: number) => {
+      const { lng, lat } = evt.lngLat;
+      setMarkers((prev) =>
+        prev.map((m, i) => (i === idx ? { lat, lon: lng } : m))
+      );
+    },
+    []
+  );
 
-  // On map load, add photo overlay
-  const onMapLoad = useCallback(({ target: map }: any) => {
-    mapRef.current = map;
-    map.addSource('site-photo', {
-      type: 'image',
-      url: siteImageUrl,
-      coordinates: imageCoordinates,
-    });
-    map.addLayer({
-      id: 'site-photo-layer',
-      source: 'site-photo',
-      type: 'raster',
-      paint: { 'raster-opacity': 0.8 },
-    });
-  }, [siteImageUrl, imageCoordinates]);
+  // ─── 3) onLoad handler: use mapRef.current.getMap() → a MaplibreMap ────────
+  const onMapLoad = useCallback(() => {
+    if (!mapRef.current) {
+      // If the ref isn’t set yet, bail out
+      return;
+    }
 
-  // Street View loader
+    // 3.a) getMap() returns a Maplibre-GL Map
+    const rawMap: MaplibreMap = mapRef.current.getMap();
+
+    // 3.b) Add your image source / layer on the **Maplibre** map
+    rawMap.addSource("site-photo", {
+        type: "image",
+        url: siteImageUrl,
+        coordinates: imageCoordinates,
+      });
+      rawMap.addLayer({
+        id: "site-photo-layer",
+        source: "site-photo",
+        type: "raster",
+        paint: { "raster-opacity": 0.8 },
+      });
+    },
+    [siteImageUrl, imageCoordinates]
+  );
+
+  // ─── Street View loader (unchanged) ───────────────────────────────────────
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_KEY || '',
-    libraries: ['streetView'],
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_KEY || "",
+    libraries: ["streetView"],
   });
-  const [svMarkers, setSvMarkers] = useState<{ lat: number; lng: number }[]>([]);
+  const [svMarkers, setSvMarkers] = useState<{ lat: number; lng: number }[]>(
+    []
+  );
 
   return (
     <Tabs variant="enclosed" colorScheme="teal">
@@ -91,9 +118,14 @@ export function LocationMap({
         <TabPanel p={0}>
           <Box h="490px">
             <Map
-              initialViewState={{ latitude: initialLat, longitude: initialLon, zoom: 13 }}
+              ref={mapRef} // ← assign the MapRef here
+              initialViewState={{
+                latitude: initialLat,
+                longitude: initialLon,
+                zoom: 13,
+              }}
               mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=jhTNNVnrTk3AjXEL4NP1"
-              style={{ width: '100%', height: '100%', borderRadius: '24px' }}
+              style={{ width: "100%", height: "100%", borderRadius: "24px" }}
               onClick={handleMapClick}
               onLoad={onMapLoad}
             >
@@ -116,7 +148,7 @@ export function LocationMap({
           {isLoaded ? (
             <Box h="400px">
               <GoogleMap
-                mapContainerStyle={{ width: '100%', height: '100%' }}
+                mapContainerStyle={{ width: "100%", height: "100%" }}
                 center={{ lat: initialLat, lng: initialLon }}
                 zoom={15}
               >
@@ -130,7 +162,6 @@ export function LocationMap({
                     console.log("StreetViewPanorama loaded:", pano);
                   }}
                   onPositionChanged={() => {
-                    // when the user navigates within the panorama, you can read pano.getPosition()
                     const pos = panoRef.current?.getPosition();
                     if (pos) {
                       setSvMarkers((prev) => [
@@ -154,13 +185,23 @@ export function LocationMap({
         <TabPanel p={0}>
           <Box h="400px">
             <Map
-              initialViewState={{ latitude: initialLat, longitude: initialLon, zoom: 13 }}
+              ref={mapRef} // ← reuse the same ref if you want the overlay here
+              initialViewState={{
+                latitude: initialLat,
+                longitude: initialLon,
+                zoom: 13,
+              }}
               mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_KEY"
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: "100%", height: "100%" }}
               onLoad={onMapLoad}
             >
               {markers.map((m, i) => (
-                <MapMarker key={i} latitude={m.lat} longitude={m.lon} color="yellow"/>
+                <MapMarker
+                  key={i}
+                  latitude={m.lat}
+                  longitude={m.lon}
+                  color="yellow"
+                />
               ))}
             </Map>
           </Box>

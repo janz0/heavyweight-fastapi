@@ -92,11 +92,19 @@ export function CreateLocationWizard({
       }
       onClose();
       router.refresh();
-    } catch (err: any) {
-      toaster.create({
-        description: `Failed: ${err.message}`,
-        type:        'error',
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toaster.create({
+          description: `Failed: ${err.message}`,
+          type: 'error',
+        });
+      } else {
+        // err might be a string, object, etc. Fallback to a generic message:
+        toaster.create({
+          description: `Failed: ${String(err)}`,
+          type: 'error',
+        });
+      }
     }
   };
 

@@ -53,12 +53,12 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
     setSelectedProject(project);
     onProjOpen();
   };
-
+  /*
   const handleEditLocation = (loc: Location) => {
     setSelectedLocation(loc);
     onLocOpen();
   };
-
+  */
   return (
     <Box px={6} py={4}>
       <ProjectsBreadcrumb

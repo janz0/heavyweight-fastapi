@@ -33,7 +33,6 @@ export default function Navbar() {
   const { user, logout } = useAuth();
 
   const bg = resolvedTheme === "light" ? "whiteAlpha.900" : "blackAlpha.900";
-  const hoverBg = resolvedTheme === "light" ? "gray.400" : "gray.700";
 
   return (
     <>

@@ -79,10 +79,25 @@ export function CreateProjectWizard({ isOpen, onClose, project }: CreateProjectW
       }
       onClose();
       router.refresh()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const message = editMode ? 'Failed to update project' : 'Failed to create project';
-      toaster.create({ description: `${message}: ${err.message}`, type: 'error' });
+
+      const message = editMode
+        ? 'Failed to update project'
+        : 'Failed to create project';
+
+      if (err instanceof Error) {
+        toaster.create({
+          description: `${message}: ${err.message}`,
+          type: 'error',
+        });
+      } else {
+        // Fallback if err isn’t an Error
+        toaster.create({
+          description: `${message}: ${String(err)}`,
+          type: 'error',
+        });
+      }
     }
   };
 
