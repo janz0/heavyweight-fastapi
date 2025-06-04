@@ -59,21 +59,8 @@ export function LocationsList({
             align="center"
             as="a"
             cursor="pointer"
-            px={6}
             py={4}
-            borderRadius="md"
-            bg="whiteAlpha.50"
-            boxShadow="0 2px 4px rgba(0,255,255,0.7)"
-            transition="all 0.2s"
-            _hover={{
-              boxShadow: '0 4px 8px rgba(250,250,250,0.8)',
-              transform: 'translateY(-3px)',
-            }}
-            _active={{
-              bg: 'gray.700',
-              boxShadow: '0 4px 8px rgba(255,255,255,0.4)',
-              transform: 'translateY(-1px)',
-            }}
+            className="info_card"
             >
             <Box flex="1">
               <Link href={`/projects/${projectId}/locations/${loc.id}`} passHref>

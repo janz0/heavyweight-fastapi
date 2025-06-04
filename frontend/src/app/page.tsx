@@ -1,18 +1,24 @@
-// app/page.tsx
+// File: app/page.tsx
 "use client";
 
+import { Breadcrumb } from "@/app/components/Breadcrumb";
 import {
   Box,
+  Button,
   Flex,
   Heading,
-  Input,
-  InputGroup,
-  Text,
   IconButton,
-  Spacer,
+  Input,
+  Spinner,
+  Text,
   VStack,
 } from "@chakra-ui/react";
-import { MagnifyingGlass, List, Warning, FolderSimple } from "phosphor-react";
+import {
+  Warning,
+  FolderSimple,
+  Eye,
+  EyeSlash,
+} from "phosphor-react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,7 +30,17 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+// Pull in our custom auth hook:
+import { useAuth } from "@/lib/auth";
+
+// Pull in our Toaster so that login errors/successes can display:
+import { toaster } from "@/components/ui/toaster";
+
+// Import the service function from app/services/auth.ts:
+import { loginUser } from "@/services/auth";
 
 ChartJS.register(
   CategoryScale,
@@ -36,10 +52,114 @@ ChartJS.register(
   Legend
 );
 
-export default function Dashboard() {
+// ---------------------------------------
+// 1. LoginForm: shows email/password + toggles visibility.
+//    On submit, it calls loginUser(...) and then useAuth().signIn(...) on success.
+// ---------------------------------------
+function LoginForm() {
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { access_token } = await loginUser(email, password);
+
+      // Inform AuthProvider immediately:
+      signIn(access_token);
+
+      toaster.create({
+        title: "Signed in successfully",
+        duration: 3000,
+        closable: true,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toaster.create({
+        title: "Login Error",
+        description: msg,
+        duration: 4000,
+        closable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Flex justify="center" align="center" minH="100vh">
+      <Box bg="white" p={8} borderRadius="md" boxShadow="lg" maxW="md" w="100%">
+        <Heading as="h2" size="lg" mb={6} textAlign="center">
+          Sign In
+        </Heading>
+        <form onSubmit={handleSubmit}>
+          <VStack gap={4} align="stretch">
+            {/* Email */}
+            <Box>
+              <Text mb={1} fontWeight="semibold">
+                Email
+              </Text>
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </Box>
+
+            {/* Password */}
+            <Box>
+              <Text mb={1} fontWeight="semibold">
+                Password
+              </Text>
+              <Flex align="center">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <IconButton
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
+                  size="sm"
+                  ml={2}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                >
+                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                </IconButton>
+              </Flex>
+            </Box>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              loading={loading}
+              loadingText="Signing in…"
+            >
+              Sign In
+            </Button>
+          </VStack>
+        </form>
+      </Box>
+    </Flex>
+  );
+}
+
+// ---------------------------------------
+// 2. Dashboard: same as before, but only visible once logged in.
+// ---------------------------------------
+function Dashboard() {
   const router = useRouter();
 
-  // dummy chart data
   const chartData = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
     datasets: [
@@ -54,68 +174,20 @@ export default function Dashboard() {
 
   const goToProjects = () => {
     router.push("/projects");
-  }
+  };
 
   return (
     <Box
       minH="100vh"
-      bgGradient="linear(to-top, pageGradientFrom, pageGradientTo)"
-      color="text"
     >
-      {/* Top Bar */}
-      <Flex align="center" px={6} py={4}>
-        <IconButton aria-label="Menu" variant="ghost" mr={4} color="white">
-            <List size={24} />
-        </IconButton>
-
-
-        <Heading
-          as="h1"
-          size="3xl"
-          fontWeight="extrabold"
-          position="relative"
-          display="inline-block"
-          pb={2}
-          _after={{
-            content: '""',
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "50%",
-            height: "3px",
-            bgGradient: "linear(to-r, accent1, accent2)",
-            borderRadius: "2px",
-          }}
-        >
-          Dashboard
-        </Heading>
-
-        <Spacer />
-
-        <Box minW="400px" mr={12}>
-          <InputGroup
-            startElement={<MagnifyingGlass size={16} />}
-            startElementProps={{ pointerEvents: "none" }}
-          >
-            <Input
-              variant="outline"
-              placeholder="Search metrics, resources..."
-              bg="sidebarBg"
-              borderColor="rgba(255,255,255,0.2)"
-              _placeholder={{ color: "textSecondary" }}
-              color="text"
-            />
-          </InputGroup>
-        </Box>
-      </Flex>
-
+      <Breadcrumb crumbs={[{label: "Dashboard", href: "/"}]} />
       {/* Welcome */}
       <Box px={6} pt={4}>
         <Text fontSize="2xl" fontWeight="bold">
           Welcome!
         </Text>
-        <Text color="textSecondary" mt={1}>
-          Here`s your real-time monitoring dashboard.
+        <Text mt={1}>
+          Here’s your real-time monitoring dashboard.
         </Text>
       </Box>
 
@@ -126,51 +198,61 @@ export default function Dashboard() {
           {/* Top Cards */}
           <Flex gap={4} mb={4}>
             <Box
-                as="button"
-                onClick={goToProjects}
-                role="group"
-                cursor="pointer"
-                p={6}
-                borderRadius="lg"
-                bg={"whiteAlpha.50"}
-                boxShadow = "0px 4px 8px rgba(0, 0, 0, 0.24)"
-                transition="all 0.2s"
-                flex="1"
-                _hover={{
-                    boxShadow: "0 4px 8px rgb(250, 250, 250)",
-                    transform: "translateY(-2px)",
-                }}
-                _active={{
-                    bg: "whiteAlpha.800",
-                    boxShadow: "0 4px 8px rgba(255, 255, 255, 0.4)",
-                    transform: "translateY(-1px)",
-                }}
-                >
+              as="button"
+              onClick={goToProjects}
+              role="group"
+              cursor="pointer"
+              p={6}
+              borderRadius="lg"
+              boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
+              transition="all 0.2s"
+              flex="1"
+              _hover={{
+                boxShadow: "0 4px 8px rgb(250, 250, 250)",
+                transform: "translateY(-2px)",
+              }}
+              _active={{
+                boxShadow: "0 4px 8px rgba(255, 255, 255, 0.4)",
+                transform: "translateY(-1px)",
+              }}
+            >
               <Flex align="center">
                 <Box bg="orange.500" p={3} borderRadius="md" mr={4}>
-                  <FolderSimple size={32} color="white" />
+                  <FolderSimple size={32} />
                 </Box>
                 <VStack align="start" gap={0}>
-                  <Text fontSize="2xl" fontWeight="bold">Projects</Text>
+                  <Text fontSize="2xl" fontWeight="bold">
+                    Projects
+                  </Text>
                   <Text fontSize="md">5</Text>
                 </VStack>
               </Flex>
             </Box>
 
             <Box
-              bg="whiteAlpha.50"
+              as="button"
+              role="group"
+              cursor="pointer"
               p={6}
               borderRadius="lg"
-              boxShadow="md"
-              color="white"
+              boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
+              transition="all 0.2s"
               flex="1"
+              _hover={{
+                boxShadow: "0 4px 8px rgb(250, 250, 250)",
+                transform: "translateY(-2px)",
+              }}
+              _active={{
+                boxShadow: "0 4px 8px rgba(255, 255, 255, 0.4)",
+                transform: "translateY(-1px)",
+              }}
             >
               <Flex align="center">
                 <Box bg="orange.500" p={3} borderRadius="md" mr={4}>
-                  <Warning size={32} color="white" />
+                  <Warning size={32} />
                 </Box>
                 <VStack align="start" gap={0}>
-                  <Text fontSize="sm" color="textSecondary">
+                  <Text fontSize="sm">
                     Error Rate
                   </Text>
                   <Text fontSize="2xl" fontWeight="bold">
@@ -183,11 +265,9 @@ export default function Dashboard() {
 
           {/* Requests Per Second Graph */}
           <Box
-            bg="whiteAlpha.50"
             p={6}
             borderRadius="lg"
-            boxShadow="md"
-            color="white"
+            boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
             flex="1"
           >
             <Text fontSize="md" mb={2} fontWeight="semibold">
@@ -197,7 +277,7 @@ export default function Dashboard() {
           </Box>
 
           {/* Get Started */}
-          <Box bg="sidebarBg" p={4} borderRadius="md" mt={4}>
+          <Box p={4} borderRadius="md" mt={4}>
             <Heading as="h3" size="md" mb={2}>
               Get Started
             </Heading>
@@ -213,11 +293,9 @@ export default function Dashboard() {
         <Box flex="1">
           {/* Recent Alerts */}
           <Box
-            bg="whiteAlpha.50"
             p={6}
             borderRadius="lg"
-            boxShadow="md"
-            color="white"
+            boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
             mb={4}
           >
             <Heading as="h3" size="md" mb={2}>
@@ -232,7 +310,11 @@ export default function Dashboard() {
           </Box>
 
           {/* Next Steps */}
-          <Box bg="whiteAlpha.50" p={6} borderRadius="lg" boxShadow="md" color="white">
+          <Box
+            p={6}
+            borderRadius="lg"
+            boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
+          >
             <Heading as="h3" size="md" mb={2}>
               Next Steps
             </Heading>
@@ -246,4 +328,28 @@ export default function Dashboard() {
       </Flex>
     </Box>
   );
+}
+
+// ---------------------------------------
+// 3. Default export: show <LoginForm> if not logged in, else show <Dashboard>.
+// ---------------------------------------
+export default function Page() {
+  const { authToken, isChecking } = useAuth();
+
+  // While verifying localStorage, show a spinner
+  if (isChecking) {
+    return (
+      <Flex justify="center" align="center" minH="100vh">
+        <Spinner size="xl" color="white" />
+      </Flex>
+    );
+  }
+
+  // If not authenticated, render login form
+  if (!authToken) {
+    return <LoginForm />;
+  }
+
+  // Otherwise render dashboard
+  return <Dashboard />;
 }

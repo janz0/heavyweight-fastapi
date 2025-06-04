@@ -1,4 +1,4 @@
-// app/components/Navbar.tsx
+// File: app/components/Navbar.tsx
 "use client";
 
 import {
@@ -11,11 +11,11 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import NextLink from "next/link";
-import { useTheme as useNextTheme } from "next-themes";
 import { Menu, X } from "lucide-react";
 import LoginModal from "./LoginModal";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { ColorModeButton } from "@/app/src/components/ui/color-mode";
 
 export default function Navbar() {
   const {
@@ -28,16 +28,20 @@ export default function Navbar() {
     onOpen: openLogin,
     onClose: closeLogin,
   } = useDisclosure();
-  const { resolvedTheme } = useNextTheme();
   const pathname = usePathname();
-  const { user, logout } = useAuth();
 
-  const bg = resolvedTheme === "light" ? "whiteAlpha.900" : "blackAlpha.900";
+  // Replace `user` with `authToken`, and `logout` with `signOut`.
+  const { authToken, signOut } = useAuth();
 
   return (
     <>
-      <Box bg={bg} px={4} position="sticky" top={0} zIndex="1000" boxShadow="sm">
-        <Flex h={16} align="center" justify="space-between">
+      <Box
+        position="sticky"
+        top={0}
+        zIndex="1000"
+        boxShadow="sm"
+      >
+        <Flex h={16} align="center" justify="space-between" pl={"5%"} pr={"2%"}>
           <IconButton
             size="md"
             aria-label="Toggle menu"
@@ -48,15 +52,11 @@ export default function Navbar() {
             {navOpen ? <X size={24} /> : <Menu size={24} />}
           </IconButton>
 
-          <Box fontWeight="bold" fontSize="lg">
+          <Box fontWeight="bold" fontSize="xl">
             RWH Monitoring
           </Box>
-
           <HStack gap={8} align="center" display={{ base: "none", md: "flex" }}>
-            <Link as={NextLink} href="/">
-              GO PRO
-            </Link>
-            {!user && (
+            {!authToken && (
               <>
                 <Button
                   variant="ghost"
@@ -69,45 +69,15 @@ export default function Navbar() {
                 </Link>
               </>
             )}
-            {user && (
-              <Button variant="ghost" onClick={logout}>
+
+            {authToken && (
+              <Button variant="ghost" onClick={() => signOut()}>
                 Log out
               </Button>
             )}
+          <ColorModeButton />
           </HStack>
         </Flex>
-
-        {navOpen && (
-          <Box pb={4} display={{ md: "none" }}>
-            <HStack as="nav" gap={4} flexDirection="column">
-              <Link as={NextLink} href="/">
-                GO PRO
-              </Link>
-              {!user && (
-                <>
-                  <Button
-                    variant="ghost"
-                    w="full"
-                    onClick={() => {
-                      closeNav();
-                      openLogin();
-                    }}
-                  >
-                    Log in
-                  </Button>
-                  <Link as={NextLink} href="/signup">
-                    Sign up
-                  </Link>
-                </>
-              )}
-              {user && (
-                <Button variant="ghost" w="full" onClick={logout}>
-                  Log out
-                </Button>
-              )}
-            </HStack>
-          </Box>
-        )}
       </Box>
 
       <LoginModal isOpen={loginOpen} onClose={closeLogin} />

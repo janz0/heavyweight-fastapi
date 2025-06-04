@@ -1,0 +1,54 @@
+// app/components/Breadcrumb.tsx
+
+import Link from 'next/link';
+import { Box, Flex } from '@chakra-ui/react';
+
+export interface BreadcrumbItem {
+  label: string;
+  href: string;
+}
+
+interface BreadcrumbProps {
+  crumbs: BreadcrumbItem[];
+}
+
+export function Breadcrumb({ crumbs }: BreadcrumbProps) {
+  return (
+    <Flex as="nav" aria-label="breadcrumb" justify="center" py={4}>
+      <Flex as="ul" listStyleType="none">
+        {crumbs.map((crumb, idx) => (
+          <Link href={crumb.href} passHref key={idx}>
+            <Box
+              as="a"
+              display="inline-block"
+              overflow="hidden"
+              transform="skew(-21deg)"
+              bg="white"
+              color="gray.800"
+              textTransform="uppercase"
+              fontSize={{ base: 'xs', md: 'sm' }}
+              letterSpacing="1px"
+              boxShadow="0 2px 5px rgba(0,0,0,0.26)"
+              borderRadius="7px"
+              px={{ base: 3, md: 6 }}
+              py={2}
+              mx={1}
+              cursor="pointer"
+              transition="all 0.3s ease"
+              _hover={{
+                bg: '#490099',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                transform: 'skew(-21deg) translateY(-2px)',
+              }}
+            >
+              <Box transform="skew(21deg)" textAlign="center">
+                {crumb.label}
+              </Box>
+            </Box>
+          </Link>
+        ))}
+      </Flex>
+    </Flex>
+  );
+}

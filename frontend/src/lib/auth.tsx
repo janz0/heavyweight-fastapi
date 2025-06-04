@@ -1,81 +1,76 @@
+// File: lib/auth.ts
 "use client";
-import {
+
+import React, {
   createContext,
   useContext,
   useState,
   useEffect,
-  ReactNode
+  ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 
-interface User { id: string; email: string; /*…*/ }
-
-interface AuthContext {
-  user: User | null;
-  login: (email: string, pass: string) => Promise<void>;
-  logout: () => void;
+interface AuthContextType {
+  authToken: string | null;
+  isChecking: boolean;
+  signIn: (token: string) => void;
+  signOut: () => void;
 }
 
-const AuthCtx = createContext<AuthContext | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  authToken: null,
+  isChecking: true,
+  signIn: () => {},
+  signOut: () => {},
+});
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
-
-  // on mount, try to load a token & fetch /users/me
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => r.json())
-        .then(setUser)
-        .catch(() => localStorage.removeItem("token"));
-    }
+    // On mount, read the cookie (if any) and also mirror into state
+    const cookieToken = parseCookie("auth_token");
+    setAuthToken(cookieToken || null);
+    setIsChecking(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const form = new URLSearchParams({ username: email, password });
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/users/login`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form,
-      }
-    );
-    if (!res.ok) throw new Error("Invalid creds");
-    const { access_token } = await res.json();
-    localStorage.setItem("token", access_token);
+  const signIn = (token: string) => {
+    // 1) Store in local state (so client components can immediately read it)
+    setAuthToken(token);
 
-    const me = await (await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/users/me`,
-      { headers: { Authorization: `Bearer ${access_token}` } }
-    )).json();
-    setUser(me);
-    router.push("/");
+    // 2) Persist to cookie (so middleware can read it on server-side requests)
+    //    We'll set a non-HTTP-only cookie for simplicity—if you want httponly,
+    //    you'd need to set it via an API route.
+    document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+
+    // 3) (Optional) Keep it in localStorage as well, if any other code relies on localStorage
+    localStorage.setItem("auth_token", token);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    router.push("/login");
+  const signOut = () => {
+    setAuthToken(null);
+    document.cookie = "auth_token=; path=/; max-age=0"; // clear cookie
+    localStorage.removeItem("auth_token");
   };
 
   return (
-    <AuthCtx.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ authToken, isChecking, signIn, signOut }}>
       {children}
-    </AuthCtx.Provider>
+    </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => {
-  const ctx = useContext(AuthCtx);
-  if (!ctx) throw new Error("useAuth must be inside AuthProvider");
-  return ctx;
-};
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+// Helper to parse a simple cookie by name
+function parseCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const matches = document.cookie.match(
+    new RegExp(
+      "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)"
+    )
+  );
+  return matches ? decodeURIComponent(matches[1]) : null;
+}
