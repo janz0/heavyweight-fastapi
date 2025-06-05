@@ -2,8 +2,8 @@
 import type { Location, LocationPayload } from "@/types/location";
 
 const API_ROOT = process.env.NEXT_PUBLIC_API_URL!;
-const BASE     = `${API_ROOT}/locations`;
-const PROJECTS_BASE = `${API_ROOT}/projects`
+const BASE     = `${API_ROOT}locations`;
+const PROJECTS_BASE = `${API_ROOT}projects`
 
 export async function getLocation(
   projectId: string,

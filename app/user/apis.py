@@ -1,6 +1,8 @@
+# File: app/user/apis.py
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.common.dependencies import get_db
 from app.common.security import create_access_token, get_current_user
@@ -10,27 +12,37 @@ from app.user.models import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.post(
-    "/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED
-)
-async def register(
-    payload: schemas.UserCreate, db: AsyncSession = Depends(get_db)
+
+@router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
+def register(
+    payload: schemas.UserCreate,
+    db: Session = Depends(get_db),
 ):
-    if await selectors.get_user_by_email(db, payload.email):
-        raise HTTPException(400, "Email already registered")
-    return await services.create_user(db, payload)
+    # 1) Check if the email is already registered:
+    existing = selectors.get_user_by_email(db, payload.email)
+    if existing:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    # 2) Create the user (services.create_user should hash the password and commit):
+    user = services.create_user(db, payload)
+    return user
+
 
 @router.post("/login", response_model=schemas.Token, tags=["Auth"])
-async def login(
+def login(
     form: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
-    user = await services.authenticate_user(db, form.username, form.password)
+    # 1) Authenticate the user (services.authenticate_user must use verify_password on the hash):
+    user = services.authenticate_user(db, form.username, form.password)
     if not user:
-        raise HTTPException(400, "Incorrect email or password")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Incorrect email or password")
+
+    # 2) Create a JWT (or similar) and return it:
     token = create_access_token(data={"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 
+
 @router.get("/me", response_model=schemas.UserRead)
-async def me(current: User = Depends(get_current_user)):
+def me(current: User = Depends(get_current_user)):
     return current

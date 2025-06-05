@@ -27,7 +27,7 @@ export async function loginUser(
   // You can omit grant_type since FastAPI defaults to "password"
   // formData.append("grant_type", "password");
 
-  const res = await fetch(`${API_ROOT}/users/login`, {
+  const res = await fetch(`${API_ROOT}users/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",

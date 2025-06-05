@@ -1,5 +1,7 @@
+# File: app/user/services.py
+
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from app.user.models import User
 from app.user.schemas import UserCreate
 from app.user.selectors import get_user_by_email
@@ -12,7 +14,7 @@ def hash_password(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_ctx.verify(plain, hashed)
 
-async def create_user(db: AsyncSession, payload: UserCreate) -> User:
+def create_user(db: Session, payload: UserCreate) -> User:
     user = User(
         email=payload.email,
         first_name=payload.first_name,
@@ -22,12 +24,12 @@ async def create_user(db: AsyncSession, payload: UserCreate) -> User:
         active=payload.active,
     )
     db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    db.commit()
+    db.refresh(user)
     return user
 
-async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
-    user = await get_user_by_email(db, email)
+def authenticate_user(db: Session, email: str, password: str) -> User | None:
+    user = get_user_by_email(db, email)
     if not user or not verify_password(password, user.password_hash):
         return None
     return user
