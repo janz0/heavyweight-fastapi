@@ -1,21 +1,15 @@
 // File: app/components/Navbar.tsx
 "use client";
-
-import {
-  Box,
-  Flex,
-  HStack,
-  Link,
-  IconButton,
-  Button,
-  useDisclosure,
-} from "@chakra-ui/react";
-import NextLink from "next/link";
-import { Menu, X } from "lucide-react";
-import LoginModal from "./LoginModal";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import NextLink from "next/link";
+
 import { ColorModeButton } from "@/app/src/components/ui/color-mode";
+import LoginModal from "./LoginModal";
+import { Menu, X } from "lucide-react";
+import { Box, Button, Flex, HStack, IconButton, Link, useDisclosure } from "@chakra-ui/react";
+
+import { useAuth } from "@/lib/auth";
+
 
 export default function Navbar() {
   const {
@@ -39,7 +33,7 @@ export default function Navbar() {
         position="sticky"
         top={0}
         zIndex="1000"
-        boxShadow="sm"
+        className="shadow-md"
       >
         <Flex h={16} align="center" justify="space-between" pl={"5%"} pr={"2%"}>
           <IconButton

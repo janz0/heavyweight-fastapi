@@ -4,7 +4,7 @@ import type { Project } from '@/types/project'
 import type { ProjectPayload } from '@/types/project'
 
 const API = process.env.NEXT_PUBLIC_API_URL
-const BASE = `${API}projects`
+const BASE = `${API}/projects`
 
 export async function createProject(
   payload: ProjectPayload

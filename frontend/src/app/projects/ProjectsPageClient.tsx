@@ -91,7 +91,7 @@ export default function ProjectsPageClient({ projects }: Props) {
           </Heading>
         </Flex>
         {/* Example pinned project card */}
-        <Box className="info_card">
+        <Box className="info-card shadow-md">
           <Text>Project Alpha</Text>
         </Box>
       </Box>

@@ -37,7 +37,7 @@ export default function ProjectsListClient({
           align="center"
           as="a"
           py={4}
-          className='info_card'
+          className='info-card shadow-md'
           >
           <Box flex="1">
             {/* 1) Entire row data is one link */}

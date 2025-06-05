@@ -1,45 +1,17 @@
 // File: app/page.tsx
 "use client";
 
-import { Breadcrumb } from "@/app/components/Breadcrumb";
-import {
-  Box,
-  Button,
-  Flex,
-  Heading,
-  IconButton,
-  Input,
-  Spinner,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
-import {
-  Warning,
-  FolderSimple,
-  Eye,
-  EyeSlash,
-} from "phosphor-react";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Line } from "react-chartjs-2";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Pull in our custom auth hook:
-import { useAuth } from "@/lib/auth";
-
-// Pull in our Toaster so that login errors/successes can display:
+import { Breadcrumb } from "@/app/components/Breadcrumb";
 import { toaster } from "@/components/ui/toaster";
+import { Box, Button, Flex, Heading, IconButton, Input, Spinner, Text, VStack } from "@chakra-ui/react";
+import { Eye, EyeSlash, Warning, FolderSimple } from "phosphor-react";
+import { Chart as ChartJS, CategoryScale, LinearScale, Legend, LineElement, PointElement, Title, Tooltip } from "chart.js";
+import { Line } from "react-chartjs-2";
 
-// Import the service function from app/services/auth.ts:
+import { useAuth } from "@/lib/auth";
 import { loginUser } from "@/services/auth";
 
 ChartJS.register(
@@ -93,7 +65,7 @@ function LoginForm() {
 
   return (
     <Flex justify="center" align="center" minH="100vh">
-      <Box bg="white" p={8} borderRadius="md" boxShadow="lg" maxW="md" w="100%">
+      <Box p={8} borderRadius="md" borderWidth="1px" boxShadow="0px 1px 6px 2px rgb(0, 0, 0)" maxW="md" w="100%" bg="black" color="white" _dark={{bg: "white", color: "black", boxShadow: "0px 1px 6px 2px rgb(255, 255, 255)"}}>
         <Heading as="h2" size="lg" mb={6} textAlign="center">
           Sign In
         </Heading>
@@ -132,6 +104,9 @@ function LoginForm() {
                   }
                   size="sm"
                   ml={2}
+                  background={"white"}
+                  color="black"
+                  _dark={{background: "black", color: "white"}}
                   onClick={() => setShowPassword((prev) => !prev)}
                 >
                   {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
@@ -144,6 +119,9 @@ function LoginForm() {
               type="submit"
               loading={loading}
               loadingText="Signing in…"
+              background={"white"}
+              color={"black"}
+              _dark={{background: "black", color: "white"}}
             >
               Sign In
             </Button>
@@ -155,7 +133,7 @@ function LoginForm() {
 }
 
 // ---------------------------------------
-// 2. Dashboard: same as before, but only visible once logged in.
+// 2. Dashboard: Only visible once logged in.
 // ---------------------------------------
 function Dashboard() {
   const router = useRouter();
@@ -177,9 +155,8 @@ function Dashboard() {
   };
 
   return (
-    <Box
-      minH="100vh"
-    >
+    <Box minH="100vh">
+      {/* Breadcrumb */}
       <Breadcrumb crumbs={[{label: "Dashboard", href: "/"}]} />
       {/* Welcome */}
       <Box px={6} pt={4}>
@@ -195,84 +172,31 @@ function Dashboard() {
       <Flex px={6} py={4} gap={4}>
         {/* Left Column */}
         <Box flex="2">
-          {/* Top Cards */}
+          {/* Top Cards -- Projects & Error Rate*/}
           <Flex gap={4} mb={4}>
-            <Box
-              as="button"
-              onClick={goToProjects}
-              role="group"
-              cursor="pointer"
-              p={6}
-              borderRadius="lg"
-              boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
-              transition="all 0.2s"
-              flex="1"
-              _hover={{
-                boxShadow: "0 4px 8px rgb(250, 250, 250)",
-                transform: "translateY(-2px)",
-              }}
-              _active={{
-                boxShadow: "0 4px 8px rgba(255, 255, 255, 0.4)",
-                transform: "translateY(-1px)",
-              }}
-            >
+            <Box as="button" onClick={goToProjects} flex="1" className="info-card shadow-md">
               <Flex align="center">
-                <Box bg="orange.500" p={3} borderRadius="md" mr={4}>
-                  <FolderSimple size={32} />
-                </Box>
+                <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><FolderSimple size={32} /></Box>
                 <VStack align="start" gap={0}>
-                  <Text fontSize="2xl" fontWeight="bold">
-                    Projects
-                  </Text>
-                  <Text fontSize="md">5</Text>
+                  <Text fontSize="md">Projects</Text>
+                  <Text fontSize="2xl" fontWeight="bold">5</Text>
                 </VStack>
               </Flex>
             </Box>
-
-            <Box
-              as="button"
-              role="group"
-              cursor="pointer"
-              p={6}
-              borderRadius="lg"
-              boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
-              transition="all 0.2s"
-              flex="1"
-              _hover={{
-                boxShadow: "0 4px 8px rgb(250, 250, 250)",
-                transform: "translateY(-2px)",
-              }}
-              _active={{
-                boxShadow: "0 4px 8px rgba(255, 255, 255, 0.4)",
-                transform: "translateY(-1px)",
-              }}
-            >
+            <Box as="button" flex="1" className="info-card shadow-md">
               <Flex align="center">
-                <Box bg="orange.500" p={3} borderRadius="md" mr={4}>
-                  <Warning size={32} />
-                </Box>
+                <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><Warning size={32} /></Box>
                 <VStack align="start" gap={0}>
-                  <Text fontSize="sm">
-                    Error Rate
-                  </Text>
-                  <Text fontSize="2xl" fontWeight="bold">
-                    0.3%
-                  </Text>
+                  <Text fontSize="md">Error Rate</Text>
+                  <Text fontSize="2xl" fontWeight="bold">0.3%</Text>
                 </VStack>
               </Flex>
             </Box>
           </Flex>
 
           {/* Requests Per Second Graph */}
-          <Box
-            p={6}
-            borderRadius="lg"
-            boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
-            flex="1"
-          >
-            <Text fontSize="md" mb={2} fontWeight="semibold">
-              Requests Per Second
-            </Text>
+          <Box className="info-card shadow-md" flex="1">
+            <Text fontSize="xl" mb={2} fontWeight="semibold">Requests Per Second</Text>
             <Line data={chartData} />
           </Box>
 
@@ -293,14 +217,10 @@ function Dashboard() {
         <Box flex="1">
           {/* Recent Alerts */}
           <Box
-            p={6}
-            borderRadius="lg"
-            boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
+            className="info-card shadow-md"
             mb={4}
           >
-            <Heading as="h3" size="md" mb={2}>
-              Recent Alerts
-            </Heading>
+            <Heading as="h3" size="md" mb={2}>Recent Alerts</Heading>
             <VStack align="start" gap={1} pl={2}>
               <Text>• Server CPU usage is high</Text>
               <Text>• Database response time is slow</Text>
@@ -310,11 +230,7 @@ function Dashboard() {
           </Box>
 
           {/* Next Steps */}
-          <Box
-            p={6}
-            borderRadius="lg"
-            boxShadow="0px 4px 8px rgba(0, 0, 0, 0.24)"
-          >
+          <Box className="info-card shadow-md">
             <Heading as="h3" size="md" mb={2}>
               Next Steps
             </Heading>
@@ -340,7 +256,7 @@ export default function Page() {
   if (isChecking) {
     return (
       <Flex justify="center" align="center" minH="100vh">
-        <Spinner size="xl" color="white" />
+        <Spinner size="xl" />
       </Flex>
     );
   }
