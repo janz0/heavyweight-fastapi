@@ -5,7 +5,7 @@ from datetime import datetime
 
 class LocationBase(BaseModel):
     project_id: UUID
-    loc_number: Optional[str]
+    loc_number: Optional[str] = ""
     loc_name: str
     lat: float
     lon: float
@@ -16,13 +16,13 @@ class LocationCreate(LocationBase):
     pass
 
 class LocationUpdate(BaseModel):
-    project_id: Optional[UUID]
-    loc_number: Optional[str]
-    loc_name: Optional[str]
-    lat: Optional[float]
-    lon: Optional[float]
-    frequency: Optional[str]
-    active: Optional[int]
+    project_id: Optional[UUID] = None
+    loc_number: Optional[str] = None
+    loc_name: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    frequency: Optional[str] = None
+    active: Optional[int] = None
 
 class Location(LocationBase):
     id: UUID

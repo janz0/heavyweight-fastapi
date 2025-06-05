@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.config.settings import get_settings
+from app.config.database import DBBase
 
 settings = get_settings()
 
@@ -53,7 +54,6 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
@@ -72,7 +72,6 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
-
 
 if context.is_offline_mode():
     run_migrations_offline()

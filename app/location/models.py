@@ -2,6 +2,7 @@ from sqlalchemy import Column, Text, Float, Integer, DateTime, text
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
 from app.config.database import DBBase
 
 class Location(DBBase):
@@ -17,3 +18,9 @@ class Location(DBBase):
     active = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # reciprocal side of the relationship
+    project = relationship(
+        "Project",
+        back_populates="mon_locs",
+    )

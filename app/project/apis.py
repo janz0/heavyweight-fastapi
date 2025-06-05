@@ -4,6 +4,8 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.common.dependencies import get_db
 from app.project import schemas, selectors, services
+from app.location import schemas as location_schemas
+import app.location.services  as location_services
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -14,13 +16,17 @@ def create_project(
 ):
     return services.create_project(db, payload)
 
-@router.get("/", response_model=List[schemas.Project])
-def list_projects(
+@router.get(
+    "/{project_id}/locations",
+    response_model=List[location_schemas.Location]
+)
+def list_project_locations(
+    project_id: UUID,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    return selectors.get_projects(db, skip=skip, limit=limit)
+    return location_services.list_locations_for_project(db, project_id, skip=skip, limit=limit)
 
 @router.get("/{project_id}", response_model=schemas.Project)
 def get_project(project_id: UUID, db: Session = Depends(get_db)):
@@ -28,6 +34,14 @@ def get_project(project_id: UUID, db: Session = Depends(get_db)):
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     return obj
+
+@router.get("/", response_model=List[schemas.Project])
+def list_projects(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    return selectors.get_projects(db, skip=skip, limit=limit)
 
 @router.patch("/{project_id}", response_model=schemas.Project)
 def update_project(

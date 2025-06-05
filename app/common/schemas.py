@@ -21,3 +21,8 @@ class PaginationSchema(BaseModel):
     count: int = Field(description="The number of items returned")
     has_next_page: bool = Field(description="Indicates if there is a next page")
     has_prev_page: bool = Field(description="Indicates if there is a previous page")
+
+class Token(BaseModel):
+    """Schema for returning a JWT access token."""
+    access_token: str = Field(..., description="JWT access token")
+    token_type: str   = Field(..., description="Type of token, e.g. 'bearer'")
