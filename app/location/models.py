@@ -24,3 +24,5 @@ class Location(DBBase):
         "Project",
         back_populates="mon_locs",
     )
+
+    sources = relationship("Source", back_populates="mon_loc", lazy="selectin")

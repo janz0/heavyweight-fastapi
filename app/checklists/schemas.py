@@ -1,10 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
-from typing import Optional, List, Union
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field
-
 
 #
 # ─── TEMPLATE ────────────────────────────────────────────────────────────────

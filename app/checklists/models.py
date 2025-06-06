@@ -1,7 +1,6 @@
 # app/checklists/models.py
-from sqlalchemy import (
-    Table, Column, ForeignKey, Text, Enum, Integer, Boolean, DateTime, func
-)
+from sqlalchemy import Column, ForeignKey, Text, Enum, Integer, Boolean, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 from app.config.database import DBBase
 

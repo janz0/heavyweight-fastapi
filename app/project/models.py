@@ -21,11 +21,7 @@ class Project(DBBase):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    mon_locs = relationship(
-        Location,
-        back_populates="project",
-        lazy="selectin",
-    )
+    mon_locs = relationship(Location, back_populates="project", lazy="selectin")
 
     @hybrid_property
     def locations_count(self) -> int:
