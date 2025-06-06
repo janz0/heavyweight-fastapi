@@ -18,6 +18,7 @@ from app.project.apis import router as project_router
 from app.location.apis import router as location_router
 from app.location_task.apis import router as location_task_router
 from app.monitoring_group.apis import router as monitoring_group_router
+from app.monitoring_source.apis import router as monitoring_source_router
 from app.monitoring_sensor.apis import router as monitoring_sensor_router
 from app.monitoring_sensor_alert.apis import router as monitoring_sensor_alert_router
 from app.monitoring_sensor_baseline.apis import router as monitoring_sensor_baseline_router
@@ -85,6 +86,7 @@ app.include_router(project_router, dependencies=[])
 app.include_router(location_router, dependencies=[])
 app.include_router(location_task_router, dependencies=[])
 app.include_router(monitoring_group_router, dependencies=[])
+app.include_router(monitoring_source_router, dependencies=[])
 app.include_router(monitoring_sensor_router, dependencies=[])
 app.include_router(monitoring_sensor_alert_router, dependencies=[])
 app.include_router(monitoring_sensor_baseline_router, dependencies=[])
