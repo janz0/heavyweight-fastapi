@@ -29,20 +29,9 @@ export default function Navbar() {
 
   return (
     <>
-      <Box
-        position="sticky"
-        top={0}
-        zIndex="1000"
-        className="shadow-md"
-      >
+      <Box position="sticky" top={0} zIndex="1000" bg="inherit" className="shadow-md">
         <Flex h={16} align="center" justify="space-between" pl={"5%"} pr={"2%"}>
-          <IconButton
-            size="md"
-            aria-label="Toggle menu"
-            display={{ md: "none" }}
-            onClick={navOpen ? closeNav : openNav}
-            variant="ghost"
-          >
+          <IconButton size="md" aria-label="Toggle menu" display={{ md: "none" }} onClick={navOpen ? closeNav : openNav} variant="ghost">
             {navOpen ? <X size={24} /> : <Menu size={24} />}
           </IconButton>
 
@@ -52,10 +41,7 @@ export default function Navbar() {
           <HStack gap={8} align="center" display={{ base: "none", md: "flex" }}>
             {!authToken && (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={() => pathname !== "/login" && openLogin()}
-                >
+                <Button variant="ghost" onClick={() => pathname !== "/login" && openLogin()} >
                   Log in
                 </Button>
                 <Link as={NextLink} href="/signup">

@@ -3,17 +3,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  Box,
-  Flex,
-  VStack,
-  Text,
-  IconButton,
-  Popover,
-  Button,
-} from '@chakra-ui/react';
-import { FiEdit2, FiTrash2, FiMoreVertical }       from 'react-icons/fi';
-import type { Project }         from '@/types/project';
+
+import { Box, Button, Flex, IconButton, Popover, Text, VStack } from '@chakra-ui/react';
+import { FiEdit2, FiTrash2, FiMoreVertical } from 'react-icons/fi';
+
+import type { Project } from '@/types/project';
 
 interface Props {
   initialProjects: Project[];
@@ -32,13 +26,7 @@ export default function ProjectsListClient({
       {initialProjects.map((proj) => {
         const isOpen = openId === proj.id;
         return (
-        <Flex 
-          key={proj.id} 
-          align="center"
-          as="a"
-          py={4}
-          className='info-card shadow-md'
-          >
+        <Flex key={proj.id} align="center" as="a" py={4} className='info-card shadow-md'>
           <Box flex="1">
             {/* 1) Entire row data is one link */}
             <Link href={`/projects/${proj.id}`} passHref>
@@ -76,19 +64,21 @@ export default function ProjectsListClient({
           </Box>
           {/* 2) Three-dots popover trigger sits OUTSIDE that link */}
           <Box flex="0 0 auto" w={20} display={"flex"} alignItems={"center"} justifyContent={"center"}>
-            <Popover.Root open={isOpen} onOpenChange={(next) => setOpenId(next ? proj.id : null)} positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} closeOnEscape={false}>
+            <Popover.Root open={isOpen} onOpenChange={(next) => setOpenId(next ? proj.id : null)} positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton
-                  textAlign={"right"}
-                  verticalAlign={"center"}
                   aria-label="More actions"
                   variant="ghost"
                   size="xs"
-                  color="white"
-                  borderRadius="lg"
+                  color="black"
+                  borderRadius="48px"
                   width={"32px"}
                   _hover={{
-                    backgroundColor: 'whiteAlpha.200',
+                    backgroundColor: 'blackAlpha.300',
+                  }}
+                  _dark={{
+                    color: "white",
+                    _hover: {backgroundColor: "whiteAlpha.200"}
                   }}
                 >
                   <FiMoreVertical />
@@ -96,22 +86,14 @@ export default function ProjectsListClient({
               </Popover.Trigger>
 
               <Popover.Positioner>
-                <Popover.Content
-                  width="64px"
-                  height="100px"
-                  p={1}
-                  background={"gray.200"}
-                >
+                <Popover.Content width="64px" height="100px" p={1} borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
                   <Popover.Arrow>
-                    <Popover.ArrowTip />
+                    <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1}  _dark={{borderColor: "whiteAlpha.600"}}/>
                   </Popover.Arrow>
                   <Popover.Body p={2}>
                     <VStack gap={1} align="stretch">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit?.(proj)}
-                      ><FiEdit2 />
+                      <Button variant="ghost" size="sm" onClick={() => onEdit?.(proj)}>
+                        <FiEdit2 />
                       </Button>
                       <Button
                         variant="ghost"

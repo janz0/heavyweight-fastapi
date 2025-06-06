@@ -2,24 +2,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Box,
-  Flex,
-  Heading,
-  Text,
-  InputGroup,
-  Input,
-  Button,
-  useDisclosure,
-  IconButton,
-  Popover,
-  VStack,
-} from '@chakra-ui/react';
-import {
-  Tabs,
-  TabList,
-  Tab,
-} from '@chakra-ui/tabs';
+import { Box, Button, Flex, Heading, IconButton, InputGroup, Input, Popover, Text, VStack, useDisclosure } from '@chakra-ui/react';
+import { Tabs, TabList, Tab } from '@chakra-ui/tabs';
 import { FiEdit2, FiTrash2, FiMoreVertical } from 'react-icons/fi';
 import { PushPinSimple } from 'phosphor-react';
 import { ProjectsBreadcrumb } from '@/app/components/ProjectsBreadcrumb';
@@ -68,9 +52,7 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
 
       {/* Project Header & Details */}
       <Box
-        borderRadius="md"
-        bg="whiteAlpha.50"
-        boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
+        className='c-card shadow-md'
         px={6}
         py={4}
         mb={3}
@@ -90,16 +72,18 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
           <Popover.Root open={isOpen} onOpenChange={(next) => setOpenId(next ? project.id : null)} positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} closeOnEscape={false}>
             <Popover.Trigger asChild>
               <IconButton
-                textAlign={"right"}
-                verticalAlign={"center"}
                 aria-label="More actions"
                 variant="ghost"
                 size="xs"
-                color="white"
-                borderRadius="lg"
-                width={"auto"}
+                color="black"
+                borderRadius="48px"
+                width={"32px"}
                 _hover={{
-                  backgroundColor: 'whiteAlpha.200',
+                  backgroundColor: 'blackAlpha.300',
+                }}
+                _dark={{
+                  color: "white",
+                  _hover: {backgroundColor: "whiteAlpha.200"}
                 }}
               >
                 <FiMoreVertical />
@@ -107,20 +91,13 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
             </Popover.Trigger>
 
             <Popover.Positioner>
-              <Popover.Content
-                width="64px"
-                height="100px"
-                p={1}
-                background={"gray.200"}
-              >
+              <Popover.Content width="64px" height="100px" p={1} borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
                 <Popover.Arrow>
-                  <Popover.ArrowTip />
+                  <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1}  _dark={{borderColor: "whiteAlpha.600"}}/>
                 </Popover.Arrow>
                 <Popover.Body p={2}>
                   <VStack gap={1} align="stretch">
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <Button variant="ghost" size="sm"
                       onClick={() => {
                         handleEditProject();
                         setOpenId(null);
@@ -191,13 +168,7 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
       </Box>
 
       {/* Pinned Locations Section */}
-      <Box
-        p={6}
-        borderRadius="md"
-        bg="whiteAlpha.50"
-        boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
-        mb={6}
-      >
+      <Box p={6} mb={6} className='c-card shadow-md'>
         <Flex align="center" mb={4}>
           <PushPinSimple size={20} weight="fill" color="yellow" />
           <Heading as="h2" size="lg" ml={2}>
@@ -205,66 +176,77 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
           </Heading>
         </Flex>
         {/* Example pinned location card */}
-        <Box
-          cursor="pointer"
-          p={6}
-          borderRadius="md"
-          bg="whiteAlpha.50"
-          boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
-          transition="all 0.2s"
-          _hover={{ boxShadow: '0 4px 8px rgba(250,250,250,0.8)', transform: 'translateY(-2px)' }}
-          _active={{ bg: 'whiteAlpha.800', boxShadow: '0 4px 8px rgba(255,255,255,0.4)' }}
-        >
+        <Box className='info-card shadow-md'>
           <Text>Location A</Text>
         </Box>
       </Box>
 
       {/* Filters + New Location */}
-      <Box
-        bg="whiteAlpha.50"
-        p={4}
-        borderRadius="md"
-        boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
-        mb={6}
-      >
-        <Flex align="center" justify="space-between">
-          <Tabs variant="line" colorScheme="teal">
-            <TabList gap={8}>
-              {['All Locations', 'Active Locations', 'Inactive Locations'].map(label => (
-                <Tab key={label}>{label}</Tab>
-              ))}
+      <Box p={4} mb={6} className="c-card shadow-md">
+        <Flex align="center" justify="center">
+          <Tabs variant="line" colorScheme="teal" flex="1">
+            <TabList justifySelf="center" gap={8}>
+              {['All Locations', 'Active Locations', 'Inactive Locations'].map(
+                (label) => (
+                  <Tab
+                    key={label}
+                    cursor="pointer"
+                    _selected={{ borderBottom: "2px solid" }}
+                    _hover={{ borderBottom: "1px solid" }}
+                  >
+                    {label}
+                  </Tab>
+                )
+              )}
             </TabList>
           </Tabs>
-          <InputGroup maxW="300px">
-            <Input
-              placeholder="Search locations..."
-              bg="white"
-              _placeholder={{ color: 'gray.500' }}
-            />
+
+          <InputGroup maxW="300px" mr="12">
+            <Input placeholder="Search locations..." _placeholder={{ color: "gray.500" }} cursor="text" _hover={{ bg: "whiteAlpha.100" }} className="c-card shadow-md" />
           </InputGroup>
-          <Button onClick={onLocOpen} colorScheme="yellow">
-            + New Location
-          </Button>
+
         </Flex>
       </Box>
 
+      <Flex justify="flex-end" mr="12">
+        <Button
+          m="2"
+          mt="0"
+          background="white"
+          color="black"
+          className="c-card shadow-md"
+          _dark={{background: "black", color: "white"}}
+          
+          onClick={onLocOpen}
+        >
+          + New Project
+        </Button>
+      </Flex>
       {/* Table Header */}
       <Box
         bg="whiteAlpha.50"
         py={4}
         px={6}
-        borderRadius="md"
-        boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
-        mb={4}
+        className="c-card shadow-md"
       >
         <Flex>
           <Box flex="1">
             <Flex>
-              <Box flex="5"><Text fontWeight="bold">Monitoring Location</Text></Box>
-              <Box flex="1" textAlign="center"><Text fontWeight="bold">Latitude</Text></Box>
-              <Box flex="1" textAlign="center"><Text fontWeight="bold">Longitude</Text></Box>
-              <Box flex="1" textAlign="center"><Text fontWeight="bold">Frequency</Text></Box>
-              <Box flex="1" textAlign="center" pr={4}><Text fontWeight="bold">Active</Text></Box>
+              <Box flex="5">
+                <Text fontWeight="bold">Monitoring Location</Text>
+              </Box>
+              <Box flex="1" textAlign="center">
+                <Text fontWeight="bold">Latitude</Text>
+              </Box>
+              <Box flex="1" textAlign="center">
+                <Text fontWeight="bold">Longitude</Text>
+              </Box>
+              <Box flex="1" textAlign="center">
+                <Text fontWeight="bold">Frequency</Text>
+              </Box>
+              <Box flex="1" textAlign="center" pr={4}>
+                <Text fontWeight="bold">Active</Text>
+              </Box>
             </Flex>
           </Box>
           <Box flex="0 0 auto" textAlign="center" w={20}><Text fontWeight="bold">Actions</Text></Box>

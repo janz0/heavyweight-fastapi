@@ -54,14 +54,7 @@ export function LocationsList({
     <VStack gap={2} align="stretch" mt={2}>
       {locations.map((loc) => {
         return (
-          <Flex 
-            key={loc.id} 
-            align="center"
-            as="a"
-            cursor="pointer"
-            py={4}
-            className="info_card"
-            >
+          <Flex key={loc.id} align="center" as="a" py={4} className='info-card shadow-md'>
             <Box flex="1">
               <Link href={`/projects/${projectId}/locations/${loc.id}`} passHref>
                 <Flex justifyContent={"space-between"}>
@@ -93,19 +86,21 @@ export function LocationsList({
               </Link>
             </Box>
             <Box flex="0 0 auto" w={20} display={"flex"} alignItems={"center"} justifyContent={"center"}>
-              <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} closeOnEscape={false}>
+              <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
                 <Popover.Trigger asChild>
                   <IconButton
-                    textAlign={"right"}
-                    verticalAlign={"center"}
                     aria-label="More actions"
                     variant="ghost"
                     size="xs"
-                    color="white"
-                    borderRadius="lg"
+                    color="black"
+                    borderRadius="48px"
                     width={"32px"}
                     _hover={{
-                      backgroundColor: 'whiteAlpha.200',
+                      backgroundColor: 'blackAlpha.300',
+                    }}
+                    _dark={{
+                      color: "white",
+                      _hover: {backgroundColor: "whiteAlpha.200"}
                     }}
                   >
                     <FiMoreVertical />
@@ -113,33 +108,17 @@ export function LocationsList({
                 </Popover.Trigger>
 
                 <Popover.Positioner>
-                  <Popover.Content
-                    width="64px"
-                    height="100px"
-                    p={1}
-                    background={"gray.200"}
-                  >
+                  <Popover.Content width="64px" height="100px" p={1} borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
                     <Popover.Arrow>
-                      <Popover.ArrowTip />
+                      <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1}  _dark={{borderColor: "whiteAlpha.600"}}/>
                     </Popover.Arrow>
                     <Popover.Body p={2}>
                       <VStack gap={1} align="stretch">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            onEdit?.(loc);
-                          }}
-                        ><FiEdit2 />
+                        <Button variant="ghost" size="sm" onClick={() => {onEdit?.(loc);}}>
+                          <FiEdit2 />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          colorScheme="red"
-                          onClick={() => {
-                            onDelete?.(loc);
-                          }}
-                        ><FiTrash2 />
+                        <Button variant="ghost" size="sm" colorScheme="red" onClick={() => {onDelete?.(loc);}}>
+                          <FiTrash2 />
                         </Button>
                       </VStack>
                     </Popover.Body>

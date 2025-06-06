@@ -2,9 +2,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import ProjectsPageClient from "./ProjectsPageClient";
-import type { Project } from "@/types/project";
+
 import { listProjects } from "@/services/projects";
+import type { Project } from "@/types/project";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[] | null>(null);

@@ -3,22 +3,7 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  Box,
-  Flex,
-  Heading,
-  Text,
-  SimpleGrid,
-  IconButton,
-  useDisclosure,
-  VStack,
-  Button,
-  HStack,
-  RadioGroup,
-  Dialog,
-  Portal,
-  CloseButton,
-} from '@chakra-ui/react';
+import { Box, Button, CloseButton, Dialog, Flex, Heading, IconButton, Portal, RadioGroup, Text, SimpleGrid,  useDisclosure, VStack, HStack } from '@chakra-ui/react';
 import { FiEdit2 } from 'react-icons/fi';
 import { Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/tabs';
 import { FiMapPin } from 'react-icons/fi';
@@ -180,69 +165,50 @@ export default function LocationPageClient({ projectName, location }: Props) {
       />
 
       {/* 1. Info Card */}
-      <Box
-        borderRadius="md"
-        bg="whiteAlpha.50"
-        boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
-        px={6}
-        py={4}
-        mb={3}
-      >
-        <Flex
-          justify="space-between"
-          align="center"
-          mb={3}
-          borderBottom="1px"
-          borderColor="whiteAlpha.300"
-        >
+      <Box px={6} py={3} mb={3} className='c-card shadow-md'>
+        <Flex justify="space-between" align="center" mb={1}>
           <Heading size="2xl" display="flex" alignItems={"center"}>
             <FiMapPin style={{ marginRight: 8 }}/>
             {location.loc_name}
           </Heading>
-          <IconButton
-            aria-label="Edit location"
-            variant="ghost"
-            color="white"
-            size="md"
-            onClick={handleEdit}
-          >
+          <IconButton aria-label="Edit location" variant="ghost" size="md" onClick={handleEdit}>
             <FiEdit2 />
           </IconButton>
         </Flex>
 
-        <SimpleGrid columns={{ base: 1, md: 4 }} gap={4} mb={4}>
+        <SimpleGrid columns={{ base: 1, md: 4 }} gap={4} mb={2}>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Location #
             </Text>
             <Text fontWeight="medium">{location.loc_number}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Latitude
             </Text>
             <Text fontWeight="medium">{location.lat}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Longitude
             </Text>
             <Text fontWeight="medium">{location.lon}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Frequency
             </Text>
             <Text fontWeight="medium">{location.frequency}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Active
             </Text>
             <Text fontWeight="medium">{location.active ? 'Yes' : 'No'}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Created At
             </Text>
             <Text fontWeight="medium">{new Date(location.created_at).toLocaleDateString(undefined, {
@@ -252,7 +218,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
               })}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm">
               Last Updated
             </Text>
             <Text fontWeight="medium">{new Date(location.last_updated).toLocaleDateString(undefined, {
@@ -268,9 +234,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
       <Flex direction={{ base: 'column', md: 'row' }} gap={6} mb={6}>
         <Box
           flex="2"
-          bg="whiteAlpha.50"
-          borderRadius="md"
-          boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
+          className='c-card shadow-md'
         >
           <LocationMap
             lat={location.lat}
@@ -289,11 +253,9 @@ export default function LocationPageClient({ projectName, location }: Props) {
           {metrics.map((m) => (
             <Box
               key={m.title}
-              bg="whiteAlpha.100"
               w="100%"
               p={4}
-              borderRadius="md"
-              boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
+              className='c-card shadow-md'
             >
               <Text fontWeight="bold" mb={2}>
                 {m.title}
@@ -314,13 +276,11 @@ export default function LocationPageClient({ projectName, location }: Props) {
         {/* Last Inspection Card */}
         <Box
           flex="1"
-          bg="whiteAlpha.50"
-          borderRadius="md"
-          boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
           p={4}
           display="flex"
           flexDirection="column"
           justifyContent="space-between"
+          className='c-card shadow-md'
         >
         <Box>
           <Text fontSize="sm" color="gray.400">
@@ -332,7 +292,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
               : 'Never'}
           </Text>
         </Box>
-        <Button mt={4} size="sm" onClick={onChecklistOpen}>
+        <Button mt={4} size="sm" className='c-card shadow-md' onClick={onChecklistOpen}>
           View Checklist
         </Button>
       </Box>

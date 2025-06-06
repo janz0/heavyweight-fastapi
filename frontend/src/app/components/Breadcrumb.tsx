@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Box, Flex } from '@chakra-ui/react';
+import { Color } from 'maplibre-gl';
 
 export interface BreadcrumbItem {
   label: string;
@@ -20,27 +21,15 @@ export function Breadcrumb({ crumbs }: BreadcrumbProps) {
           <Link href={crumb.href} passHref key={idx}>
             <Box
               as="a"
-              display="inline-block"
-              overflow="hidden"
-              transform="skew(-21deg)"
-              bg="white"
-              color="gray.800"
-              textTransform="uppercase"
               fontSize={{ base: 'xs', md: 'sm' }}
-              letterSpacing="1px"
-              boxShadow="0 2px 5px rgba(0,0,0,0.26)"
-              borderRadius="7px"
               px={{ base: 3, md: 6 }}
               py={2}
               mx={1}
-              cursor="pointer"
-              transition="all 0.3s ease"
-              _hover={{
-                bg: '#490099',
-                color: 'white',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                transform: 'skew(-21deg) translateY(-2px)',
-              }}
+              transform="skew(-21deg)"
+              color={"black"}
+              _hover={{color: "white"}}
+              _dark={{color: "white"}}
+              className='breadcrumb'
             >
               <Box transform="skew(21deg)" textAlign="center">
                 {crumb.label}

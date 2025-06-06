@@ -174,7 +174,7 @@ function Dashboard() {
         <Box flex="2">
           {/* Top Cards -- Projects & Error Rate*/}
           <Flex gap={4} mb={4}>
-            <Box as="button" onClick={goToProjects} flex="1" className="info-card shadow-md">
+            <Box as="button" onClick={goToProjects} flex="1" className="info-card shadow-md" cursor="pointer">
               <Flex align="center">
                 <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><FolderSimple size={32} /></Box>
                 <VStack align="start" gap={0}>
