@@ -277,14 +277,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
           ))}
         </VStack>
         {/* Last Inspection Card */}
-        <Box
-          flex="1"
-          p={4}
-          display="flex"
-          flexDirection="column"
-          justifyContent="space-between"
-          className='c-card shadow-md'
-        >
+        <Box flex="1" p={4} display="flex" flexDirection="column" justifyContent="space-between" className='c-card shadow-md'>
         <Box>
           <Text fontSize="sm" color="gray.400">
             Last Inspected
@@ -295,9 +288,19 @@ export default function LocationPageClient({ projectName, location }: Props) {
               : 'Never'}
           </Text>
         </Box>
-        <Button mt={4} size="sm" className='c-card shadow-md' onClick={onChecklistOpen}>
-          View Checklist
-        </Button>
+        <SimpleGrid>
+          <Button mt={4} size="sm" className='c-card shadow-md' onClick={onChecklistOpen}>
+            View Checklist
+          </Button>
+          <Link
+            href={`/projects/${location.project_id}/locations/${location.id}/sources`}
+            passHref
+          >
+            <Button mt={4} size="sm" className='c-card shadow-md'>
+              View Sources
+            </Button>
+          </Link>
+        </SimpleGrid>
       </Box>
       </Flex>
 
