@@ -19,4 +19,7 @@ class Source(DBBase):
     active = Column(Integer, default=1)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    mon_loc = relationship("MonLoc", back_populates="sources", lazy="selectin")
+    mon_loc = relationship(
+        "Location",
+        back_populates="sources",
+    )

@@ -4,6 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from app.config.database import DBBase
+from app.monitoring_source.models import Source
 
 class Location(DBBase):
     __tablename__ = "mon_loc"
@@ -25,4 +26,4 @@ class Location(DBBase):
         back_populates="mon_locs",
     )
 
-    sources = relationship("Source", back_populates="mon_loc", lazy="selectin")
+    sources = relationship(Source, back_populates="mon_loc", lazy="selectin")
