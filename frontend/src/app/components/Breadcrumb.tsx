@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Box, Flex } from '@chakra-ui/react';
-import { Color } from 'maplibre-gl';
 
 export interface BreadcrumbItem {
   label: string;
