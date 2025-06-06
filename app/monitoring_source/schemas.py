@@ -36,13 +36,13 @@ class SourceMetadata(BaseModel):
     project_name: str
 
     class Config:
-        orm_mode = True
+        from_attributes  = True
 
 class Source(SourceBase):
     id: int
     last_updated: datetime
-    metadata: Optional[SourceMetadata]
+    details: Optional[SourceMetadata]
 
     class Config:
-        orm_mode = True
+        from_attributes  = True
 

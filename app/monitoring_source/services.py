@@ -27,13 +27,18 @@ def delete_source(db: Session, source_id: int) -> None:
         db.commit()
 
 def enrich_source(source: Source) -> dict:
-    result = schemas.Source.from_orm(source).dict()
+    details = None
     if source.mon_loc and source.mon_loc.project:
-        result["metadata"] = {
-            "loc_number": source.mon_loc.loc_number,
-            "loc_name": source.mon_loc.loc_name,
-            "project_id": source.mon_loc.project.id,
-            "project_number": source.mon_loc.project.project_number,
-            "project_name": source.mon_loc.project.project_name,
-        }
-    return result
+        details = schemas.SourceMetadata(
+            loc_number=source.mon_loc.loc_number,
+            loc_name=source.mon_loc.loc_name,
+            project_id=source.mon_loc.project.id,
+            project_number=source.mon_loc.project.project_number,
+            project_name=source.mon_loc.project.project_name,
+        )
+
+    # Bypass validation because we already know the model is valid
+    source_dict = dict(source.__dict__)  # make a copy
+    source_dict["details"] = details  # add the extra field
+    source_model = schemas.Source.model_construct(**source_dict)
+    return source_model.model_dump()
