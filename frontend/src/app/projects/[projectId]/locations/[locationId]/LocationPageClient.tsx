@@ -199,7 +199,10 @@ export default function LocationPageClient({ projectName, location }: Props) {
             <Text fontSize="sm">
               Frequency
             </Text>
-            <Text fontWeight="medium">{location.frequency}</Text>
+            <Text fontWeight="medium">  {location.frequency
+              ? location.frequency.charAt(0).toUpperCase() + location.frequency.slice(1)
+              : ""}
+            </Text>
           </Box>
           <Box>
             <Text fontSize="sm">

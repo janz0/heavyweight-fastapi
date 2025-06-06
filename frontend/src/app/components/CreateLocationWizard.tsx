@@ -39,6 +39,7 @@ export function CreateLocationWizard({
   // form state
   const [projectId,    setProjectId]    = useState(initialProjectId);
   const [locName,      setLocName]      = useState(location?.loc_name ?? '');
+  const [locNumber, setLocNumber]       = useState(location?.loc_number ?? '');
   const [latitude,     setLatitude]     = useState<string>(location  ? String(location.lat) : "");
   const [longitude,    setLongitude]    = useState<string>(location ? String(location.lon) : "");
   const [frequency,    setFrequency]    = useState(location?.frequency       ?? '');
@@ -49,6 +50,7 @@ export function CreateLocationWizard({
     if (location) {
       setProjectId(location.project_id);
       setLocName(location.loc_name);
+      setLocNumber(location?.loc_number || '');
       setLatitude(String(location.lat));
       setLongitude(String(location.lon));
       setFrequency(location.frequency);
@@ -56,6 +58,7 @@ export function CreateLocationWizard({
     } else {
       setProjectId(initialProjectId);
       setLocName('');
+      setLocNumber('');
       setLatitude('');
       setLongitude('');
       setFrequency('');
@@ -74,13 +77,14 @@ export function CreateLocationWizard({
       return;
     }
     const payload: LocationPayload = {
-      project_id:    projectId,
+      project_id: projectId,
       loc_name: locName,
       lat: latNum,
       lon: lonNum,
       frequency,
       active,
     };
+    if (locNumber) payload.loc_number = locNumber;
 
     try {
       if (editMode && location) {
@@ -142,6 +146,16 @@ export function CreateLocationWizard({
                     bg="#29374C"
                     value={locName}
                     onChange={(e) => setLocName(e.target.value)}
+                  />
+                </Field.Root>
+
+                <Field.Root mb={4}>
+                  <Field.Label>Location Number</Field.Label>
+                  <Input
+                    bg="#29374C"
+                    placeholder="Optional"
+                    value={locNumber}
+                    onChange={(e) => setLocNumber(e.target.value)}
                   />
                 </Field.Root>
 
