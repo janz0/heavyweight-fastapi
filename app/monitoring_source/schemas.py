@@ -45,4 +45,3 @@ class Source(SourceBase):
 
     class Config:
         from_attributes  = True
-

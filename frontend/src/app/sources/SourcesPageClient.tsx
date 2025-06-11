@@ -9,6 +9,7 @@ import { CreateSourceWizard } from "@/app/components/CreateSourceWizard";
 import { Box, Flex, Heading, Text, VStack, Skeleton, Button, IconButton, Popover } from "@chakra-ui/react";
 import { FiEdit2, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import type { Source } from "@/types/source";
+import { DeleteSourceDialog } from "../components/DeleteSourceDialog";
 
 interface Props {
   sources: Source[];
@@ -36,7 +37,7 @@ export default function SourcesPageClient({
     setHydrated(true);
   }, []);
 
-  // Handlers (stubbed—implement your own edit/delete modals if you want)
+  // Handlers
   const handleNew = () => {
     setSelectedSource(undefined);
     openCE();
@@ -49,10 +50,7 @@ export default function SourcesPageClient({
     setToDelete(s);
     openDel();
   };
-  useEffect(() => {
-    void isDelOpen;
-    void closeDel;
-  }, [isDelOpen, closeDel]);
+  
   useEffect(() => {
     if (toDelete) {
       console.debug("Deleting source ID:", toDelete.id);
@@ -144,8 +142,11 @@ export default function SourcesPageClient({
                 <Box flex="1">
                   {/* Entire row is a link to the “view source” page */}
                   <Flex cursor="pointer">
-                    <Box flex="5">
+                    <Box flex="2">
                       <Text fontWeight="medium">{src.source_name}</Text>
+                    </Box>
+                    <Box flex="3">
+                      <Text fontWeight="medium">{src.details?.loc_name ?? "(no location)"}</Text>
                     </Box>
                     <Box flex="1" textAlign="center">
                       <Text>
@@ -193,16 +194,8 @@ export default function SourcesPageClient({
                     </Box>
                   </Flex>
                 </Box>
-                <Box
-                  flex="0 0 auto"
-                  w={20}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Popover.Root
-                    open={isOpen}
-                  >
+                <Box flex="0 0 auto" w={20} display="flex" alignItems="center" justifyContent="center">
+                  <Popover.Root open={isOpen} positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
                     <Popover.Trigger>
                       <IconButton
                         aria-label="More actions"
@@ -221,41 +214,29 @@ export default function SourcesPageClient({
                         <FiMoreVertical />
                       </IconButton>
                     </Popover.Trigger>
-                    <Popover.Content
-                      width="64px"
-                      height="100px"
-                      p={1}
-                      borderColor="blackAlpha.600"
-                      _dark={{ borderColor: "whiteAlpha.600" }}
-                      borderWidth={1}
-                    >
-                      <Popover.Arrow>
-                        <Popover.ArrowTip
-                          borderColor="blackAlpha.600"
-                          borderWidth={1}
-                          _dark={{ borderColor: "whiteAlpha.600" }}
-                        />
-                      </Popover.Arrow>
-                      <Popover.Body p={2}>
-                        <VStack gap={1} align="stretch">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(src)}
-                          >
-                            <FiEdit2 />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            colorScheme="red"
-                            onClick={() => handleDelete(src)}
-                          >
-                            <FiTrash2 />
-                          </Button>
-                        </VStack>
-                      </Popover.Body>
-                    </Popover.Content>
+                    <Popover.Positioner>
+                      <Popover.Content width="64px" height="100px" p={1} borderColor="blackAlpha.600" _dark={{ borderColor: "whiteAlpha.600" }} borderWidth={1}>
+                        <Popover.Arrow>
+                          <Popover.ArrowTip
+                            borderColor="blackAlpha.600" borderWidth={1} _dark={{ borderColor: "whiteAlpha.600" }} />
+                        </Popover.Arrow>
+                        <Popover.Body p={2}>
+                          <VStack gap={1} align="stretch">
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(src)}>
+                              <FiEdit2 />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              colorScheme="red"
+                              onClick={() => handleDelete(src)}
+                            >
+                              <FiTrash2 />
+                            </Button>
+                          </VStack>
+                        </Popover.Body>
+                      </Popover.Content>
+                    </Popover.Positioner>
                   </Popover.Root>
                 </Box>
               </Flex>
@@ -270,6 +251,11 @@ export default function SourcesPageClient({
           setSelectedSource(undefined);
           closeCE();
         }}
+      />
+      <DeleteSourceDialog
+        isOpen={isDelOpen}
+        onClose={closeDel}
+        source={toDelete}
       />
     </Box>
   );

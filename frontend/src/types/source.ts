@@ -5,17 +5,24 @@ interface JsonObject { [key: string]: JsonValue; }
 
 export interface Source {
   id: number;
-  project_id: string;
-  location_id: string;
+  mon_loc_id: string;
   source_name: string;
   folder_path: string;
   file_keyword: string;
   file_type: string;
   source_type: string;
-  config: JsonObject;
-  last_data_upload: JsonObject;
+  config: string;
+  last_data_upload: string;
   active: number;
   last_updated: string;        // ISO-formatted timestamp (e.g. "2025-06-05T12:34:56Z")
+
+  details?: {
+    loc_number?: string;
+    loc_name:    string;
+    project_id: string;
+    project_number?: string;
+    project_name: string;
+  };
 }
 
 /**

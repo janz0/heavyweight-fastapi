@@ -42,15 +42,26 @@ export function CreateSourceWizard({ isOpen, onClose, source }: CreateSourceWiza
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [projectIds, setProjectIds] = useState<string[]>(source ? [source.project_id] : []);
-  const [locationIds, setLocationIds] = useState<string[]>(source ? [source.location_id] : []);
-  const [interval, setInterval] = useState<string>(source?.config?.interval != null ? String(source.config.interval) : "")
+  const [projectIds, setProjectIds] = useState<string[]>(source?.details ? [source.details.project_id] : []);
+  const [locationIds, setLocationIds] = useState<string[]>(source ? [source.mon_loc_id] : []);
   const [sourceName, setSourceName] = useState<string>(source?.source_name || "");
   const [folderPath, setFolderPath] = useState<string>(source?.folder_path || "");
   const [fileKeyword, setFileKeyword] = useState<string>(source?.file_keyword || "");
   const [fileType, setFileType] = useState<string>(source?.file_type || "");
   const [sourceType, setSourceType] = useState<string>(source?.source_type || "");
   const [active, setActive] = useState<boolean>(source ? source.active === 1 : true);
+  const [interval, setInterval] = useState<string>(() => {
+    if (!source) return "";
+    try {
+      const cfg =
+        typeof source.config === "string"
+          ? JSON.parse(source.config)
+          : source.config as { interval?: string };
+      return cfg.interval ?? "";
+    } catch {
+      return "";
+    }
+  });
 
   useEffect(() => {
     listProjects()
@@ -141,6 +152,45 @@ export function CreateSourceWizard({ isOpen, onClose, source }: CreateSourceWiza
       });
     }
   };
+
+  useEffect(() => {
+    if (source) {
+      // pull project_id out of details, and mon_loc_id for location
+      setProjectIds(source.details ? [source.details.project_id] : []);
+      setLocationIds([source.mon_loc_id]);
+
+      // map the rest of the fields
+      setSourceName(source.source_name);
+      setFolderPath(source.folder_path);
+      setFileKeyword(source.file_keyword);
+      setFileType(source.file_type);
+      setSourceType(source.source_type);
+
+      // parse config.interval again on prop change
+      try {
+        const cfg =
+          typeof source.config === "string"
+            ? JSON.parse(source.config)
+            : source.config as { interval?: string };
+        setInterval(cfg.interval ?? "");
+      } catch {
+        setInterval("");
+      }
+
+      setActive(source.active === 1);
+    } else {
+      // clearing for “create” mode
+      setProjectIds([]);
+      setLocationIds([]);
+      setSourceName("");
+      setFolderPath("");
+      setFileKeyword("");
+      setFileType("");
+      setSourceType("");
+      setInterval("");
+      setActive(true);
+    }
+  }, [source]);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
