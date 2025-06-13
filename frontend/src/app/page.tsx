@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Breadcrumb } from "@/app/components/Breadcrumb";
 import { toaster } from "@/components/ui/toaster";
 import { Box, Button, Flex, Heading, IconButton, Input, Spinner, Text, VStack } from "@chakra-ui/react";
-import { Eye, EyeSlash, Warning, FolderSimple } from "phosphor-react";
+import { Eye, EyeSlash, Warning, FolderSimple, ArrowsLeftRight } from "phosphor-react";
 import { Chart as ChartJS, CategoryScale, LinearScale, Legend, LineElement, PointElement, Title, Tooltip } from "chart.js";
 import { Line } from "react-chartjs-2";
 
@@ -154,6 +154,10 @@ function Dashboard() {
     router.push("/projects");
   };
 
+  const goToSources = () => {
+    router.push("/sources");
+  }
+
   return (
     <Box minH="100vh">
       {/* Breadcrumb */}
@@ -180,6 +184,15 @@ function Dashboard() {
                 <VStack align="start" gap={0}>
                   <Text fontSize="md">Projects</Text>
                   <Text fontSize="2xl" fontWeight="bold">5</Text>
+                </VStack>
+              </Flex>
+            </Box>
+            <Box as="button" onClick={goToSources} flex="1" className="info-card shadow-md">
+              <Flex align="center">
+                <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><ArrowsLeftRight size={32} /></Box>
+                <VStack align="start" gap={0}>
+                  <Text fontSize="md">Sources</Text>
+                  <Text fontSize="2xl" fontWeight="bold">3</Text>
                 </VStack>
               </Flex>
             </Box>

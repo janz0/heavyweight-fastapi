@@ -4,35 +4,35 @@ from uuid import UUID
 from datetime import datetime
 
 class SourceBase(BaseModel):
-    mon_loc_id: Optional[UUID]
-    source_name: Optional[str]
+    mon_loc_id: Optional[UUID] = None
+    source_name: Optional[str] = None
     folder_path: str
     file_keyword: str
     file_type: str
-    source_type: Optional[str]
-    config: Optional[str]
-    last_data_upload: Optional[str]
+    source_type: Optional[str] = None
+    config: Optional[str] = None
+    last_data_upload: Optional[str] = None
     active: Optional[int] = 1
 
 class SourceCreate(SourceBase):
     pass
 
 class SourceUpdate(BaseModel):
-    mon_loc_id: Optional[UUID]
-    source_name: Optional[str]
-    folder_path: Optional[str]
-    file_keyword: Optional[str]
-    file_type: Optional[str]
-    source_type: Optional[str]
-    config: Optional[str]
-    last_data_upload: Optional[str]
-    active: Optional[int]
+    mon_loc_id: Optional[UUID] = None
+    source_name: Optional[str] = None
+    folder_path: Optional[str] = None
+    file_keyword: Optional[str] = None
+    file_type: Optional[str] = None
+    source_type: Optional[str] = None
+    config: Optional[str] = None
+    last_data_upload: Optional[str] = None
+    active: Optional[int] = None
 
 class SourceMetadata(BaseModel):
-    loc_number: Optional[str]
+    loc_number: Optional[str] = None
     loc_name: str
     project_id: UUID
-    project_number: Optional[str]
+    project_number: Optional[str] = None
     project_name: str
 
     class Config:
@@ -41,8 +41,7 @@ class SourceMetadata(BaseModel):
 class Source(SourceBase):
     id: UUID
     last_updated: datetime
-    details: Optional[SourceMetadata]
+    details: Optional[SourceMetadata] = None
 
     class Config:
         from_attributes  = True
-
