@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 from app.common.dependencies import get_db
 from app.monitoring_source import schemas, services, selectors
 
@@ -16,21 +17,21 @@ def list_sources(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     return [services.enrich_source(src) for src in sources]
 
 @router.get("/{source_id}", response_model=schemas.Source)
-def get_source(source_id: int, db: Session = Depends(get_db)):
+def get_source(source_id: UUID, db: Session = Depends(get_db)):
     src = selectors.get_source(db, source_id)
     if not src:
         raise HTTPException(status_code=404, detail="Source not found")
     return services.enrich_source(src)
 
 @router.patch("/{source_id}", response_model=schemas.Source)
-def update_source(source_id: int, payload: schemas.SourceUpdate, db: Session = Depends(get_db)):
+def update_source(source_id: UUID, payload: schemas.SourceUpdate, db: Session = Depends(get_db)):
     obj = services.update_source(db, source_id, payload)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Source not found")
     return obj
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_source(source_id: int, db: Session = Depends(get_db)):
+def delete_source(source_id: UUID, db: Session = Depends(get_db)):
     if not selectors.get_source(db, source_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Source not found")
     services.delete_source(db, source_id)

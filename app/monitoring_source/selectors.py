@@ -2,9 +2,10 @@ from app.monitoring_source.models import Source
 from app.location.models import Location
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
+from uuid import UUID
 
 
-def get_source(db: Session, source_id: int) -> Optional[Source]:
+def get_source(db: Session, source_id: UUID) -> Optional[Source]:
     return (
         db.query(Source)
         .options(joinedload(Source.mon_loc).joinedload(Location.project))

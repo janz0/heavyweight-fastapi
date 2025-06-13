@@ -2,6 +2,7 @@ from typing import Optional
 from app.monitoring_source.models import Source
 from app.monitoring_source import schemas, selectors
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 def create_source(db: Session, payload: schemas.SourceCreate) -> Source:
     obj = Source(**payload.dict())
@@ -10,7 +11,7 @@ def create_source(db: Session, payload: schemas.SourceCreate) -> Source:
     db.refresh(obj)
     return obj
 
-def update_source(db: Session, source_id: int, payload: schemas.SourceUpdate) -> Optional[Source]:
+def update_source(db: Session, source_id: UUID, payload: schemas.SourceUpdate) -> Optional[Source]:
     obj = selectors.get_source(db, source_id)
     if not obj:
         return None
@@ -20,7 +21,7 @@ def update_source(db: Session, source_id: int, payload: schemas.SourceUpdate) ->
     db.refresh(obj)
     return obj
 
-def delete_source(db: Session, source_id: int) -> None:
+def delete_source(db: Session, source_id: UUID) -> None:
     obj = selectors.get_source(db, source_id)
     if obj:
         db.delete(obj)

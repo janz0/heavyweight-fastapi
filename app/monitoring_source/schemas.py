@@ -39,7 +39,7 @@ class SourceMetadata(BaseModel):
         from_attributes  = True
 
 class Source(SourceBase):
-    id: int
+    id: UUID
     last_updated: datetime
     details: Optional[SourceMetadata]
 

@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from app.config.database import DBBase
 from app.monitoring_source.models import Source
+from app.monitoring_group.models import MonitoringGroup
 
 class Location(DBBase):
     __tablename__ = "mon_loc"
@@ -26,4 +27,5 @@ class Location(DBBase):
         back_populates="mon_locs",
     )
 
-    sources = relationship(Source, back_populates="mon_loc", lazy="selectin")
+    mon_sources = relationship(Source, back_populates="mon_loc", lazy="selectin")
+    mon_loc_groups = relationship(MonitoringGroup, back_populates="mon_loc", lazy="selectin")
