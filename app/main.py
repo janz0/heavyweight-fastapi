@@ -12,6 +12,8 @@ from app.common.security import login_for_access_token, get_current_user
 from app.common.dependencies import get_db
 from app.common import schemas
 
+from app.kafka_producer import init_producer
+
 # Import your new modules’ routers
 from app.user.apis import router as user_router
 from app.project.apis import router as project_router
@@ -31,6 +33,8 @@ async def lifespan(_: FastAPI):
     """This is the startup and shutdown code for the FastAPI application."""
     # Startup code
     print("System Call: Enhance Armament x_x")  # SAO Reference
+
+    init_producer()
 
     # Bigger Threadpool i.e you send a bunch of requests it will handle a max of 1000 at a time, the default is 40
     limiter = to_thread.current_default_thread_limiter()
