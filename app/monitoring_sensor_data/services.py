@@ -4,7 +4,8 @@ from datetime import datetime
 from uuid import UUID
 from app.monitoring_sensor_data import schemas, selectors
 from app.monitoring_sensor_data.models import MonitoringSensorData
-from app.models import MonitoringSensor, MonitoringSensorField
+from app.monitoring_sensor.models import MonitoringSensor
+from app.monitoring_sensor_fields import models as MonitoringSensorField
 from app.kafka_producer import send_kafka_message  # use this
 
 KAFKA_TOPIC = "sensor.readings"

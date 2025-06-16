@@ -1,9 +1,8 @@
 """This module contains the settings for the application."""
 
 from functools import lru_cache
-import os
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     """The settings for the application."""
@@ -15,15 +14,20 @@ class Settings(BaseSettings):
     # DB Settings
     POSTGRES_DATABASE_URL: str
 
-    class Config:
-        """The configuration for the settings."""
+    # Kafka Settings
+    KAFKA_BROKER: str = "kafka.railway.internal:29092"
+    KAFKA_TOPIC: str = "sensor.readings"
+    KAFKA_CLIENT_ID: str = "fastapi-kafka"
 
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="forbid"
+    )
+
 
 @lru_cache
 def get_settings():
-    """This function returns the settings obj for the application."""
+    """Returns a cached Settings instance."""
     s = Settings()
-    # If you really want to log it, do it here:
     print("🔑 Loaded POSTGRES_DATABASE_URL:", s.POSTGRES_DATABASE_URL)
-    return Settings()
+    return s
