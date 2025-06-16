@@ -3,6 +3,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from app.config.database import DBBase
 from sqlalchemy.orm import relationship
+from app.monitoring_sensor_fields.models import MonitoringSensorField
 
 class MonitoringSensor(DBBase):
     __tablename__ = "mon_sensors"
@@ -25,3 +26,5 @@ class MonitoringSensor(DBBase):
         "MonitoringGroup",
         back_populates="mon_sensors"
     )
+
+    fields = relationship(MonitoringSensorField, back_populates="sensor", cascade="all, delete-orphan")

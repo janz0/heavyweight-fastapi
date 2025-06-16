@@ -1,0 +1,11 @@
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from uuid import UUID
+from app.monitoring_sensor_fields.models import MonitoringSensorField
+
+
+def get_sensor_field(db: Session, field_id: UUID) -> Optional[MonitoringSensorField]:
+    return db.query(MonitoringSensorField).filter(MonitoringSensorField.id == field_id).first()
+
+def get_sensor_fields(db: Session, sensor_id: UUID) -> List[MonitoringSensorField]:
+    return db.query(MonitoringSensorField).filter(MonitoringSensorField.sensor_id == sensor_id).all()
