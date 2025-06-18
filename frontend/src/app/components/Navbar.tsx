@@ -34,10 +34,11 @@ export default function Navbar() {
           <IconButton size="md" aria-label="Toggle menu" display={{ md: "none" }} onClick={navOpen ? closeNav : openNav} variant="ghost">
             {navOpen ? <X size={24} /> : <Menu size={24} />}
           </IconButton>
-
-          <Box fontWeight="bold" fontSize="xl">
-            RWH Monitoring
-          </Box>
+          <NextLink href={"/"}>
+            <Box fontWeight="bold" fontSize="xl">
+              RWH Monitoring
+            </Box>
+          </NextLink>
           <HStack gap={8} align="center" display={{ base: "none", md: "flex" }}>
             {!authToken && (
               <>

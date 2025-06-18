@@ -38,7 +38,7 @@ export default function SourcesPageClient({
   // (3) local state of sources so we could add search/filter later
   const [sources, setSources] = useState<Source[]>(initialSources);
   // (4) handle popover open state per‐row
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     setHydrated(true);

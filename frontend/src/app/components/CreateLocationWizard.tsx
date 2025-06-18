@@ -20,7 +20,7 @@ import type { Location, LocationPayload } from '@/types/location';
 interface CreateLocationWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId: string;
+  projectId?: string;
   /** When provided, we'll pre-fill and switch into "edit" mode */
   location?: Location;
 }
@@ -77,13 +77,13 @@ export function CreateLocationWizard({
       return;
     }
     const payload: LocationPayload = {
-      project_id: projectId,
       loc_name: locName,
       lat: latNum,
       lon: lonNum,
       frequency,
       active,
     };
+    if (projectId) payload.project_id = projectId;
     if (locNumber) payload.loc_number = locNumber;
 
     try {

@@ -16,7 +16,7 @@ html[style*="color-scheme: dark"] .shadow-md {
 .info-card {
   cursor: pointer;
   padding: 24px;
-  border-radius: 24px;
+  border-radius: 4px;
   outline-width: 24px;
   outline: 1px solid;
 }
@@ -31,12 +31,12 @@ html[style*="color-scheme: dark"] .info-card:hover {
 }
 
 .info-card:active {
-  background: "whiteAlpha.800";
+  color: "white";
   transform: translateY(-1px);
 }
 
 .c-card {
-  border-radius: 24px;
+  border-radius: 4px;
   outline-width: 24px;
   outline: 1px solid;
 }
@@ -51,6 +51,7 @@ html[style*="color-scheme: dark"] .info-card:hover {
   overflow: hidden;
   text-transform: uppercase;
   transition: all 0.3s ease;
+  margin-inline: 5px;
 }
 
 .breadcrumb:hover {

@@ -31,7 +31,7 @@ export default function SourcesPageClient({
   const [sources, setSources] = useState<Source[]>(initialSources);
 
   // (4) handle popover open state per‐row
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     setHydrated(true);
@@ -59,9 +59,9 @@ export default function SourcesPageClient({
   }, [toDelete, setSources]);
   
   return (
-    <Box px={6} py={4}>
+    <Box px={6}>
       <Breadcrumb crumbs={[{label: "Dashboard", href: "/"}]} />
-      <Box p={6} mb={6} className="c-card shadow-md">
+      <Box p={3} mb={2} className="c-card shadow-md">
         <Heading as="h2" size="lg">
           Sources
         </Heading>
@@ -85,10 +85,10 @@ export default function SourcesPageClient({
         <Flex>
           <Box flex="1">
             <Flex>
-              <Box flex="2">
+              <Box flex="1">
                 <Text fontWeight="bold">Source Name</Text>
               </Box>
-              <Box flex="3">
+              <Box flex="2">
                 <Text fontWeight="bold">Location</Text>
               </Box>
               <Box flex="1" textAlign="center">
@@ -136,16 +136,16 @@ export default function SourcesPageClient({
                 key={src.id}
                 align="center"
                 as="a"
-                py={4}
+                py={2}
                 className="info-card shadow-md"
               >
                 <Box flex="1">
                   {/* Entire row is a link to the “view source” page */}
-                  <Flex cursor="pointer">
-                    <Box flex="2">
+                  <Flex cursor="pointer" fontSize={"sm"}>
+                    <Box flex="1">
                       <Text fontWeight="medium">{src.source_name}</Text>
                     </Box>
-                    <Box flex="3">
+                    <Box flex="2">
                       <Text fontWeight="medium">{src.details?.loc_name ?? "(no location)"}</Text>
                     </Box>
                     <Box flex="1" textAlign="center">

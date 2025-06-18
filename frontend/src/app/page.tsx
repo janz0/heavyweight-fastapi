@@ -1,18 +1,36 @@
 // File: app/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-import { Breadcrumb } from "@/app/components/Breadcrumb";
-import { toaster } from "@/components/ui/toaster";
-import { Box, Button, Flex, Heading, IconButton, Input, Spinner, Text, VStack } from "@chakra-ui/react";
-import { Eye, EyeSlash, Warning, FolderSimple, ArrowsLeftRight } from "phosphor-react";
-import { Chart as ChartJS, CategoryScale, LinearScale, Legend, LineElement, PointElement, Title, Tooltip } from "chart.js";
+import {
+  Box,
+  Flex,
+  Text,
+  VStack,
+  Spinner,
+  Heading,
+  Button,
+  IconButton,
+  Input,
+} from "@chakra-ui/react";
+import { useColorMode } from "./src/components/ui/color-mode";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import { Line } from "react-chartjs-2";
-
 import { useAuth } from "@/lib/auth";
 import { loginUser } from "@/services/auth";
+import { listProjects } from "@/services/projects";
+import { listSources } from "@/services/sources";
+import { Eye, EyeSlash } from "phosphor-react";
 
 ChartJS.register(
   CategoryScale,
@@ -26,10 +44,10 @@ ChartJS.register(
 
 // ---------------------------------------
 // 1. LoginForm: shows email/password + toggles visibility.
-//    On submit, it calls loginUser(...) and then useAuth().signIn(...) on success.
 // ---------------------------------------
 function LoginForm() {
   const { signIn } = useAuth();
+  const { colorMode } = useColorMode();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,40 +56,34 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { access_token } = await loginUser(email, password);
-
-      // Inform AuthProvider immediately:
       signIn(access_token);
-
-      toaster.create({
-        title: "Signed in successfully",
-        duration: 3000,
-        closable: true,
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toaster.create({
-        title: "Login Error",
-        description: msg,
-        duration: 4000,
-        closable: true,
-      });
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Flex justify="center" align="center" minH="100vh">
-      <Box p={8} borderRadius="md" borderWidth="1px" boxShadow="0px 1px 6px 2px rgb(0, 0, 0)" maxW="md" w="100%" bg="black" color="white" _dark={{bg: "white", color: "black", boxShadow: "0px 1px 6px 2px rgb(255, 255, 255)"}}>
+    <Flex justify="center" align="center" minH="100vh"
+      bg={colorMode === 'light' ? 'gray.100' : 'gray.800'}
+    >
+      <Box
+        bg={colorMode === 'light' ? 'white' : 'gray.700'}
+        color={colorMode === 'light' ? 'gray.800' : 'gray.200'}
+        p={8}
+        borderRadius="md"
+        boxShadow="md"
+        w="full"
+        maxW="md"
+      >
         <Heading as="h2" size="lg" mb={6} textAlign="center">
           Sign In
         </Heading>
         <form onSubmit={handleSubmit}>
           <VStack gap={4} align="stretch">
-            {/* Email */}
             <Box>
               <Text mb={1} fontWeight="semibold">
                 Email
@@ -84,8 +96,6 @@ function LoginForm() {
                 required
               />
             </Box>
-
-            {/* Password */}
             <Box>
               <Text mb={1} fontWeight="semibold">
                 Password
@@ -99,29 +109,20 @@ function LoginForm() {
                   required
                 />
                 <IconButton
-                  aria-label={
-                    showPassword ? "Hide password" : "Show password"
-                  }
-                  size="sm"
                   ml={2}
-                  background={"white"}
-                  color="black"
-                  _dark={{background: "black", color: "white"}}
-                  onClick={() => setShowPassword((prev) => !prev)}
+                  size="sm"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </IconButton>
               </Flex>
             </Box>
-
-            {/* Submit */}
             <Button
               type="submit"
               loading={loading}
               loadingText="Signing in…"
-              background={"white"}
-              color={"black"}
-              _dark={{background: "black", color: "white"}}
+              colorScheme="blue"
             >
               Sign In
             </Button>
@@ -137,104 +138,112 @@ function LoginForm() {
 // ---------------------------------------
 function Dashboard() {
   const router = useRouter();
+  const { colorMode } = useColorMode();
 
-  const chartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-    datasets: [
-      {
-        data: [30, 45, 28, 50, 42, 60, 55],
-        fill: false,
-        tension: 0.4,
-        borderColor: "#FFA500",
-      },
-    ],
-  };
+  const [loading, setLoading] = useState(true);
+  const [activeProjects, setProjects] = useState(0);
+  const [totalLocations, setLocations] = useState(0);
+  const [onlineSensors, setSensors] = useState(0);
+  const [totalSources, setSources] = useState(0);
 
-  const goToProjects = () => {
-    router.push("/projects");
-  };
+  // derive theme tokens
+  const bg      = colorMode === 'light' ? 'gray.100' : 'gray.800';
+  const cardBg  = colorMode === 'light' ? 'white'    : 'gray.700';
+  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
+  const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
+  const accent  = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
-  const goToSources = () => {
-    router.push("/sources");
+  useEffect(() => {
+    (async () => {
+      try {
+        const projects = await listProjects();
+        setProjects(projects.filter(p => p.active === 1).length);
+        setLocations(projects.reduce((sum, p) => sum + (p.locations_count ?? 0), 0));
+
+        const sources = await listSources();
+        setSensors(
+          sources.filter(s => s.source_type === 'sensor' && s.active === 1).length
+        );
+        setSources(sources.length);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <Flex h="60vh" align="center" justify="center" bg={bg}>
+        <Spinner size="xl" color={accent} />
+      </Flex>
+    );
   }
 
+  const stats = [
+    { label: 'Active Projects', value: activeProjects, onClick: () => router.push('/projects') },
+    { label: 'Total Locations', value: totalLocations, onClick: () => router.push('/locations') },
+    { label: 'Online Sensors',  value: onlineSensors, onClick: () => router.push('/sensors')},
+    { label: 'Sources',         value: totalSources,    onClick: () => router.push('/sources') },
+    { label: 'Open Alerts',     value: 0 },
+  ];
+
+  // chart data
+  const chartData = {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
+    datasets: [
+      {
+        data: [30,45,28,50,42,60,55],
+        fill: false,
+        tension: 0.4,
+        borderColor: accent,
+        pointBackgroundColor: accent,
+      }
+    ]
+  };
+
   return (
-    <Box minH="100vh">
-      {/* Breadcrumb */}
-      <Breadcrumb crumbs={[{label: "Dashboard", href: "/"}]} />
-      {/* Welcome */}
-      <Box px={6} pt={4}>
-        <Text fontSize="2xl" fontWeight="bold">
-          Welcome!
-        </Text>
-        <Text mt={1}>
-          Here’s your real-time monitoring dashboard.
-        </Text>
-      </Box>
+    <Box minH="100vh" p={6} bg={bg} color={text}>
+      {/* Header */}
+      <Flex mb={6} justify="space-between" align="center">
+        <Heading size="lg">RWH Monitoring</Heading>
+      </Flex>
 
-      {/* Main Content */}
-      <Flex px={6} py={4} gap={4}>
-        {/* Left Column */}
-        <Box flex="2">
-          {/* Top Cards -- Projects & Error Rate*/}
-          <Flex gap={4} mb={4}>
-            <Box as="button" onClick={goToProjects} flex="1" className="info-card shadow-md" cursor="pointer">
-              <Flex align="center">
-                <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><FolderSimple size={32} /></Box>
-                <VStack align="start" gap={0}>
-                  <Text fontSize="md">Projects</Text>
-                  <Text fontSize="2xl" fontWeight="bold">5</Text>
-                </VStack>
-              </Flex>
-            </Box>
-            <Box as="button" onClick={goToSources} flex="1" className="info-card shadow-md">
-              <Flex align="center">
-                <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><ArrowsLeftRight size={32} /></Box>
-                <VStack align="start" gap={0}>
-                  <Text fontSize="md">Sources</Text>
-                  <Text fontSize="2xl" fontWeight="bold">3</Text>
-                </VStack>
-              </Flex>
-            </Box>
-            <Box as="button" flex="1" className="info-card shadow-md">
-              <Flex align="center">
-                <Box bg="orange.500" p={3} borderRadius="lg" mr={4}><Warning size={32} /></Box>
-                <VStack align="start" gap={0}>
-                  <Text fontSize="md">Error Rate</Text>
-                  <Text fontSize="2xl" fontWeight="bold">0.3%</Text>
-                </VStack>
-              </Flex>
-            </Box>
-          </Flex>
-
-          {/* Requests Per Second Graph */}
-          <Box className="info-card shadow-md" flex="1">
-            <Text fontSize="xl" mb={2} fontWeight="semibold">Requests Per Second</Text>
-            <Line data={chartData} />
+      {/* Metrics */}
+      <Flex wrap="wrap" gap={4} mb={6}>
+        {stats.map((s) => (
+          <Box
+            key={s.label}
+            flex="1"
+            minW="150px"
+            bg={cardBg}
+            p={4}
+            borderRadius="md"
+            boxShadow="sm"
+            _hover={{ boxShadow: 'md' }}
+            onClick={s.onClick}
+            cursor={s.onClick ? 'pointer' : 'default'}
+          >
+            <Text fontSize="sm" color={textSub}>{s.label}</Text>
+            <Text fontSize="2xl" fontWeight="bold" color={accent}>{s.value}</Text>
           </Box>
+        ))}
+      </Flex>
 
-          {/* Get Started */}
-          <Box p={4} borderRadius="md" mt={4}>
-            <Heading as="h3" size="md" mb={2}>
-              Get Started
-            </Heading>
-            <VStack align="start" gap={1} pl={2}>
-              <Text>• Configure alerts</Text>
-              <Text>• Connect data source</Text>
-              <Text>• View tutorial</Text>
-            </VStack>
-          </Box>
+      {/* Main Chart & Side Panels */}
+      <Flex direction={['column','row']} gap={6}>
+        {/* Chart */}
+        <Box flex="3" bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
+          <Text fontSize="lg" mb={4}>Requests Per Second</Text>
+          <Line data={chartData} options={{ maintainAspectRatio: true } } />
         </Box>
 
-        {/* Right Column */}
-        <Box flex="1">
-          {/* Recent Alerts */}
-          <Box
-            className="info-card shadow-md"
-            mb={4}
-          >
-            <Heading as="h3" size="md" mb={2}>Recent Alerts</Heading>
-            <VStack align="start" gap={1} pl={2}>
+        {/* Alerts & Maintenance */}
+        <Flex direction="column" flex="1" gap={6}>
+          <Box bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
+            <Text fontSize="lg" mb={2}>Recent Alerts</Text>
+            <VStack align="start" gap={1} color={textSub}>
               <Text>• Server CPU usage is high</Text>
               <Text>• Database response time is slow</Text>
               <Text>• New user registered</Text>
@@ -242,18 +251,15 @@ function Dashboard() {
             </VStack>
           </Box>
 
-          {/* Next Steps */}
-          <Box className="info-card shadow-md">
-            <Heading as="h3" size="md" mb={2}>
-              Next Steps
-            </Heading>
-            <VStack align="start" gap={1} pl={2}>
+          <Box bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
+            <Text fontSize="lg" mb={2}>Upcoming Maintenance</Text>
+            <VStack align="start" gap={1} color={textSub}>
               <Text>• Configure alerts</Text>
               <Text>• Connect data source</Text>
               <Text>• View tutorial</Text>
             </VStack>
           </Box>
-        </Box>
+        </Flex>
       </Flex>
     </Box>
   );
@@ -265,7 +271,6 @@ function Dashboard() {
 export default function Page() {
   const { authToken, isChecking } = useAuth();
 
-  // While verifying localStorage, show a spinner
   if (isChecking) {
     return (
       <Flex justify="center" align="center" minH="100vh">
@@ -274,11 +279,5 @@ export default function Page() {
     );
   }
 
-  // If not authenticated, render login form
-  if (!authToken) {
-    return <LoginForm />;
-  }
-
-  // Otherwise render dashboard
-  return <Dashboard />;
+  return authToken ? <Dashboard /> : <LoginForm />;
 }

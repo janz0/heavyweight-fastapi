@@ -3,6 +3,7 @@
 export interface Location {
   id: string;
   project_id: string;         // ties to Project.id
+  project_name?: string;
   loc_name: string;      // or whatever you call it
   loc_number: string | null;
   lat: number;
@@ -16,7 +17,7 @@ export interface Location {
 
 // And the payload you send when creating/updating:
 export interface LocationPayload {
-  project_id:   string;
+  project_id?:   string;
   loc_name: string;
   loc_number?: string;
   lat:     number;
