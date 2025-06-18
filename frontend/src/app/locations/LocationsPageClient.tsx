@@ -4,6 +4,7 @@
 import { useState, useMemo } from "react";
 import {
   Box,
+  Button,
   Flex,
   Heading,
   Text,
@@ -30,6 +31,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
 interface Props {
   locations: Location[];
   onEdit?: (location: Location) => void;
+  onCreate?: () => void;
 }
 
 // Column definition with label override
@@ -48,7 +50,7 @@ const columns: Column[] = [
   { key: 'last_inspected', label: 'Inspected' },
 ];
 
-export default function LocationsPageClient({ locations, onEdit }: Props) {
+export default function LocationsPageClient({ locations, onEdit, onCreate }: Props) {
   const { colorMode } = useColorMode();
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Location;
@@ -184,6 +186,12 @@ export default function LocationsPageClient({ locations, onEdit }: Props) {
           </Table.Body>
         </Table.Root>
       </Box>
+      <Flex justify="flex-end" mr={12}>
+        <Button onClick={onCreate}>
+          + New Location
+        </Button>
+        
+      </Flex>
     </Box>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FormEvent, useState, useEffect } from 'react';
+import React, { FormEvent, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -11,9 +11,13 @@ import {
   Switch,
   IconButton,
   Field,
+  Select,
+  createListCollection,
 } from '@chakra-ui/react';
 import { X } from 'lucide-react';
 import { toaster } from '@/components/ui/toaster';
+import { listProjects } from "@/services/projects";
+import type { Project } from "@/types/project";
 import { createLocation, updateLocation } from '@/services/locations';
 import type { Location, LocationPayload } from '@/types/location';
 
@@ -37,6 +41,7 @@ export function CreateLocationWizard({
   const router     = useRouter();
 
   // form state
+  const [projects, setProjects] = useState<Project[]>([]);
   const [projectId,    setProjectId]    = useState(initialProjectId);
   const [locName,      setLocName]      = useState(location?.loc_name ?? '');
   const [locNumber, setLocNumber]       = useState(location?.loc_number ?? '');
@@ -65,6 +70,28 @@ export function CreateLocationWizard({
       setActive(1);
     }
   }, [location, initialProjectId]);
+
+  const projectCollection = useMemo(() => 
+  createListCollection({
+    items: projects.map((p) => ({
+      label: p.project_name,
+      value: p.id
+    }))
+  }), 
+  [projects]
+);
+
+  useEffect(() => {
+    listProjects()
+      .then((data) => setProjects(data))
+      .catch((err) => {
+        console.error("Failed to load projects", err);
+        toaster.create({
+          description: "Failed to load projects",
+          type: "error",
+        });
+      });
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -158,7 +185,35 @@ export function CreateLocationWizard({
                     onChange={(e) => setLocNumber(e.target.value)}
                   />
                 </Field.Root>
-
+                <Field.Root required mb={4}>
+                  <Field.Label>Project</Field.Label>
+                  <Select.Root
+                    collection={projectCollection}
+                    value={projectId ? [projectId] : []}
+                    onValueChange={(e) => setProjectId(e.value[0])}
+                    disabled={!!initialProjectId}
+                  >
+                    <Select.HiddenSelect />
+                    <Select.Control>
+                      <Select.Trigger bg="#29374B">
+                        <Select.ValueText placeholder="Select project" color="white" />
+                      </Select.Trigger>
+                      <Select.IndicatorGroup>
+                        <Select.ClearTrigger />
+                        <Select.Indicator />
+                      </Select.IndicatorGroup>
+                    </Select.Control>
+                    <Select.Positioner>
+                      <Select.Content>
+                        {projectCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item} color="black" _dark={{color: "white", _hover: {outlineColor: "white"}}} _hover={{outlineStyle: "solid", outlineColor: "black", outlineWidth: 1}}>
+                            {item.label}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Select.Root>
+                </Field.Root>
                 <HStack gap={4} mb={4}>
                   <Field.Root required>
                     <Field.Label>Latitude</Field.Label>

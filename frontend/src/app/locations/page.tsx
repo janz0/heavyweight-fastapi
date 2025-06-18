@@ -57,6 +57,10 @@ export default function SensorsPage() {
           setEditingLocation(location);
           setWizardOpen(true);
         }}
+        onCreate={() => {
+          setEditingLocation(undefined);
+          setWizardOpen(true);
+        }}
       />
 
       <CreateLocationWizard

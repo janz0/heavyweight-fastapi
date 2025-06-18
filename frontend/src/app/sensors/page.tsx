@@ -58,6 +58,10 @@ export default function SensorsPage() {
           setEditingSensor(sensor);
           setWizardOpen(true);
         }}
+        onCreate={() => {
+          setEditingSensor(undefined);
+          setWizardOpen(true);
+        }}
       />
 
       <CreateSensorWizard

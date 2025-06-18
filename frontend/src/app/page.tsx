@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import {
   Box,
   Flex,
@@ -14,6 +13,7 @@ import {
   IconButton,
   Input,
 } from "@chakra-ui/react";
+import { Tooltip } from "@/app/src/components/ui/tooltip";
 import { useColorMode } from "./src/components/ui/color-mode";
 import {
   Chart as ChartJS,
@@ -22,7 +22,7 @@ import {
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
@@ -30,7 +30,10 @@ import { useAuth } from "@/lib/auth";
 import { loginUser } from "@/services/auth";
 import { listProjects } from "@/services/projects";
 import { listSources } from "@/services/sources";
+import { listSensors } from "@/services/sensors";
 import { Eye, EyeSlash } from "phosphor-react";
+import { Info } from "phosphor-react";
+import Link from "next/link";
 
 ChartJS.register(
   CategoryScale,
@@ -38,7 +41,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   Title,
-  Tooltip,
+  ChartTooltip,
   Legend
 );
 
@@ -137,11 +140,11 @@ function LoginForm() {
 // 2. Dashboard: Only visible once logged in.
 // ---------------------------------------
 function Dashboard() {
-  const router = useRouter();
   const { colorMode } = useColorMode();
 
   const [loading, setLoading] = useState(true);
   const [activeProjects, setProjects] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
   const [totalLocations, setLocations] = useState(0);
   const [onlineSensors, setSensors] = useState(0);
   const [totalSources, setSources] = useState(0);
@@ -158,13 +161,15 @@ function Dashboard() {
       try {
         const projects = await listProjects();
         setProjects(projects.filter(p => p.active === 1).length);
+        setTotalProjects(projects.length);
         setLocations(projects.reduce((sum, p) => sum + (p.locations_count ?? 0), 0));
-
+        
         const sources = await listSources();
-        setSensors(
-          sources.filter(s => s.source_type === 'sensor' && s.active === 1).length
-        );
         setSources(sources.length);
+
+        const sensors = await listSensors();
+        setSensors(sensors.filter(s => s.active === 1).length);
+        
       } catch (err) {
         console.error(err);
       } finally {
@@ -181,13 +186,13 @@ function Dashboard() {
     );
   }
 
-  const stats = [
-    { label: 'Active Projects', value: activeProjects, onClick: () => router.push('/projects') },
-    { label: 'Total Locations', value: totalLocations, onClick: () => router.push('/locations') },
-    { label: 'Online Sensors',  value: onlineSensors, onClick: () => router.push('/sensors')},
-    { label: 'Sources',         value: totalSources,    onClick: () => router.push('/sources') },
-    { label: 'Open Alerts',     value: 0 },
-  ];
+const stats = [
+  { label: 'Active Projects', value: activeProjects, href: '/projects' },
+  { label: 'Total Locations', value: totalLocations, href: '/locations' },
+  { label: 'Online Sensors',  value: onlineSensors, href: '/sensors' },
+  { label: 'Sources', value: totalSources, href: '/sources' },
+  { label: 'Open Alerts', value: 0 },
+];
 
   // chart data
   const chartData = {
@@ -213,21 +218,36 @@ function Dashboard() {
       {/* Metrics */}
       <Flex wrap="wrap" gap={4} mb={6}>
         {stats.map((s) => (
-          <Box
-            key={s.label}
-            flex="1"
-            minW="150px"
-            bg={cardBg}
-            p={4}
-            borderRadius="md"
-            boxShadow="sm"
-            _hover={{ boxShadow: 'md' }}
-            onClick={s.onClick}
-            cursor={s.onClick ? 'pointer' : 'default'}
-          >
-            <Text fontSize="sm" color={textSub}>{s.label}</Text>
-            <Text fontSize="2xl" fontWeight="bold" color={accent}>{s.value}</Text>
-          </Box>
+          <Link key={s.label} href={s.href || '#'} passHref style={{display: "contents"}}>
+            <Box
+              key={s.label}
+              flex="1"
+              minW="150px"
+              bg={cardBg}
+              p={4}
+              borderRadius="md"
+              boxShadow="sm"
+              _hover={{ boxShadow: 'md' }}
+            >
+              <Text fontSize="sm" color={textSub}>{s.label}
+                {s.label === 'Active Projects' && (
+                  <Box as="span" ml={1}>
+                    <Tooltip
+                      content={`${activeProjects} active of ${totalProjects} total`}
+                      showArrow
+                      openDelay={100}
+                      closeDelay={100}
+                    >
+                      <Box as="span" display="inline-flex" alignItems="center" cursor="pointer">
+                        <Info size={14} weight="bold" />
+                      </Box>
+                    </Tooltip>
+                  </Box>
+                )}
+              </Text>
+              <Text fontSize="2xl" fontWeight="bold" color={accent}>{s.value}</Text>
+            </Box>
+          </Link>
         ))}
       </Flex>
 
