@@ -14,23 +14,22 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ crumbs }: BreadcrumbProps) {
   return (
-    <Flex as="nav" aria-label="breadcrumb" justify="center" py={4}>
+    <Flex as="nav" aria-label="breadcrumb" justify="center" pt="2" pb="2">
       <Flex as="ul" listStyleType="none">
         {crumbs.map((crumb, idx) => (
           <Link href={crumb.href} passHref key={idx}>
             <Box
               as="a"
               fontSize={{ base: 'xs', md: 'sm' }}
-              px={{ base: 3, md: 6 }}
+              px={{ base: 3 }}
               py={2}
-              mx={1}
-              transform="skew(-21deg)"
+              transform="skew(-14deg)"
               color={"black"}
               _hover={{color: "white"}}
               _dark={{color: "white"}}
               className='breadcrumb'
             >
-              <Box transform="skew(21deg)" textAlign="center">
+              <Box transform="skew(14deg)" textAlign="center">
                 {crumb.label}
               </Box>
             </Box>

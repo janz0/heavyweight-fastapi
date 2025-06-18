@@ -4,15 +4,21 @@ from uuid import UUID
 from datetime import datetime
 
 class MonitoringSensorBase(BaseModel):
-    sensor_group_id: UUID
+    mon_source_id: UUID
+    sensor_group_id: Optional[UUID] = None
+    source_name: Optional[str] = None
     sensor_name: str
     sensor_type: str
     active: Optional[int] = 1
 
+    class Config:
+        orm_mode = True
+        
 class MonitoringSensorCreate(MonitoringSensorBase):
     pass
 
 class MonitoringSensorUpdate(BaseModel):
+    mon_source_id: Optional[UUID]
     sensor_group_id: Optional[UUID]
     sensor_name: Optional[str]
     sensor_type: Optional[str]

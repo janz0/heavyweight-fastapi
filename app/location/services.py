@@ -29,8 +29,6 @@ def delete_location(db: Session, loc_id: UUID) -> None:
         db.delete(obj)
         db.commit()
 
-# app/location/services.py  (or wherever makes sense)
-
 def list_locations_for_project(
     db: Session,
     project_id: UUID,

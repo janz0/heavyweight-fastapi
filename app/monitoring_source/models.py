@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, Float, Integer, DateTime, text, ForeignKey
+from sqlalchemy import Column, Text, Integer, DateTime, text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from app.config.database import DBBase
 from sqlalchemy.sql import func

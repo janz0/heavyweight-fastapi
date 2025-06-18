@@ -20,14 +20,25 @@ export async function getLocation(
 }
 
 export async function listLocations(
-  projectId: string
+  projectId?: string  // optional projectId
 ): Promise<Location[]> {
-  const res = await fetch(
-    `${PROJECTS_BASE}/${projectId}/locations?skip=0&limit=100`
-  );
-  if (!res.ok) throw new Error(`List failed (${res.status})`);
+  let url: string;
+
+  if (projectId) {
+    url = `${PROJECTS_BASE}/${projectId}/locations?skip=0&limit=100`;
+  } else {
+    url = `${BASE}/?skip=0&limit=100`;  // Adjust this endpoint as needed
+  }
+
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error(`List failed (${res.status})`);
+  }
+
   return (await res.json()) as Location[];
 }
+
 
 export async function createLocation(
   payload: LocationPayload

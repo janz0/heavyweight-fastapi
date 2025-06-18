@@ -21,10 +21,9 @@ class Location(DBBase):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    # reciprocal side of the relationship
     project = relationship(
         "Project",
-        back_populates="mon_locs",
+        back_populates="mon_locs"
     )
 
     mon_sources = relationship(Source, back_populates="mon_loc", lazy="selectin")

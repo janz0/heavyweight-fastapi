@@ -30,9 +30,6 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(project);
   const [selectedLocation, setSelectedLocation] = useState<Location | undefined>(undefined);
 
-  const [openId, setOpenId] = useState<string | null>(null);
-  const isOpen = openId === project.id;
-
   const handleEditProject = () => {
     setSelectedProject(project);
     onProjOpen();
@@ -69,7 +66,7 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
           </Heading>
           {/* grouped actions popover */}
           {/* grouped actions popover */}
-          <Popover.Root open={isOpen} onOpenChange={(next) => setOpenId(next ? project.id : null)} positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} closeOnEscape={false}>
+          <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
             <Popover.Trigger asChild>
               <IconButton
                 aria-label="More actions"
@@ -100,7 +97,6 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
                     <Button variant="ghost" size="sm"
                       onClick={() => {
                         handleEditProject();
-                        setOpenId(null);
                       }}
                     ><FiEdit2 />
                     </Button>
@@ -110,7 +106,6 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
                       colorScheme="red"
                       onClick={() => {
                         onDeleteOpen();
-                        setOpenId(null);
                       }}
                     >
                       <FiTrash2 />
@@ -219,7 +214,7 @@ export default function ProjectsPageClient({ project, initialLocations }: Props)
           
           onClick={onLocOpen}
         >
-          + New Project
+          + New Location
         </Button>
       </Flex>
       {/* Table Header */}

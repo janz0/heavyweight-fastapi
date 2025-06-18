@@ -241,7 +241,7 @@ export function CreateSourceWizard({ isOpen, onClose, source }: CreateSourceWiza
                     <Select.Positioner>
                       <Select.Content>
                         {projectCollection.items.map((item) => (
-                          <Select.Item key={item.value} item={item} color="black" _hover={{outlineStyle: "solid", outlineColor: "black", outlineWidth: 1}}>
+                          <Select.Item key={item.value} item={item} color="black" _dark={{color: "white", _hover: {outlineColor: "white"}}} _hover={{outlineStyle: "solid", outlineColor: "black", outlineWidth: 1}}>
                             {item.label}
                           </Select.Item>
                         ))}
@@ -257,11 +257,19 @@ export function CreateSourceWizard({ isOpen, onClose, source }: CreateSourceWiza
                     collection={locationCollection}
                     value={locationIds}
                     onValueChange={(e) => setLocationIds(e.value)}
+                    disabled={!projectIds[0]}
                   >
                     <Select.HiddenSelect />
                     <Select.Control>
                       <Select.Trigger bg="#29374C">
-                        <Select.ValueText placeholder="Select location" color="white"/>
+                        <Select.ValueText
+                          placeholder={
+                            !projectIds[0]
+                              ? "Select a project first"
+                              : "Select location"
+                          }
+                          color="white"
+                        />
                       </Select.Trigger>
                       <Select.IndicatorGroup>
                         <Select.ClearTrigger color="white"/>
@@ -384,13 +392,32 @@ export function CreateSourceWizard({ isOpen, onClose, source }: CreateSourceWiza
                 </Field.Root>
               </form>
             </Dialog.Body>
-
             <Dialog.Footer>
-              <Dialog.ActionTrigger asChild>
-                <Button colorScheme="gray" mr={3} onClick={onClose}>
-                  Cancel
+              {!editMode && (
+                <Button
+                  variant="outline"
+                  mr={3}
+                  color="white"
+                  borderColor="whiteAlpha.400"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                  onClick={() => {
+                    setProjectIds([]);
+                    setLocationIds([]);
+                    setSourceName("");
+                    setFolderPath("");
+                    setFileKeyword("");
+                    setFileType("");
+                    setSourceType("");
+                    setInterval("");
+                    setActive(true);
+                  }}
+                >
+                  Reset
                 </Button>
-              </Dialog.ActionTrigger>
+              )}
+              <Button colorScheme="gray" mr={3} onClick={onClose}>
+                Cancel
+              </Button>
               <Button colorScheme="yellow" type="submit" form="source-form">
                 {actionText}
               </Button>

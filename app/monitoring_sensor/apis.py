@@ -21,7 +21,8 @@ def list_monitoring_sensors(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    return selectors.get_monitoring_sensors(db, skip=skip, limit=limit)
+    sensors = selectors.get_monitoring_sensors(db, skip=skip, limit=limit)
+    return [services.enrich_sensor(s) for s in sensors]
 
 @router.get("/{sensor_id}", response_model=schemas.MonitoringSensor)
 def get_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):

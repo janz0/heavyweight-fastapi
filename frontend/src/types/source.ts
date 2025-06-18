@@ -4,7 +4,7 @@ type JsonValue = JsonPrimitive | JsonObject;
 interface JsonObject { [key: string]: JsonValue; }
 
 export interface Source {
-  id: number;
+  id: string;
   mon_loc_id: string;
   source_name: string;
   folder_path: string;

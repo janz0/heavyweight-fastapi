@@ -1,7 +1,7 @@
 // File: app/components/ProjectsListClient.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 
 import { Box, Button, Flex, IconButton, Popover, Text, VStack } from '@chakra-ui/react';
@@ -20,11 +20,9 @@ export default function ProjectsListClient({
   onEdit,
   onDelete,
 }: Props) {
-  const [openId, setOpenId] = useState<string | null>(null);
   return (
     <VStack gap={2} align="stretch" mt={2}>
       {initialProjects.map((proj) => {
-        const isOpen = openId === proj.id;
         return (
         <Flex key={proj.id} align="center" as="a" py={4} className='info-card shadow-md'>
           <Box flex="1">
@@ -64,7 +62,7 @@ export default function ProjectsListClient({
           </Box>
           {/* 2) Three-dots popover trigger sits OUTSIDE that link */}
           <Box flex="0 0 auto" w={20} display={"flex"} alignItems={"center"} justifyContent={"center"}>
-            <Popover.Root open={isOpen} onOpenChange={(next) => setOpenId(next ? proj.id : null)} positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
+            <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton
                   aria-label="More actions"
