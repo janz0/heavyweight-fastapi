@@ -3,6 +3,9 @@ from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 
+from sqlalchemy import String
+
+
 class MonitoringSensorDataBase(BaseModel):
     mon_loc_id: UUID
     sensor_id: UUID
@@ -36,6 +39,8 @@ class SensorDataRaw(BaseModel):
 class BulkSensorDataItem(BaseModel):
     timestamp: datetime
     source_id: UUID
+    mon_loc_id: UUID
+    sensor_type: str
     sensors: List[SensorDataRaw]
 
 class MonitoringSensorDataBulkRequest(BaseModel):

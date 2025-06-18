@@ -34,7 +34,7 @@ async def lifespan(_: FastAPI):
     # Startup code
     print("System Call: Enhance Armament x_x")  # SAO Reference
 
-    init_producer()
+    init_producer(["sensor.readings", "alerts", "logs"])
 
     # Bigger Threadpool i.e you send a bunch of requests it will handle a max of 1000 at a time, the default is 40
     limiter = to_thread.current_default_thread_limiter()

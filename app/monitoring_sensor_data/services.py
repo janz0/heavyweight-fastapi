@@ -5,7 +5,7 @@ from uuid import UUID
 from app.monitoring_sensor_data import schemas, selectors
 from app.monitoring_sensor_data.models import MonitoringSensorData
 from app.monitoring_sensor.models import MonitoringSensor
-from app.monitoring_sensor_fields import models as MonitoringSensorField
+from app.monitoring_sensor_fields.models import MonitoringSensorField
 from app.kafka_producer import send_kafka_message  # use this
 
 KAFKA_TOPIC = "sensor.readings"
@@ -39,13 +39,22 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
     for entry in request.items:
         source_id = entry.source_id
         timestamp = entry.timestamp
+        mon_loc_id = entry.mon_loc_id
+        sensor_type = entry.sensor_type
 
         for sensor_obj in entry.sensors:
             sensor_name = sensor_obj.sensor
 
-            sensor = db.query(MonitoringSensor).filter_by(source_id=source_id, name=sensor_name).first()
+            sensor = db.query(MonitoringSensor).filter_by(mon_source_id=source_id, sensor_name=sensor_name).first()
             if not sensor:
-                raise HTTPException(status_code=404, detail=f"Sensor '{sensor_name}' not found for source {source_id}")
+                sensor = MonitoringSensor(
+                    mon_source_id=source_id,
+                    sensor_name=sensor_name,
+                    sensor_type=sensor_type
+                )
+                db.add(sensor)
+                db.commit()
+                db.refresh(sensor)
 
             fields = {
                 f.field_name: f
@@ -54,7 +63,7 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
 
             payload = {
                 "sensor_id": str(sensor.id),
-                "mon_loc_id": str(sensor.mon_loc_id),
+                "mon_loc_id": str(mon_loc_id),
                 "timestamp": timestamp.isoformat(),
                 "fields": []
             }
@@ -64,7 +73,18 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
                 value = field_val.value
 
                 if field_name not in fields:
-                    raise HTTPException(status_code=404, detail=f"Field '{field_name}' not found for sensor '{sensor_name}'")
+                    # Auto-create field if missing
+                    new_field = MonitoringSensorField(
+                        sensor_id=sensor.id,
+                        field_name=field_name,
+                        uom=None,
+                        is_calculated=False,
+                        field_type=None
+                    )
+                    db.add(new_field)
+                    db.commit()
+                    db.refresh(new_field)
+                    fields[field_name] = new_field
 
                 field = fields[field_name]
                 payload["fields"].append({
