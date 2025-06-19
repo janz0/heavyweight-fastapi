@@ -11,10 +11,12 @@ import {
   Icon,
   Table,
   IconButton,
+  Popover,
+  VStack
 } from "@chakra-ui/react";
 import { useColorMode } from "../src/components/ui/color-mode";
 import { CaretUp, CaretDown } from "phosphor-react";
-import { FiEdit } from "react-icons/fi";
+import { FiTrash2, FiEdit2, FiMoreVertical } from "react-icons/fi";
 import type { Location } from "@/types/location";
 import {
   Chart as ChartJS,
@@ -169,17 +171,52 @@ export default function LocationsPageClient({ locations, onEdit, onCreate }: Pro
                 <Table.Cell textAlign="center">{new Date(location.created_at).toISOString().split('T')[0]}</Table.Cell>
                 <Table.Cell textAlign="center">{new Date(location.last_updated).toISOString().split('T')[0]}</Table.Cell>
                 <Table.Cell textAlign="center">{location.last_inspected ? new Date(location.last_inspected).toISOString().split('T')[0] : '-'}</Table.Cell>
-                <Table.Cell textAlign="center">
-                  <IconButton
-                    aria-label="Edit Location"
-                    size="sm"
-                    variant="ghost"
-                    color={accent}
-                    onClick={() => onEdit?.(location)}
-                    
-                  >
-                    <FiEdit />
-                  </IconButton>
+                <Table.Cell textAlign="center" alignContent={"center"}>
+                  <Box display={"inline-block"}>
+                    <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
+                      <Popover.Trigger asChild>
+                        <IconButton
+                          aria-label="More actions"
+                          variant="ghost"
+                          size="xs"
+                          color="black"
+                          borderRadius="48px"
+                          width={"32px"}
+                          onClick={(e) => e.stopPropagation()}
+                          _hover={{
+                            backgroundColor: 'blackAlpha.300',
+                          }}
+                          _dark={{
+                            color: "white",
+                            _hover: {backgroundColor: "whiteAlpha.200"}
+                          }}
+                        >
+                          <FiMoreVertical />
+                        </IconButton>
+                      </Popover.Trigger>
+        
+                      <Popover.Positioner>
+                        <Popover.Content width="64px" height="100px" p={1} borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                          <Popover.Arrow>
+                            <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1}  _dark={{borderColor: "whiteAlpha.600"}}/>
+                          </Popover.Arrow>
+                          <Popover.Body p={2}>
+                            <VStack gap={1} align="stretch">
+                              <Button variant="ghost" size="sm" onClick={() => onEdit?.(location)}>
+                                <FiEdit2 />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                colorScheme="red"
+                              ><FiTrash2 />
+                              </Button>
+                            </VStack>
+                          </Popover.Body>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Popover.Root>
+                  </Box>
                 </Table.Cell>
               </Table.Row>
             ))}

@@ -89,7 +89,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
 
   // your metrics
   const metrics = [
-    { title: 'Data Health', lines: ['12/12 sensors reporting', '0 overdue'] },
+    { title: 'Sensor Health', lines: ['12/12 sensors reporting', '0 overdue'] },
     { title: 'Trends', lines: ['Max settlement: –1.2 mm last 24h'] },
     { title: 'Alerts', lines: ['1 threshold exceeded (Ext. #5)'] },
     { title: 'Battery', lines: ['Avg. 78% (2 below 50%)'] },
@@ -305,24 +305,34 @@ export default function LocationPageClient({ projectName, location }: Props) {
       </Flex>
 
       {/* 3. Tabbed Details */}
-      <Tabs variant="enclosed" colorScheme="teal">
-        <TabList mb={2}>
+      <Tabs
+        variant="enclosed"
+        mt={6}   // adds space above the tabs
+        mb={6}   // adds space below the tabs
+        p={4}    // padding inside the tab container
+        border="1px solid"
+        borderColor="gray.700"
+        borderRadius="lg"
+        boxShadow="md"
+        backgroundColor="#1C2633" // or whiteAlpha.100 if you want a subtle shade
+      >
+        <TabList mb={4} display="flex">
           {['Overview', 'Sensors', 'Graphs', 'Alerts', 'Settings'].map((tab) => (
-            <Tab key={tab}>{tab}</Tab>
+            <Tab key={tab} flex="1" justifyContent={"center"}>{tab}</Tab>
           ))}
         </TabList>
         <TabPanels>
-          <TabPanel>
+          <TabPanel p={4}>
             <Text>Overview content goes here.</Text>
           </TabPanel>
 
-          <TabPanel>
+          <TabPanel p={4}>
             <Box
               bg="whiteAlpha.50"
               py={4}
               px={6}
               borderRadius="md"
-              boxShadow="0px 2px 4px rgba(0,255,255,0.7)"
+              boxShadow="sm"
               mb={4}
             >
               <Flex>
@@ -352,7 +362,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
             <SensorsList locationId={location.id} />
           </TabPanel>
 
-          <TabPanel p={0}>
+          <TabPanel p={4}>
             <Plot
               data={plotTraces}
               layout={{
@@ -367,8 +377,12 @@ export default function LocationPageClient({ projectName, location }: Props) {
             />
           </TabPanel>
 
-          <TabPanel>Alerts list placeholder.</TabPanel>
-          <TabPanel>Location settings and metadata.</TabPanel>
+          <TabPanel p={4}>
+            <Text>Alerts list placeholder.</Text>
+          </TabPanel>
+          <TabPanel p={4}>
+            <Text>Location settings and metadata.</Text>
+          </TabPanel>
         </TabPanels>
       </Tabs>
 
