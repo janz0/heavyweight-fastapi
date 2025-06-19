@@ -64,7 +64,6 @@ export default function LocationsPageClient({ locations, onEdit, onCreate }: Pro
   const cardBg = colorMode === 'light' ? 'gray.400' : 'gray.700';
   const text = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
-  const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   // Sort logic
   const sortedData = useMemo(() => {
