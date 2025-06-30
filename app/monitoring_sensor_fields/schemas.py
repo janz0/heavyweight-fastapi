@@ -24,3 +24,11 @@ class MonitoringSensorField(MonitoringSensorFieldBase):
 
     class Config:
         orm_mode = True
+
+
+class MonitoringSensorFieldName(BaseModel):
+    id: UUID
+    field_name: str
+
+    class Config:
+        orm_mode = True
