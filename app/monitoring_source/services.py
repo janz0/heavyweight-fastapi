@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 from app.monitoring_source.models import Source
 from app.monitoring_source import schemas, selectors
 from app.monitoring_sensor_fields.schemas import (
@@ -36,7 +36,7 @@ def enrich_source(
     source: Source,
     children: bool = False,
     minimal: bool = False,
-) -> dict:
+) -> Union[schemas.Source, schemas.SourceWithSensors, schemas.SourceWithSensorNames]:
     details = None
     if source.mon_loc and source.mon_loc.project:
         details = schemas.SourceMetadata(
@@ -52,29 +52,31 @@ def enrich_source(
     source_dict["details"] = details
 
     if children:
-        sensors: List[dict] = []
+        sensors: List = []
         for sensor in source.mon_sensors:
             if minimal:
-                sensor_dict = {
-                    "id": sensor.id,
-                    "sensor_name": sensor.sensor_name,
-                    "fields": [
-                        {"id": f.id, "field_name": f.field_name} for f in sensor.fields
-                    ],
-                }
-            else:
-                sensor_dict = sensor_services.enrich_sensor(sensor)
-                sensor_dict["fields"] = [
-                    MonitoringSensorField.model_construct(**f.__dict__).model_dump()
+                fields = [
+                    schemas.MonitoringSensorFieldName.model_construct(**f.__dict__)
                     for f in sensor.fields
                 ]
-            sensors.append(sensor_dict)
+                sensor_model = schemas.MonitoringSensorNameWithFields(
+                    id=sensor.id,
+                    sensor_name=sensor.sensor_name,
+                    fields=fields,
+                )
+            else:
+                base_model = sensor_services.enrich_sensor(sensor)
+                sensor_model = schemas.MonitoringSensorWithFields(
+                    **base_model.model_dump(),
+                    fields=[
+                        schemas.MonitoringSensorField.model_construct(**f.__dict__)
+                        for f in sensor.fields
+                    ],
+                )
+            sensors.append(sensor_model)
         source_dict["sensors"] = sensors
         if minimal:
-            source_model = schemas.SourceWithSensorNames.model_construct(**source_dict)
-        else:
-            source_model = schemas.SourceWithSensors.model_construct(**source_dict)
-    else:
-        source_model = schemas.Source.model_construct(**source_dict)
+            return schemas.SourceWithSensorNames.model_construct(**source_dict)
+        return schemas.SourceWithSensors.model_construct(**source_dict)
 
-    return source_model.model_dump()
+    return schemas.Source.model_construct(**source_dict)
