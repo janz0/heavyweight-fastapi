@@ -56,7 +56,7 @@ def enrich_source(
         for sensor in source.mon_sensors:
             if minimal:
                 fields = [
-                    schemas.MonitoringSensorFieldName.model_construct(**f.__dict__)
+                    MonitoringSensorFieldName.model_construct(**f.__dict__)
                     for f in sensor.fields
                 ]
                 sensor_model = schemas.MonitoringSensorNameWithFields(
@@ -69,7 +69,7 @@ def enrich_source(
                 sensor_model = schemas.MonitoringSensorWithFields(
                     **base_model.model_dump(),
                     fields=[
-                        schemas.MonitoringSensorField.model_construct(**f.__dict__)
+                        MonitoringSensorField.model_construct(**f.__dict__)
                         for f in sensor.fields
                     ],
                 )
