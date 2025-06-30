@@ -1,7 +1,11 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+from app.monitoring_sensor.schemas import (
+    MonitoringSensorWithFields,
+    MonitoringSensorNameWithFields,
+)
 
 class SourceBase(BaseModel):
     mon_loc_id: Optional[UUID] = None
@@ -45,3 +49,11 @@ class Source(SourceBase):
 
     class Config:
         from_attributes  = True
+
+
+class SourceWithSensors(Source):
+    sensors: Optional[List[MonitoringSensorWithFields]] = None
+
+
+class SourceWithSensorNames(Source):
+    sensors: Optional[List[MonitoringSensorNameWithFields]] = None
