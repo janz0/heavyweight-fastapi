@@ -48,4 +48,3 @@ class MonitoringSensorName(BaseModel):
 
 class MonitoringSensorNameWithFields(MonitoringSensorName):
     fields: List[MonitoringSensorFieldName] = Field(default_factory=list)
-
