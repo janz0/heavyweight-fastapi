@@ -40,26 +40,12 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
         source_id = entry.source_id
         timestamp = entry.timestamp
         mon_loc_id = entry.mon_loc_id
-        sensor_type = entry.sensor_type
-
         for sensor_obj in entry.sensors:
-            sensor_name = sensor_obj.sensor
+            sensor_id = sensor_obj.sensor
 
-            sensor = db.query(MonitoringSensor).filter_by(mon_source_id=source_id, sensor_name=sensor_name).first()
+            sensor = db.query(MonitoringSensor).filter_by(id=sensor_id, mon_source_id=source_id).first()
             if not sensor:
-                sensor = MonitoringSensor(
-                    mon_source_id=source_id,
-                    sensor_name=sensor_name,
-                    sensor_type=sensor_type
-                )
-                db.add(sensor)
-                db.commit()
-                db.refresh(sensor)
-
-            fields = {
-                f.field_name: f
-                for f in db.query(MonitoringSensorField).filter_by(sensor_id=sensor.id).all()
-            }
+                raise HTTPException(status_code=400, detail=f"Invalid sensor id: {sensor_id}")
 
             payload = {
                 "sensor_id": str(sensor.id),
@@ -69,24 +55,13 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
             }
 
             for field_val in sensor_obj.data:
-                field_name = field_val.field
+                field_id = field_val.field
                 value = field_val.value
 
-                if field_name not in fields:
-                    # Auto-create field if missing
-                    new_field = MonitoringSensorField(
-                        sensor_id=sensor.id,
-                        field_name=field_name,
-                        uom=None,
-                        is_calculated=False,
-                        field_type=None
-                    )
-                    db.add(new_field)
-                    db.commit()
-                    db.refresh(new_field)
-                    fields[field_name] = new_field
+                field = db.query(MonitoringSensorField).filter_by(id=field_id, sensor_id=sensor_id).first()
+                if not field:
+                    raise HTTPException(status_code=400, detail=f"Invalid field id {field_id} for sensor {sensor_id}")
 
-                field = fields[field_name]
                 payload["fields"].append({
                     "field_id": str(field.id),
                     "value": value
