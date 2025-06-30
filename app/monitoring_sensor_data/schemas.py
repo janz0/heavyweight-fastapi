@@ -29,11 +29,11 @@ class MonitoringSensorData(MonitoringSensorDataBase):
 
 # Bulk ingestion format
 class FieldValueRaw(BaseModel):
-    field: str
+    field: UUID
     value: float
 
 class SensorDataRaw(BaseModel):
-    sensor: str
+    sensor: UUID
     data: List[FieldValueRaw]
 
 class BulkSensorDataItem(BaseModel):
