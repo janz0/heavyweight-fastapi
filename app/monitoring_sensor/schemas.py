@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from app.monitoring_sensor_fields.schemas import MonitoringSensorField, MonitoringSensorFieldName
 from uuid import UUID
@@ -35,7 +35,7 @@ class MonitoringSensor(MonitoringSensorBase):
 
 
 class MonitoringSensorWithFields(MonitoringSensor):
-    fields: List[MonitoringSensorField] = []
+    fields: List[MonitoringSensorField] = Field(default_factory=list)
 
 
 class MonitoringSensorName(BaseModel):
@@ -47,4 +47,5 @@ class MonitoringSensorName(BaseModel):
 
 
 class MonitoringSensorNameWithFields(MonitoringSensorName):
-    fields: List[MonitoringSensorFieldName] = []
+    fields: List[MonitoringSensorFieldName] = Field(default_factory=list)
+
