@@ -30,15 +30,17 @@ def delete_monitoring_sensor(db: Session, sensor_id: UUID) -> None:
         db.commit()
 
 def enrich_sensor(sensor: MonitoringSensor) -> dict:
-    # if you later want more related data you can load it here
-    # but at minimum we can pull source.source_name into a top‐level field:
-    source_name = getattr(sensor.mon_source, "source_name", None)
+    # Build a clean dict
+    sensor_dict = { 
+      k: v for k, v in sensor.__dict__.items() 
+      if k != "_sa_instance_state" 
+    }
 
-    # Copy the ORM attributes into a dict:
-    sensor_dict = dict(sensor.__dict__)
-    # Inject the extra key:
-    sensor_dict["source_name"] = source_name
+    # Add whatever extra you need
+    sensor_dict["source_name"] = (
+      sensor.mon_source.source_name if sensor.mon_source else None
+    )
 
-    # Construct a Pydantic model without re‐validating
+    # Bypass validation (you already trust your DB model)
     model = schemas.MonitoringSensor.model_construct(**sensor_dict)
     return model.model_dump()

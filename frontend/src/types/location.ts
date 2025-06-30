@@ -18,10 +18,10 @@ export interface Location {
 // And the payload you send when creating/updating:
 export interface LocationPayload {
   project_id?:   string;
-  loc_name: string;
+  loc_name?: string;
   loc_number?: string;
-  lat:     number;
-  lon:    number;
-  frequency:    string;
+  lat?:     number;
+  lon?:    number;
+  frequency?:    string;
   active?:       number;
 }

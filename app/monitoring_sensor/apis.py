@@ -29,7 +29,7 @@ def get_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):
     obj = selectors.get_monitoring_sensor(db, sensor_id)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
-    return obj
+    return services.enrich_sensor(obj)
 
 @router.patch("/{sensor_id}", response_model=schemas.MonitoringSensor)
 def update_monitoring_sensor(
@@ -40,7 +40,7 @@ def update_monitoring_sensor(
     obj = services.update_monitoring_sensor(db, sensor_id, payload)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
-    return obj
+    return services.enrich_sensor(obj)
 
 @router.delete("/{sensor_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):

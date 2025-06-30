@@ -18,6 +18,10 @@ def get_project(db: Session, project_id: UUID) -> Optional[ProjectSchema]:
     p = db.execute(stmt).scalars().first()
     return ProjectSchema.from_orm(p) if p else None
 
-# NEW helper for your services:
 def get_project_model(db: Session, project_id: UUID) -> Optional[ProjectModel]:
     return db.get(ProjectModel, project_id)
+
+def get_project_by_number(db: Session, project_number: int) -> Optional[ProjectSchema]:
+    stmt = select(ProjectModel).where(ProjectModel.project_number == project_number)
+    p = db.execute(stmt).scalars().first()
+    return ProjectSchema.from_orm(p) if p else None

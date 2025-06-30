@@ -1,15 +1,20 @@
 // File: services/sources.ts
-import type { Source } from "@/types/source";
-import type {
-  SourceCreatePayload,
-  SourceUpdatePayload,
-} from "@/types/source";
+import type { Source, SourcePayload } from "@/types/source";
 
 const API = process.env.NEXT_PUBLIC_API_URL; 
 const BASE = `${API}monitoring-sources`;
 
+export async function listSources(
+  skip = 0,
+  limit = 100
+): Promise<Source[]> {
+  const res = await fetch(`${BASE}/?skip=${skip}&limit=${limit}`);
+  if (!res.ok) throw new Error(`List Sources failed (${res.status})`);
+  return (await res.json()) as Source[];
+}
+
 export async function createSource(
-  payload: SourceCreatePayload
+  payload: SourcePayload
 ): Promise<Source> {
   const res = await fetch(`${BASE}/`, {
     method: "POST",
@@ -26,7 +31,7 @@ export async function createSource(
 
 export async function updateSource(
   sourceId: string,
-  payload: SourceUpdatePayload
+  payload: SourcePayload
 ): Promise<Source> {
   const res = await fetch(`${BASE}/${sourceId}`, {
     method: "PATCH",
@@ -49,18 +54,6 @@ export async function getSource(sourceId: string): Promise<Source> {
     throw new Error(`Fetch Source failed (${res.status}): ${text}`);
   }
   return (await res.json()) as Source;
-}
-
-export async function listSources(
-  skip = 0,
-  limit = 100
-): Promise<Source[]> {
-  const res = await fetch(`${BASE}/?skip=${skip}&limit=${limit}`);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`List Sources failed (${res.status}): ${text}`);
-  }
-  return (await res.json()) as Source[];
 }
 
 export async function deleteSource(sourceId: string): Promise<void> {

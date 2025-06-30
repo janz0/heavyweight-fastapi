@@ -35,6 +35,13 @@ def get_project(project_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     return obj
 
+@router.get("/by-number/{project_number}", response_model=schemas.Project)
+def get_project_by_number(project_number: str, db: Session = Depends(get_db)):
+    obj = selectors.get_project_by_number(db, project_number)
+    if not obj:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    return obj
+
 @router.get("/", response_model=List[schemas.Project])
 def list_projects(
     skip: int = 0,

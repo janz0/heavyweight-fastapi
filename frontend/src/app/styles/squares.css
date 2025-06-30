@@ -1,0 +1,52 @@
+.auth-background {
+  background: radial-gradient(circle at center, #1a1a2e 0%, #0f0f19 80%);
+  background-size: cover;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/noise.png"); /* a 100×100px 2%-opacity noise tile */
+  opacity: 0.05;
+}
+
+.cube {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(45deg, #fc466b, #3f5efb);
+  transform-origin: top left;
+  transform: scale(0) rotate(0deg) translate(-50%, -50%);
+  animation: cube 12s ease-in forwards infinite;
+}
+
+@keyframes cube {
+  from {
+    transform: scale(0) rotate(0deg) translate(-50%, -50%);
+    opacity: 1;
+  }
+  to {
+    transform: scale(20) rotate(960deg) translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+
+/* Cube 1–15 */
+.cube:nth-child(1)  { animation-delay:  0s; left:  10vw; top:  20vh; filter: hue-rotate(   0deg); }
+.cube:nth-child(2)  { animation-delay:  1s; left:  25vw; top:  80vh; filter: hue-rotate(  24deg); }
+.cube:nth-child(3)  { animation-delay:  2s; left:  40vw; top:  30vh; filter: hue-rotate(  48deg); }
+.cube:nth-child(4)  { animation-delay:  3s; left:  60vw; top:  60vh; filter: hue-rotate(  72deg); }
+.cube:nth-child(5)  { animation-delay:  4s; left:  80vw; top:  15vh; filter: hue-rotate(  96deg); }
+.cube:nth-child(6)  { animation-delay:  5s; left:  15vw; top:  50vh; filter: hue-rotate( 120deg); }
+.cube:nth-child(7)  { animation-delay:  6s; left:  35vw; top:  75vh; filter: hue-rotate( 144deg); }
+.cube:nth-child(8)  { animation-delay:  7s; left:  55vw; top:  10vh; filter: hue-rotate( 168deg); }
+.cube:nth-child(9)  { animation-delay:  8s; left:  75vw; top:  40vh; filter: hue-rotate( 192deg); }
+.cube:nth-child(10) { animation-delay:  9s; left:   5vw; top:  90vh; filter: hue-rotate( 216deg); }
+.cube:nth-child(11) { animation-delay: 10s; left:  20vw; top:  10vh; filter: hue-rotate( 240deg); }
+.cube:nth-child(12) { animation-delay: 11s; left:  45vw; top:  55vh; filter: hue-rotate( 264deg); }
+.cube:nth-child(13) { animation-delay: 12s; left:  65vw; top:  25vh; filter: hue-rotate( 288deg); }
+.cube:nth-child(14) { animation-delay: 13s; left:  85vw; top:  70vh; filter: hue-rotate( 312deg); }
+.cube:nth-child(15) { animation-delay: 14s; left:  50vw; top:  85vh; filter: hue-rotate( 336deg); }

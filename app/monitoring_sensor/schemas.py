@@ -6,28 +6,25 @@ from datetime import datetime
 class MonitoringSensorBase(BaseModel):
     mon_source_id: UUID
     sensor_group_id: Optional[UUID] = None
-    source_name: Optional[str] = None
     sensor_name: str
     sensor_type: str
     active: Optional[int] = 1
-
-    class Config:
-        orm_mode = True
         
 class MonitoringSensorCreate(MonitoringSensorBase):
     pass
 
 class MonitoringSensorUpdate(BaseModel):
-    mon_source_id: Optional[UUID]
-    sensor_group_id: Optional[UUID]
-    sensor_name: Optional[str]
-    sensor_type: Optional[str]
-    active: Optional[int]
+    mon_source_id: Optional[UUID] = None
+    sensor_group_id: Optional[UUID] = None
+    sensor_name: Optional[str] = None
+    sensor_type: Optional[str] = None
+    active: Optional[int] = None
 
 class MonitoringSensor(MonitoringSensorBase):
     id: UUID
     created_at: datetime
     last_updated: datetime
+    source_name: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes  = True

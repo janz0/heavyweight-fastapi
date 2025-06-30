@@ -1,5 +1,5 @@
 // File: src/services/sensors.ts
-import type { MonitoringSensor, MonitoringSensorCreate, MonitoringSensorUpdate } from '@/types/sensor';
+import type { MonitoringSensor, MonitoringSensorPayload } from '@/types/sensor';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 const BASE = `${API}monitoring-sensors`;
@@ -9,7 +9,7 @@ const BASE = `${API}monitoring-sensors`;
  */
 export async function listSensors(
   skip = 0,
-  limit = 100
+  limit = 200
 ): Promise<MonitoringSensor[]> {
   const res = await fetch(`${BASE}/?skip=${skip}&limit=${limit}`);
   if (!res.ok) throw new Error(`List sensors failed (${res.status})`);
@@ -25,7 +25,7 @@ export async function getSensor(
 }
 
 export async function createSensor(
-  payload: MonitoringSensorCreate
+  payload: MonitoringSensorPayload
 ): Promise<MonitoringSensor> {
   const res = await fetch(`${BASE}/`, {
     method: 'POST',
@@ -41,7 +41,7 @@ export async function createSensor(
 
 export async function updateSensor(
   id: string,
-  payload: MonitoringSensorUpdate
+  payload: MonitoringSensorPayload
 ): Promise<MonitoringSensor> {
   const res = await fetch(`${BASE}/${id}`, {
     method: 'PATCH',
