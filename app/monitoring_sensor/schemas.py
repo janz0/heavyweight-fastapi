@@ -1,5 +1,6 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from app.monitoring_sensor_fields.schemas import MonitoringSensorField, MonitoringSensorFieldName
 from uuid import UUID
 from datetime import datetime
 
@@ -31,3 +32,20 @@ class MonitoringSensor(MonitoringSensorBase):
 
     class Config:
         orm_mode = True
+
+
+class MonitoringSensorWithFields(MonitoringSensor):
+    fields: List[MonitoringSensorField] = Field(default_factory=list)
+
+
+class MonitoringSensorName(BaseModel):
+    id: UUID
+    sensor_name: str
+
+    class Config:
+        orm_mode = True
+
+
+class MonitoringSensorNameWithFields(MonitoringSensorName):
+    fields: List[MonitoringSensorFieldName] = Field(default_factory=list)
+

@@ -16,12 +16,50 @@ def list_sources(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     sources = selectors.get_sources(db, skip, limit)
     return [services.enrich_source(src) for src in sources]
 
+
+@router.get("/with-children", response_model=List[schemas.SourceWithSensors])
+def list_sources_with_children(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
+    sources = selectors.get_sources(db, skip, limit)
+    return [services.enrich_source(src, True, False) for src in sources]
+
+
+@router.get(
+    "/with-minimal-children",
+    response_model=List[schemas.SourceWithSensorNames],
+)
+def list_sources_with_minimal_children(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
+    sources = selectors.get_sources(db, skip, limit)
+    return [services.enrich_source(src, True, True) for src in sources]
+
 @router.get("/{source_id}", response_model=schemas.Source)
 def get_source(source_id: UUID, db: Session = Depends(get_db)):
     src = selectors.get_source(db, source_id)
     if not src:
         raise HTTPException(status_code=404, detail="Source not found")
     return services.enrich_source(src)
+
+
+@router.get("/{source_id}/with-children", response_model=schemas.SourceWithSensors)
+def get_source_with_children(source_id: UUID, db: Session = Depends(get_db)):
+    src = selectors.get_source(db, source_id)
+    if not src:
+        raise HTTPException(status_code=404, detail="Source not found")
+    return services.enrich_source(src, True, False)
+
+
+@router.get(
+    "/{source_id}/with-minimal-children",
+    response_model=schemas.SourceWithSensorNames,
+)
+def get_source_with_minimal_children(source_id: UUID, db: Session = Depends(get_db)):
+    src = selectors.get_source(db, source_id)
+    if not src:
+        raise HTTPException(status_code=404, detail="Source not found")
+    return services.enrich_source(src, True, True)
 
 @router.patch("/{source_id}", response_model=schemas.Source)
 def update_source(source_id: UUID, payload: schemas.SourceUpdate, db: Session = Depends(get_db)):

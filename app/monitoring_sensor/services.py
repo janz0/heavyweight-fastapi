@@ -29,7 +29,7 @@ def delete_monitoring_sensor(db: Session, sensor_id: UUID) -> None:
         db.delete(obj)
         db.commit()
 
-def enrich_sensor(sensor: MonitoringSensor) -> dict:
+def enrich_sensor(sensor: MonitoringSensor) -> schemas.MonitoringSensor:
     # if you later want more related data you can load it here
     # but at minimum we can pull source.source_name into a top‐level field:
     source_name = getattr(sensor.mon_source, "source_name", None)
@@ -41,4 +41,4 @@ def enrich_sensor(sensor: MonitoringSensor) -> dict:
 
     # Construct a Pydantic model without re‐validating
     model = schemas.MonitoringSensor.model_construct(**sensor_dict)
-    return model.model_dump()
+    return model
