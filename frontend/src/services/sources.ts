@@ -3,14 +3,20 @@ import type { Source, SourcePayload } from "@/types/source";
 
 const API = process.env.NEXT_PUBLIC_API_URL; 
 const BASE = `${API}monitoring-sources`;
+const PROJECTS_BASE = `${API}projects`
 
 export async function listSources(
+  projectId?: string,   // optional
   skip = 0,
   limit = 100
 ): Promise<Source[]> {
-  const res = await fetch(`${BASE}/?skip=${skip}&limit=${limit}`);
-  if (!res.ok) throw new Error(`List Sources failed (${res.status})`);
-  return (await res.json()) as Source[];
+  const url = projectId
+    ? `${PROJECTS_BASE}/${projectId}/sources?skip=${skip}&limit=${limit}`
+    : `${BASE}/?skip=${skip}&limit=${limit}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`List sources failed (${res.status})`);
+  return res.json() as Promise<Source[]>;
 }
 
 export async function createSource(

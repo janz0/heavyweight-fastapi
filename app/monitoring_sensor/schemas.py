@@ -20,11 +20,15 @@ class MonitoringSensorUpdate(BaseModel):
     sensor_type: Optional[str] = None
     active: Optional[int] = None
 
+class MonitoringSensorMetadata(BaseModel):
+    mon_source_name: str
+
 class MonitoringSensor(MonitoringSensorBase):
     id: UUID
     created_at: datetime
     last_updated: datetime
     source_name: Optional[str] = None
+    details: Optional[MonitoringSensorMetadata] = None
 
     class Config:
         from_attributes  = True

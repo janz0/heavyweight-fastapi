@@ -22,4 +22,8 @@ export interface DataTableProps<T> {
   page?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+
+  count?: number;
+  total?: number;
+  name?: string;
 }

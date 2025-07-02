@@ -11,7 +11,7 @@ export interface CountFooterProps {
 
 export default function CountFooter({ count, total, name, color = "gray.500" }: CountFooterProps) {
   return (
-    <Flex justify="flex-end" mt={2} mb={4}>
+    <Flex justify="flex-end" mb={4}>
       <Text fontSize="sm" color={color}>
         Showing {count} of {total} {name}
       </Text>

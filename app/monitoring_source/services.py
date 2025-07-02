@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from app.monitoring_source.models import Source
 from app.monitoring_source import schemas, selectors
+from app.location.models import Location
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -26,6 +27,21 @@ def delete_source(db: Session, source_id: UUID) -> None:
     if obj:
         db.delete(obj)
         db.commit()
+
+def list_sources_for_project(
+    db: Session,
+    project_id: UUID,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Source]:
+    return (
+        db.query(Source)
+          .join(Location, Source.mon_loc_id == Location.id)
+          .filter(Location.project_id == project_id)
+          .offset(skip)
+          .limit(limit)
+          .all()
+    )
 
 def enrich_source(source: Source) -> dict:
     details = None

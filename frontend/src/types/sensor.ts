@@ -9,6 +9,9 @@ export interface MonitoringSensor {
   active: number;
   created_at: string;
   last_updated: string;
+  details?: {
+    mon_source_name: string;
+  };
 }
 
 export interface MonitoringSensorPayload {

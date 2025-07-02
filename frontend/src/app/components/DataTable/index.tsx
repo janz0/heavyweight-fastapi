@@ -4,6 +4,7 @@ import { Table, Text, Icon, Flex, Button, Box } from "@chakra-ui/react";
 import { useColorMode, useColorModeValue } from "@/app/src/components/ui/color-mode";
 import type { DataTableProps } from "./types";
 import { CaretUp, CaretDown } from "phosphor-react";
+import CountFooter from "../CountFooter";
 
 export default function DataTable<T>({
   columns,
@@ -14,6 +15,9 @@ export default function DataTable<T>({
   page = 1,
   totalPages = 1,
   onPageChange,
+  count = 0,
+  total = 0,
+  name = "",
 }: DataTableProps<T>) {
   const { colorMode } = useColorMode();
   const cardBg = colorMode === "light" ? "gray.400" : "gray.700";
@@ -81,40 +85,44 @@ export default function DataTable<T>({
           </Table.Body>
         </Table.Root>
       </Box>
+      <Flex w="100%" align="center" position="relative">
+        
+        {onPageChange && totalPages >= 0 && (
+          <Flex w="100%" align="center" justify="center" mt={4} gap={2}>
+            <Button
+              size="sm"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1}
+            >
+              Prev
+            </Button>
 
-      {onPageChange && totalPages >= 1 && (
-        <Flex justify="center" align="center" mt={4} gap={2}>
-          <Button
-            size="sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-          >
-            Prev
-          </Button>
+            {[...Array(totalPages)].map((_, idx) => {
+              const p = idx + 1;
+              return (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={p === page ? "solid" : "outline"}
+                  onClick={() => onPageChange(p)}
+                >
+                  {p}
+                </Button>
+              );
+            })}
 
-          {[...Array(totalPages)].map((_, idx) => {
-            const p = idx + 1;
-            return (
-              <Button
-                key={p}
-                size="sm"
-                variant={p === page ? "solid" : "outline"}
-                onClick={() => onPageChange(p)}
-              >
-                {p}
-              </Button>
-            );
-          })}
-
-          <Button
-            size="sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-          >
-            Next
-          </Button>
-        </Flex>
-      )}
+            <Button
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages}
+            >
+              Next
+            </Button>
+          </Flex>
+        )}
+        <Box position="absolute" right={0}><CountFooter count={count} total={total} name={name} color={textSub} /></Box>
+        
+      </Flex>
     </>
   );
 }
