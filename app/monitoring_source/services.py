@@ -6,8 +6,20 @@ from app.monitoring_sensor_fields.schemas import (
     MonitoringSensorFieldName,
 )
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from uuid import UUID
 from app.monitoring_sensor import services as sensor_services
+
+def touch_source(db: Session, source_id: UUID) -> Optional[Source]:
+    """Update ``last_updated`` for a ``Source`` without changing other fields."""
+
+    obj = selectors.get_source(db, source_id)
+    if not obj:
+        return None
+    db.query(Source).filter(Source.id == source_id).update({"last_updated": func.now()})
+    db.commit()
+    db.refresh(obj)
+    return obj
 
 def create_source(db: Session, payload: schemas.SourceCreate) -> Source:
     obj = Source(**payload.dict())

@@ -74,3 +74,24 @@ def test_duplicate_field_creation_returns_existing(client, db):
     r2 = client.post(f"/monitoring-sensors/{sensor['id']}/field", json=field_payload)
     assert r2.status_code == 200
     assert r1.json()["id"] == r2.json()["id"]
+
+
+def test_sensor_creation_updates_source_timestamp(client, db):
+    src = create_dependencies(db)
+    before = src.last_updated
+    payload = {"mon_source_id": str(src.id), "sensor_name": "temp", "sensor_type": "analog"}
+    client.post("/monitoring-sensors/", json=payload)
+    db.refresh(src)
+    assert src.last_updated > before
+
+
+def test_field_creation_updates_source_timestamp(client, db):
+    src = create_dependencies(db)
+    sensor_payload = {"mon_source_id": str(src.id), "sensor_name": "temp", "sensor_type": "analog"}
+    sensor = client.post("/monitoring-sensors/", json=sensor_payload).json()
+    db.refresh(src)
+    before = src.last_updated
+    field_payload = {"field_name": "val", "uom": "C"}
+    client.post(f"/monitoring-sensors/{sensor['id']}/field", json=field_payload)
+    db.refresh(src)
+    assert src.last_updated > before
