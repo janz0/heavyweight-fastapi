@@ -21,3 +21,11 @@ def get_locations(
     if project_id is not None:
         query = query.filter(Location.project_id == project_id)
     return query.offset(skip).limit(limit).all()
+
+def get_location_by_name(
+    db: Session,
+    location_name: str
+) -> Optional[Location]:
+    return (
+        db.query(Location).filter(Location.loc_name == location_name).first()
+    )

@@ -229,7 +229,7 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
           </HStack>
 
           {/* Description */}
-          <HStack justify="space-between" mr="25%" mt="2px">
+          <HStack w="fit-content" gap="4" mt="2px">
             <VStack align="start" gap="0">
               <Text fontWeight="light" color={textSub}>Project Number</Text>
               <Text fontWeight="medium">{project.project_number}</Text>
@@ -403,7 +403,7 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
         <DataTable columns={locationColumns} data={displayed as Location[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
           renderRow={(l: Location) => (
             <>
-              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/locations`} passHref>{l.loc_name}</Link></Table.Cell>
+              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/locations/${l.loc_name}`} passHref>{l.loc_name}</Link></Table.Cell>
               <Table.Cell textAlign="center" textTransform="capitalize">{l.loc_number||"-"}</Table.Cell>
               <Table.Cell textAlign="center">{l.details?.project_name ?? l.project_id}</Table.Cell>
               <Table.Cell textAlign="center">{l.lat}</Table.Cell>

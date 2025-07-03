@@ -137,13 +137,13 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
           renderRow={(l: Location) => (
             <>
               <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/locations`} passHref>{l.loc_name}</Link></Table.Cell>
-              <Table.Cell textAlign="center" textTransform="capitalize">{l.loc_number||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{l.project_name ?? l.project_id}</Table.Cell>
+              <Table.Cell textAlign="center" textTransform="capitalize">{l.loc_number||"N/A"}</Table.Cell>
+              <Table.Cell textAlign="center">{l.details?.project_name ?? l.project_id}</Table.Cell>
               <Table.Cell textAlign="center">{l.lat}</Table.Cell>
               <Table.Cell textAlign="center">{l.lon}</Table.Cell>
-              <Table.Cell textAlign="center">{l.created_at?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{l.last_updated?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{l.last_inspected?.split('T')[0]||"-"}</Table.Cell>
+              <Table.Cell textAlign="center">{l.created_at?.split('T')[0]||"N/A"}</Table.Cell>
+              <Table.Cell textAlign="center">{l.last_updated?.split('T')[0]||"N/A"}</Table.Cell>
+              <Table.Cell textAlign="center">{l.last_inspected?.split('T')[0]||"N/A"}</Table.Cell>
               <Table.Cell textAlign="center">
                 <Box display="inline-block" boxSize="10px" borderRadius="full" bg={l.active ? 'green.400' : 'red.400'} />
               </Table.Cell>

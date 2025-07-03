@@ -29,6 +29,16 @@ def list_locations(
 ):
     return selectors.get_locations(db, skip=skip, limit=limit)
 
+@router.get("/name/{location_name}", response_model=schemas.Location, status_code=status.HTTP_200_OK)
+def get_location_by_name(
+    location_name: str,
+    db: Session = Depends(get_db)
+):
+    obj = services.get_location_by_name(db, location_name)
+    if not obj:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
+    return obj
+
 @router.patch("/{loc_id}", response_model=schemas.Location)
 def update_location(
     loc_id: UUID,

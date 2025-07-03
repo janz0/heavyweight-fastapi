@@ -18,6 +18,14 @@ export async function getLocation(
   return (await res.json()) as Location;
 }
 
+export async function getLocationByName(
+  name: string
+): Promise<Location> {
+  const res = await fetch(`${BASE}/name/${name}`);
+  if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
+  return (await res.json()) as Location;
+}
+
 export async function listLocations(
   projectId?: string  // optional projectId
 ): Promise<Location[]> {

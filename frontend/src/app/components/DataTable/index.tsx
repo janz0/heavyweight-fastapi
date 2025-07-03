@@ -120,7 +120,7 @@ export default function DataTable<T>({
             </Button>
           </Flex>
         )}
-        <Box position="absolute" right={0}><CountFooter count={count} total={total} name={name} color={textSub} /></Box>
+        <Box position="absolute" right={6}><CountFooter count={count} total={total} name={name} color={textSub} /></Box>
         
       </Flex>
     </>
