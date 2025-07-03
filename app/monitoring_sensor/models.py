@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, Float, Integer, DateTime, text, ForeignKey
+from sqlalchemy import Column, Text, Float, Integer, DateTime, text, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from app.config.database import DBBase
@@ -7,6 +7,10 @@ from app.monitoring_sensor_fields.models import MonitoringSensorField
 
 class MonitoringSensor(DBBase):
     __tablename__ = "mon_sensors"
+
+    __table_args__ = (
+        UniqueConstraint("mon_source_id", "sensor_name", name="uq_source_sensorname"),
+    )
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     mon_source_id = Column(PGUUID(as_uuid=True), ForeignKey("mon_sources.id", ondelete="CASCADE"), nullable=False)
