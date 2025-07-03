@@ -9,3 +9,19 @@ def get_sensor_field(db: Session, field_id: UUID) -> Optional[MonitoringSensorFi
 
 def get_sensor_fields(db: Session, sensor_id: UUID) -> List[MonitoringSensorField]:
     return db.query(MonitoringSensorField).filter(MonitoringSensorField.sensor_id == sensor_id).all()
+
+
+def get_sensor_field_by_sensor_and_name(
+    db: Session,
+    sensor_id: UUID,
+    field_name: str,
+) -> Optional[MonitoringSensorField]:
+    """Return the first sensor field matching sensor and field name."""
+    return (
+        db.query(MonitoringSensorField)
+          .filter(
+              MonitoringSensorField.sensor_id == sensor_id,
+              MonitoringSensorField.field_name == field_name,
+          )
+          .first()
+    )
