@@ -1,7 +1,14 @@
-from pydantic import BaseModel
-from typing import Optional
-from uuid import UUID
 from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
+from app.monitoring_sensor.schemas import (
+    MonitoringSensorNameWithFields,
+    MonitoringSensorWithFields,
+)
+
 
 class SourceBase(BaseModel):
     mon_loc_id: Optional[UUID] = None
@@ -14,8 +21,10 @@ class SourceBase(BaseModel):
     last_data_upload: Optional[str] = None
     active: Optional[int] = 1
 
+
 class SourceCreate(SourceBase):
     pass
+
 
 class SourceUpdate(BaseModel):
     mon_loc_id: Optional[UUID] = None
@@ -28,6 +37,7 @@ class SourceUpdate(BaseModel):
     last_data_upload: Optional[str] = None
     active: Optional[int] = None
 
+
 class SourceMetadata(BaseModel):
     loc_number: Optional[str] = None
     loc_name: str
@@ -36,7 +46,8 @@ class SourceMetadata(BaseModel):
     project_name: str
 
     class Config:
-        from_attributes  = True
+        from_attributes = True
+
 
 class Source(SourceBase):
     id: UUID
@@ -44,4 +55,22 @@ class Source(SourceBase):
     details: Optional[SourceMetadata] = None
 
     class Config:
-        from_attributes  = True
+        from_attributes = True
+
+
+class SourceWithSensors(Source):
+    sensors: Optional[List[MonitoringSensorWithFields]] = None
+
+
+class SourceWithSensorNames(Source):
+    sensors: Optional[List[MonitoringSensorNameWithFields]] = None
+
+
+class SourceLastUpdated(BaseModel):
+    """Schema exposing only the id and last_updated fields of a Source."""
+
+    id: UUID
+    last_updated: datetime
+
+    class Config:
+        from_attributes = True

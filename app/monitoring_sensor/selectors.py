@@ -41,3 +41,19 @@ def get_monitoring_sensor_by_name(
           .filter(MonitoringSensor.sensor_name == sensor_name)
           .first()
     )
+
+
+def get_sensor_by_source_and_name(
+    db: Session,
+    mon_source_id: UUID,
+    sensor_name: str,
+) -> Optional[MonitoringSensor]:
+    """Return the first sensor matching the source and name."""
+    return (
+        db.query(MonitoringSensor)
+          .filter(
+              MonitoringSensor.mon_source_id == mon_source_id,
+              MonitoringSensor.sensor_name == sensor_name,
+          )
+          .first()
+    )

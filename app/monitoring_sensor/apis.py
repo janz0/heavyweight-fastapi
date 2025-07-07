@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from typing import List, Any
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.common.dependencies import get_db
 from app.monitoring_sensor import schemas, selectors, services
 from app.monitoring_sensor_fields import schemas as field_schemas, selectors as field_selectors, services as field_services
@@ -11,9 +12,22 @@ router = APIRouter(prefix="/monitoring-sensors", tags=["Monitoring Sensors"])
 @router.post("/", response_model=schemas.MonitoringSensor, status_code=status.HTTP_201_CREATED)
 def create_monitoring_sensor(
     payload: schemas.MonitoringSensorCreate,
+    response: Response,
     db: Session = Depends(get_db),
 ):
-    return services.create_monitoring_sensor(db, payload)
+    existing = selectors.get_sensor_by_source_and_name(db, payload.mon_source_id, payload.sensor_name)
+    if existing:
+        response.status_code = status.HTTP_200_OK
+        return existing
+    try:
+        return services.create_monitoring_sensor(db, payload)
+    except IntegrityError:
+        db.rollback()
+        obj = selectors.get_sensor_by_source_and_name(db, payload.mon_source_id, payload.sensor_name)
+        if obj:
+            response.status_code = status.HTTP_200_OK
+            return obj
+        raise
 
 @router.get("/", response_model=List[schemas.MonitoringSensor])
 def list_monitoring_sensors(
@@ -64,8 +78,25 @@ def delete_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/{sensor_id}/field", response_model=field_schemas.MonitoringSensorField, status_code=status.HTTP_201_CREATED)
-def create_sensor_field(sensor_id: UUID, payload: field_schemas.MonitoringSensorFieldCreate, db: Session = Depends(get_db)):
-    return field_services.create_sensor_field(db, sensor_id, payload)
+def create_sensor_field(
+    sensor_id: UUID,
+    payload: field_schemas.MonitoringSensorFieldCreate,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    existing = field_selectors.get_sensor_field_by_sensor_and_name(db, sensor_id, payload.field_name)
+    if existing:
+        response.status_code = status.HTTP_200_OK
+        return existing
+    try:
+        return field_services.create_sensor_field(db, sensor_id, payload)
+    except IntegrityError:
+        db.rollback()
+        obj = field_selectors.get_sensor_field_by_sensor_and_name(db, sensor_id, payload.field_name)
+        if obj:
+            response.status_code = status.HTTP_200_OK
+            return obj
+        raise
 
 
 @router.get("/{sensor_id}/fields", response_model=List[field_schemas.MonitoringSensorField])

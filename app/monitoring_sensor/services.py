@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.monitoring_sensor import schemas, selectors
 from app.monitoring_sensor.models import MonitoringSensor
+from app.monitoring_source import services as source_services
 from app.monitoring_source.models import Source
 from app.location.models import Location
 
@@ -13,6 +14,8 @@ def create_monitoring_sensor(db: Session, payload: schemas.MonitoringSensorCreat
     db.add(obj)
     db.commit()
     db.refresh(obj)
+    # update the parent source timestamp since its sensors changed
+    source_services.touch_source(db, obj.mon_source_id)
     return obj
 
 def update_monitoring_sensor(db: Session, sensor_id: UUID, payload: schemas.MonitoringSensorUpdate) -> Optional[MonitoringSensor]:
@@ -82,4 +85,4 @@ def enrich_sensor(sensor: MonitoringSensor) -> dict:
     sensor_dict = dict(sensor.__dict__)
     sensor_dict["details"] = details
     model = schemas.MonitoringSensor.model_construct(**sensor_dict)
-    return model.model_dump()
+    return model
