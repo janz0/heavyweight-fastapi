@@ -30,7 +30,7 @@ export default function Navbar() {
   return (
     <>
       <Box position="sticky" top={0} zIndex="1000" bg="inherit" className="shadow-md">
-        <Flex h={16} align="center" justify="space-between" pl={"5%"} pr={"2%"}>
+        <Flex align="center" justify="space-between" pl={"5%"} pr={"1%"}>
           <IconButton size="md" aria-label="Toggle menu" display={{ md: "none" }} onClick={navOpen ? closeNav : openNav} variant="ghost">
             {navOpen ? <X size={24} /> : <Menu size={24} />}
           </IconButton>
@@ -39,7 +39,7 @@ export default function Navbar() {
               RWH Monitoring
             </Box>
           </NextLink>
-          <HStack gap={8} align="center" display={{ base: "none", md: "flex" }}>
+          <HStack gap={2} align="center" margin={1}  display={{ base: "none", md: "flex" }}>
             {!authToken && (
               <>
                 <Button variant="ghost" onClick={() => pathname !== "/login" && openLogin()} >
@@ -52,11 +52,11 @@ export default function Navbar() {
             )}
 
             {authToken && (
-              <Button variant="ghost" onClick={() => signOut()}>
+              <Button variant="ghost" className="navbar-button" onClick={() => signOut()}>
                 Log out
               </Button>
             )}
-          <ColorModeButton />
+          <ColorModeButton className="navbar-button"/>
           </HStack>
         </Flex>
       </Box>

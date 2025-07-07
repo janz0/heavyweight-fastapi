@@ -6,6 +6,8 @@ from app.common.dependencies import get_db
 from app.project import schemas, selectors, services
 from app.location import schemas as location_schemas
 import app.location.services  as location_services
+from app.monitoring_source import schemas as source_schemas, services as source_services
+from app.monitoring_sensor import schemas as sensor_schemas, services as sensor_services
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -26,11 +28,45 @@ def list_project_locations(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    return location_services.list_locations_for_project(db, project_id, skip=skip, limit=limit)
+    locations = location_services.list_locations_for_project(db, project_id, skip=skip, limit=limit)
+    return [location_services.enrich_location(loc) for loc in locations]
+
+@router.get(
+    "/{project_id}/sources",
+    response_model=List[source_schemas.Source]
+)
+def list_project_sources(
+    project_id: UUID,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    sources = source_services.list_sources_for_project(db, project_id, skip=skip, limit=limit)
+    return [source_services.enrich_source(src) for src in sources]
+
+@router.get(
+    "/{project_id}/sensors",
+    response_model=List[sensor_schemas.MonitoringSensor]
+)
+def list_project_sensors(
+    project_id: UUID,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    sensors = sensor_services.list_sensors_for_project(db, project_id, skip=skip, limit=limit)
+    return [sensor_services.enrich_sensor(sen) for sen in sensors]
 
 @router.get("/{project_id}", response_model=schemas.Project)
 def get_project(project_id: UUID, db: Session = Depends(get_db)):
     obj = selectors.get_project(db, project_id)
+    if not obj:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    return obj
+
+@router.get("/by-number/{project_number}", response_model=schemas.Project)
+def get_project_by_number(project_number: str, db: Session = Depends(get_db)):
+    obj = selectors.get_project_by_number(db, project_number)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     return obj

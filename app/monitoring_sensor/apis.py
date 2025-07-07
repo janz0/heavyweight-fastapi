@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
-from typing import List
+from typing import List, Any
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -43,6 +43,20 @@ def get_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):
     obj = selectors.get_monitoring_sensor(db, sensor_id)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
+    return services.enrich_sensor(obj)
+
+@router.get(
+    "/name/{sensor_name}",
+    response_model=schemas.MonitoringSensor,
+    status_code=status.HTTP_200_OK,
+)
+def get_monitoring_sensor_by_name(
+    sensor_name: str,
+    db: Session = Depends(get_db),
+):
+    obj = services.get_monitoring_sensor_by_name(db, sensor_name)
+    if not obj:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Sensor not found")
     return obj
 
 @router.patch("/{sensor_id}", response_model=schemas.MonitoringSensor)
@@ -54,7 +68,7 @@ def update_monitoring_sensor(
     obj = services.update_monitoring_sensor(db, sensor_id, payload)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
-    return obj
+    return services.enrich_sensor(obj)
 
 @router.delete("/{sensor_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):

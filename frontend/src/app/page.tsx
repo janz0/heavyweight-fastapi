@@ -12,9 +12,12 @@ import {
   Button,
   IconButton,
   Input,
+  InputGroup,
+  HStack,
 } from "@chakra-ui/react";
 import { Tooltip } from "@/app/src/components/ui/tooltip";
-import { useColorMode } from "./src/components/ui/color-mode";
+import { useColorMode, useColorModeValue } from "./src/components/ui/color-mode";
+import { ColorModeButton } from "@/app/src/components/ui/color-mode";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,9 +34,9 @@ import { loginUser } from "@/services/auth";
 import { listProjects } from "@/services/projects";
 import { listSources } from "@/services/sources";
 import { listSensors } from "@/services/sensors";
-import { Eye, EyeSlash } from "phosphor-react";
-import { Info } from "phosphor-react";
+import { Eye, EyeSlash, Info, Folder, MapPin, Gauge, Database, Bell, CheckCircle, XCircle } from "phosphor-react";
 import Link from "next/link";
+import "@/app/styles/squares.css"
 
 ChartJS.register(
   CategoryScale,
@@ -52,7 +55,9 @@ function LoginForm() {
   const { signIn } = useAuth();
   const { colorMode } = useColorMode();
   const [email, setEmail] = useState("");
+  const [emailIsValid, setEmailIsValid] = useState(false);
   const [password, setPassword] = useState("");
+  const [passwordIsValid, setPasswordIsValid] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -69,13 +74,46 @@ function LoginForm() {
     }
   };
 
+  const bgGradient = useColorModeValue(
+    "linear(to-br, blue.600, purple.600)",
+    "linear(to-br, gray.800, gray.900)"
+  );
+
+
   return (
-    <Flex justify="center" align="center" minH="100vh"
-      bg={colorMode === 'light' ? 'gray.100' : 'gray.800'}
+    <Flex
+      className="auth-background"
+      position="relative"
+      direction="column"
+      align="center"
+      justify="center"
+      minH="100vh"
+      p={4}
     >
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      <div className="cube"></div>
+      {/* Title */}
+      <Heading as="h1" size="2xl" mb={12} textAlign="center">
+        RWH Engineering
+      </Heading>
       <Box
-        bg={colorMode === 'light' ? 'white' : 'gray.700'}
-        color={colorMode === 'light' ? 'gray.800' : 'gray.200'}
+        position="relative"
+        zIndex={1}
+        bg={useColorModeValue("white", "gray.700")}
+        color={useColorModeValue("gray.800", "gray.200")}
         p={8}
         borderRadius="md"
         boxShadow="md"
@@ -85,32 +123,70 @@ function LoginForm() {
         <Heading as="h2" size="lg" mb={6} textAlign="center">
           Sign In
         </Heading>
+        <ColorModeButton position="absolute" top="1rem" right="1rem" className="navbar-button"/>
         <form onSubmit={handleSubmit}>
           <VStack gap={4} align="stretch">
             <Box>
               <Text mb={1} fontWeight="semibold">
                 Email
               </Text>
+              <Box position="relative">
               <Input
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setEmail(v);
+                  setEmailIsValid(/\S+@\S+\.\S+/.test(v));
+                }}
                 required
               />
+              {email && (
+                <Box
+                  position="absolute"
+                  top="50%"
+                  right="0.75rem"
+                  transform="translateY(-50%)"
+                  pointerEvents="none">
+                  {emailIsValid
+                    ? <CheckCircle color="green" size={16}/>
+                    : <XCircle     color="red"   size={16}/>}
+                </Box>
+              )}
+              </Box>
             </Box>
             <Box>
               <Text mb={1} fontWeight="semibold">
                 Password
               </Text>
               <Flex align="center">
+                <Box position="relative" width={"90%"}>
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPassword(v);
+                    setPasswordIsValid(v.length >= 3);
+                  }}
                   required
                 />
+                {password && (
+                  <Box
+                    position="absolute"
+                    top="50%"
+                    right="0.75rem"
+                    transform="translateY(-50%)"
+                    pointerEvents="none"
+                  >
+                    {passwordIsValid
+                      ? <CheckCircle color="green" size={16}/>
+                      : <XCircle color="red" size={16}/>}
+                  </Box>
+                )}
+                </Box>
                 <IconButton
                   ml={2}
                   size="sm"
@@ -187,11 +263,11 @@ function Dashboard() {
   }
 
 const stats = [
-  { label: 'Active Projects', value: activeProjects, href: '/projects' },
-  { label: 'Total Locations', value: totalLocations, href: '/locations' },
-  { label: 'Online Sensors',  value: onlineSensors, href: '/sensors' },
-  { label: 'Sources', value: totalSources, href: '/sources' },
-  { label: 'Open Alerts', value: 0 },
+  { label: 'Active Projects', value: activeProjects, href: '/projects', icon: Folder },
+  { label: 'Total Locations', value: totalLocations, href: '/locations', icon: MapPin},
+  { label: 'Online Sensors',  value: onlineSensors, href: '/sensors', icon: Gauge },
+  { label: 'Sources', value: totalSources, href: '/sources', icon: Database },
+  { label: 'Open Alerts', value: 0, icon: Bell },
 ];
 
   // chart data
@@ -211,44 +287,48 @@ const stats = [
   return (
     <Box minH="100vh" p={6} bg={bg} color={text}>
       {/* Header */}
-      <Flex mb={6} justify="space-between" align="center">
+      <Flex mb={3} justify="space-between" align="center">
         <Heading size="lg">RWH Monitoring</Heading>
       </Flex>
 
       {/* Metrics */}
-      <Flex wrap="wrap" gap={4} mb={6}>
-        {stats.map((s) => (
-          <Link key={s.label} href={s.href || '#'} passHref style={{display: "contents"}}>
-            <Box
-              key={s.label}
-              flex="1"
-              minW="150px"
-              bg={cardBg}
-              p={4}
-              borderRadius="md"
-              boxShadow="sm"
-              _hover={{ boxShadow: 'md' }}
-            >
-              <Text fontSize="sm" color={textSub}>{s.label}
-                {s.label === 'Active Projects' && (
-                  <Box as="span" ml={1}>
-                    <Tooltip
-                      content={`${activeProjects} active of ${totalProjects} total`}
-                      showArrow
-                      openDelay={100}
-                      closeDelay={100}
-                    >
-                      <Box as="span" display="inline-flex" alignItems="center" cursor="pointer">
-                        <Info size={14} weight="bold" />
-                      </Box>
-                    </Tooltip>
-                  </Box>
-                )}
-              </Text>
-              <Text fontSize="2xl" fontWeight="bold" color={accent}>{s.value}</Text>
-            </Box>
-          </Link>
-        ))}
+      <Flex wrap="wrap" gap={4} mb={4} maxWidth={"75%"} pr={2}>
+        {stats.map(s => {
+          const IconComp = s.icon;
+          return (
+            <Link key={s.label} href={s.href || '#'} passHref style={{display: "contents"}}>
+              <Box
+                key={s.label}
+                flex="1"
+                bg={cardBg}
+                p={4}
+                borderRadius="md"
+                boxShadow="sm"
+                _hover={{ boxShadow: 'md' }}
+              >
+                <HStack><IconComp size={24} weight="bold" color={accent}/><Text fontSize="xl" fontWeight="bold" color={accent}>{s.value}</Text></HStack>
+                <Text fontSize="sm" color={textSub}>
+                  {s.label}
+                  {s.label === 'Active Projects' && (
+                    <Box as="span" ml={1}>
+                      <Tooltip
+                        content={`${activeProjects} active of ${totalProjects} total`}
+                        showArrow
+                        openDelay={100}
+                        closeDelay={100}
+                      >
+                        <Box as="span" display="inline-flex" alignItems="center" cursor="pointer">
+                          <Info size={14} weight="bold" />
+                        </Box>
+                      </Tooltip>
+                    </Box>
+                  )}
+                </Text>
+                
+              </Box>
+            </Link>
+          );
+        })}
       </Flex>
 
       {/* Main Chart & Side Panels */}

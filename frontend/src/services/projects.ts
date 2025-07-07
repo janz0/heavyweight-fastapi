@@ -46,6 +46,15 @@ export async function getProject(id: string): Promise<Project> {
   return (await res.json()) as Project;
 }
 
+export async function getProjectByNumber(number: string): Promise<Project> {
+  const res = await fetch(`${BASE}/by-number/${number}`);
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Fetch project failed (${res.status}): ${txt}`);
+  }
+  return (await res.json()) as Project;
+}
+
 export async function listProjects(
   skip = 0,
   limit = 100

@@ -25,6 +25,14 @@ def get_sources(db: Session, skip: int = 0, limit: int = 100) -> list[type[Sourc
         .all()
     )
 
+def get_source_by_name(db: Session, source_name: str) -> Optional[Source]:
+    return (
+        db.query(Source)
+        .options(joinedload(Source.mon_loc).joinedload(Location.project))
+        .filter(Source.source_name == source_name)
+        .first()
+    )
+
 
 def get_source_updates(db: Session, skip: int = 0, limit: int = 100):
     """Return only the id and last_updated fields for all sources."""

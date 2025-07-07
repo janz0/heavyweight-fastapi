@@ -36,3 +36,4 @@ volumes:
 
 networks:
   heavyweight_network:
+    external: true

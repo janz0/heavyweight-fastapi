@@ -24,10 +24,15 @@ class LocationUpdate(BaseModel):
     frequency: Optional[str] = None
     active: Optional[int] = None
 
+class LocationMetadata(BaseModel):
+    project_number: Optional[str] = None
+    project_name: str
+
 class Location(LocationBase):
     id: UUID
     created_at: datetime
     last_updated: datetime
+    details: Optional[LocationMetadata] = None
 
     class Config:
         orm_mode = True
