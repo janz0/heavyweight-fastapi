@@ -5,7 +5,7 @@
 import { useState, useEffect, useMemo } from "react";
 
 // Chakra Imports + Icons
-import { Box, Button, Flex, Heading, IconButton, Popover, Spinner, Table, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, IconButton, Link, Popover, Spinner, Table, VStack } from "@chakra-ui/react";
 import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
@@ -15,7 +15,6 @@ import { Breadcrumb } from "@/app/components/Breadcrumb";
 import SearchInput from "@/app/components/SearchInput";
 import PageSizeSelect from "@/app/components/PageSizeSelect";
 import DataTable from "@/app/components/DataTable";
-import CountFooter from "@/app/components/CountFooter";
 
 // Services + Types
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from "./SourceModals";
@@ -133,10 +132,10 @@ export default function SourcesPageClient({ sources: initialSources }: Props) {
       </Flex>
       {hydrated? (
         <Box maxH="60vh" overflowY="auto">
-          <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)}
+          <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name="sources"
             renderRow={(s: Source) => (
               <>
-                <Table.Cell textAlign="center" textDecor={"underline"}>{s.source_name}</Table.Cell>
+                <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/sources/${s.source_name}`}>{s.source_name}</Link></Table.Cell>
                 <Table.Cell textAlign="center">{s.details?.loc_name}</Table.Cell>
                 <Table.Cell textAlign="center">{s.folder_path}</Table.Cell>
                 <Table.Cell textAlign="center">{s.file_keyword}</Table.Cell>
@@ -193,7 +192,6 @@ export default function SourcesPageClient({ sources: initialSources }: Props) {
           <Spinner />
         </Flex>
       )}
-      <CountFooter count={displayed.length} total={sorted.length} name="sources" color={textSub} />
       <SourceCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedSource(undefined); setCreateOpen(false); } } />
       <SourceEditModal isOpen={isEditOpen} source={selectedSource} onClose={() => { setSelectedSource(undefined); setEditOpen(false); }} />
       <SourceDeleteModal isOpen={isDelOpen} source={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />

@@ -130,7 +130,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
         </Flex>
       </Flex>
       {hydrated? (
-        <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)}
+        <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name="projects"
           renderRow={(p: Project) => (
             <>
               <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/projects/${p.project_number}`} passHref>{p.project_name}</Link></Table.Cell>
@@ -190,7 +190,6 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
           <Spinner />
         </Flex>
       )}
-      <CountFooter count={displayed.length} total={sorted.length} name="projects" color={textSub} />
       <ProjectCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedProject(undefined); setCreateOpen(false);}} />
       <ProjectEditModal isOpen={isEditOpen} project={selectedProject} onClose={() => { setSelectedProject(undefined); setEditOpen(false); }} />
       <ProjectDeleteModal isOpen={isDelOpen} onClose={() => { setToDelete(undefined); setDelOpen(false); }} project={toDelete} />

@@ -24,15 +24,19 @@ function SensorForm({
   onSubmit,
   onClose,
   initialData,
+  initialProjectId,
   submitLabel,
 }: {
   onSubmit: (payload: MonitoringSensorPayload) => Promise<void>;
   onClose: () => void;
   initialData?: MonitoringSensor;
+  initialProjectId?: string;
   submitLabel: string;
 }) {
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
+
+  const fixedProjectId = initialProjectId;
 
   const router = useRouter();
   const [sources, setSources] = useState<Source[]>([]);
@@ -41,14 +45,24 @@ function SensorForm({
   const [sensorName, setSensorName] = useState(initialData?.sensor_name ?? "");
   const [sensorType, setSensorType] = useState(initialData?.sensor_type ?? "");
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
+  const fixedSourceId = initialData?.mon_source_id;
+  const isSourceLocked = Boolean(fixedSourceId);
 
   useEffect(() => {
-    listSources()
-      .then(setSources)
-      .catch((err) => {
-        console.error("Failed to load sources:", err);
-        toaster.create({ description: "Could not load sources", type: "error" });
-      });
+    if (fixedProjectId)
+      listSources(fixedProjectId)
+        .then(setSources)
+        .catch((err) => {
+          console.error("Failed to load sources:", err);
+          toaster.create({ description: "Could not load sources", type: "error" });
+        });
+    else 
+      listSources()
+        .then(setSources)
+        .catch((err) => {
+          console.error("Failed to load sources:", err);
+          toaster.create({ description: "Could not load sources", type: "error" });
+        });
   }, []);
 
   useEffect(() => {
@@ -96,6 +110,7 @@ function SensorForm({
           collection={sourceCollection}
           value={monSourceId ? [monSourceId] : []}
           onValueChange={(e) => setMonSourceId(e.value[0])}
+          disabled={isSourceLocked}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -103,7 +118,7 @@ function SensorForm({
               <Select.ValueText placeholder="Select source" />
             </Select.Trigger>
             <Select.IndicatorGroup>
-              <Select.ClearTrigger />
+              {!isSourceLocked && <Select.ClearTrigger />}
               <Select.Indicator />
             </Select.IndicatorGroup>
           </Select.Control>
@@ -177,7 +192,7 @@ function SensorForm({
 // ==============================
 // SensorCreateModal
 // ==============================
-export function SensorCreateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) {
+export function SensorCreateModal({ isOpen, onClose, projectId }: { isOpen: boolean; onClose: () => void; projectId?: string;}) {
   const handleCreate = async (payload: MonitoringSensorPayload) => {
     try {
       await createSensor(payload);
@@ -206,7 +221,7 @@ export function SensorCreateModal({ isOpen, onClose }: { isOpen: boolean; onClos
               </Dialog.CloseTrigger>
             </Dialog.Header>
             <Dialog.Body>
-              <SensorForm onSubmit={handleCreate} onClose={onClose} submitLabel="Create" />
+              <SensorForm onSubmit={handleCreate} initialProjectId={projectId} onClose={onClose} submitLabel="Create" />
             </Dialog.Body>
           </Dialog.Content>
         </Dialog.Positioner>

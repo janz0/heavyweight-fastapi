@@ -4,19 +4,33 @@ import type { Source, SourcePayload } from "@/types/source";
 const API = process.env.NEXT_PUBLIC_API_URL; 
 const BASE = `${API}monitoring-sources`;
 const PROJECTS_BASE = `${API}projects`
+const LOCATIONS_BASE = `${API}locations`;
 
 export async function listSources(
-  projectId?: string,   // optional
+  projectId?: string,
+  locationId?: string,
   skip = 0,
   limit = 100
 ): Promise<Source[]> {
-  const url = projectId
-    ? `${PROJECTS_BASE}/${projectId}/sources?skip=${skip}&limit=${limit}`
-    : `${BASE}/?skip=${skip}&limit=${limit}`;
+  let url: string;
+
+  if (projectId && locationId) {
+    // get sources for a specific project *and* location
+    url = `${PROJECTS_BASE}/${projectId}/locations/${locationId}/sources?skip=${skip}&limit=${limit}`;
+  } else if (projectId) {
+    // get all sources for a project
+    url = `${PROJECTS_BASE}/${projectId}/sources?skip=${skip}&limit=${limit}`;
+  } else if (locationId) {
+    // get all sources for a location (across projects)
+    url = `${LOCATIONS_BASE}/${locationId}/sources?skip=${skip}&limit=${limit}`;
+  } else {
+    // fallback: list *all* sources
+    url = `${BASE}/?skip=${skip}&limit=${limit}`;
+  }
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`List sources failed (${res.status})`);
-  return res.json() as Promise<Source[]>;
+  return (await res.json()) as Source[];
 }
 
 export async function createSource(
@@ -61,6 +75,15 @@ export async function getSource(sourceId: string): Promise<Source> {
   }
   return (await res.json()) as Source;
 }
+
+export async function getSourceByName(
+  name: string
+): Promise<Source> {
+  const res = await fetch(`${BASE}/name/${encodeURIComponent(name)}`);
+  if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
+  return (await res.json()) as Source;
+}
+
 
 export async function deleteSource(sourceId: string): Promise<void> {
   const res = await fetch(`${BASE}/${sourceId}`, {

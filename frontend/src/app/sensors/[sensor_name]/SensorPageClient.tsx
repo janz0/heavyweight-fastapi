@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Box, HStack, Heading, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Heading, Text, VStack } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import { Breadcrumb } from '@/app/components/Breadcrumb';
 import type { MonitoringSensor } from '@/types/sensor';
@@ -31,46 +31,60 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
       <Breadcrumb
         crumbs={[
           { label: 'Dashboard', href: '/' },
-          { label: 'Projects', href: '/projects' },
+          { label: 'Sensors', href: '/Sensors' },
+          { label: `${sensor.sensor_name}`, href: `/Sensors/${sensor.sensor_name}` },
         ]}
       />
-      <Box display="grid" gridTemplateColumns="3fr 2fr" w="100%" gap="4" mb="4">
+      <Box w="100%" gap="4" mb="4">
         {/* Metrics */}
-        <Box mb={3} border="inset" borderRadius="xl" p="12px" h="full">
+        <Box mb={3} border="inset" borderRadius="xl" p="12px" h="full" alignItems="center" justifyItems={"center"}>
           {/* Title */}
-          <HStack align="center" gap="2">
             <Heading size="3xl">{sensor.sensor_name}</Heading>
-          </HStack>
-
-          {/* Project Details */}
-          <HStack justify="space-between" mr="25%" mt="2px">
-            <VStack align="start" gap={0}>
-              <Text fontWeight="light" color={textSub}>Sensor Type</Text>
-              <Text fontWeight="medium">{sensor.sensor_type}</Text>
-            </VStack>
-            <VStack align="start" gap={0}>
-              <Text fontWeight="light" color={textSub}>Source</Text>
-              <Text fontWeight="medium">{sensor.details?.mon_source_name}</Text>
-            </VStack>
-            <VStack align="start" gap={0}>
-              <Text fontWeight="light" color={textSub}>Sensor Group</Text>
-              <Text fontWeight="medium">{sensor.sensor_group_id ?? "N/A"}</Text>
-            </VStack>
-            <VStack align="start" gap={0}>
-              <Text fontWeight="light" color={textSub}>Created At</Text>
-              <Text fontWeight="medium">{formatDate(sensor.created_at)}</Text>
-            </VStack>
-            <VStack align="start" gap={0}>
-              <Text fontWeight="light" color={textSub}>Updated</Text>
-              <Text fontWeight="medium">{formatDate(sensor.last_updated)}</Text>
-            </VStack>
-            <VStack align="start" gap={0}>
-              <Text fontWeight="light" color={textSub}>Active</Text>
-              <Text fontWeight="medium">Active (Placeholder)</Text>
-            </VStack>
-          </HStack>
         </Box>
       </Box>
+      <HStack mb={3} h="50vh" align="stretch">
+        <VStack w="40%" h="fit-content">
+          <Box border="inset" borderRadius="xl" p="12px" w="100%">
+            {/* Project Details */}
+            <HStack align="start" gap={4}>
+              <Text fontWeight="light" color={textSub}>Sensor Type:</Text>
+              <Text fontWeight="medium">{sensor.sensor_type ?? "N/A"}</Text>
+            </HStack>
+            <HStack align="start" gap={4}>
+              <Text fontWeight="light" color={textSub}>Sensor Group:</Text>
+              <Text fontWeight="medium">{sensor.sensor_group_id ?? "N/A"}</Text>
+            </HStack>
+            <HStack>
+              <Text fontWeight="light" color={textSub}>Source Name:</Text>
+              <Text fontWeight="medium">{sensor.details?.mon_source_name ?? "N/A"}</Text>
+            </HStack>
+            <HStack align="start" gap={4}>
+              <Text fontWeight="light" color={textSub}>Created:</Text>
+              <Text fontWeight="medium">{formatDate(sensor.created_at) ?? "N/A"}</Text>
+            </HStack>
+            <HStack align="start" gap={4}>
+              <Text fontWeight="light" color={textSub}>Updated:</Text>
+              <Text fontWeight="medium">{formatDate(sensor.last_updated)}</Text>
+            </HStack>
+            <HStack align="start" gap={4}>
+              <Text fontWeight="light" color={textSub}>Active:</Text>
+              <Text fontWeight="medium">Active (Placeholder)</Text>
+            </HStack>
+          </Box>
+          <Button
+            variant='solid'
+            borderWidth={"2px"}
+            borderColor={"black"}
+            borderRadius={"xl"}
+            border="inset"
+            _dark={{borderColor: "white"}}
+            w="100%"
+            fontSize={"xl"}
+          >
+            Sensors
+          </Button>
+        </VStack>
+      </HStack>
     </Box>
   );
 }

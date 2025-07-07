@@ -27,7 +27,7 @@ export async function getLocationByName(
 }
 
 export async function listLocations(
-  projectId?: string  // optional projectId
+  projectId?: string,  // optional projectId
 ): Promise<Location[]> {
   let url: string;
 
@@ -45,7 +45,6 @@ export async function listLocations(
 
   return res.json() as Promise<Location[]>;
 }
-
 
 export async function createLocation(
   payload: LocationPayload

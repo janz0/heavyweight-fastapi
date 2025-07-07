@@ -21,3 +21,11 @@ def get_sources(db: Session, skip: int = 0, limit: int = 100) -> list[type[Sourc
         .limit(limit)
         .all()
     )
+
+def get_source_by_name(db: Session, source_name: str) -> Optional[Source]:
+    return (
+        db.query(Source)
+        .options(joinedload(Source.mon_loc).joinedload(Location.project))
+        .filter(Source.source_name == source_name)
+        .first()
+    )

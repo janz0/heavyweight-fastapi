@@ -46,6 +46,6 @@ export default function LocationsPage() {
       </Box>
     );
   }
-
+  
   return <LocationsPageClient locations={locations!} />;
 }

@@ -177,7 +177,8 @@ export default function LocationPageClient({ location, initialSources, initialSe
       <Breadcrumb
         crumbs={[
           { label: 'Dashboard', href: '/' },
-          { label: 'Projects', href: '/projects' },
+          { label: 'Locations', href: '/Locations' },
+          { label: `${location.loc_name}`, href: `/Locations/${location.loc_name}` },
         ]}
       />
       <Box w="100%" gap="4" mb="4">

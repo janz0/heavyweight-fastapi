@@ -47,6 +47,22 @@ def list_sensors_for_project(
           .all()
     )
 
+def list_sensors_for_location(
+    db: Session,
+    loc_id: UUID,
+    skip: int = 0,
+    limit: int = 100
+) -> List[MonitoringSensor]:
+    return (
+        db.query(MonitoringSensor)
+          .join(Source, MonitoringSensor.mon_source_id == Source.id)
+          .join(Location, Source.mon_loc_id == Location.id)
+          .filter(Location.id == loc_id)
+          .offset(skip)
+          .limit(limit)
+          .all()
+    )
+
 def get_monitoring_sensor_by_name(
     db: Session,
     sensor_name: str

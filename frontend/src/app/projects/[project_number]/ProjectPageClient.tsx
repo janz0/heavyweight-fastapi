@@ -15,7 +15,7 @@ import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 import { Line } from "react-chartjs-2";
 
 // Services + Types
-
+import { ProjectEditModal } from '@/app/projects/components/ProjectModals';
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/sources/components/SourceModals';
 import { Source } from '@/types/source';
 import { MonitoringSensor } from '@/types/sensor';
@@ -176,6 +176,10 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
       year:  'numeric',
     }).format(date);
   }
+  // Project Variables
+  const [isProjEditOpen, setProjEditOpen] = useState(false);
+  const handleEditProject = () => { setProjEditOpen(true); };
+
   // Location Variables
   const [isLocCreateOpen, setLocCreateOpen] = useState(false);
   const [isLocEditOpen, setLocEditOpen] = useState(false);
@@ -219,14 +223,22 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
   
   return (
     <Box minH="100vh" p={6} bg={bg}>
-      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/"}, { label: "Projects", href: "/projects"} ]}/>
+      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/"}, { label: "Projects", href: "/projects"}, { label: `${project.project_number}`, href: `/projects/${project.project_number}`} ]}/>
       <Box display="grid" gridTemplateColumns="3fr 2fr" w="100%" gap="4" mb="4">
         {/* Metrics */}
         <Box mb={3} border="inset" borderRadius="xl" p="12px" h="full">
           {/* Title + Link */}
-          <HStack align="center" gap="2">
+          <Flex align="center" justify="space-between" w="100%">
             <Heading size="3xl">{project.project_name}</Heading>
-          </HStack>
+            <IconButton
+              aria-label="Edit project"
+              variant="ghost"
+              size="sm"
+              onClick={handleEditProject}
+              _hover={{ bg: "gray.200" }}
+              _dark={{ _hover: { bg: "whiteAlpha.200" }}}
+            ><PencilSimple weight='bold'/></IconButton>
+          </Flex>
 
           {/* Description */}
           <HStack w="fit-content" gap="4" mt="2px">
@@ -460,7 +472,7 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
         <DataTable columns={sourcesColumns} data={displayed as Source[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
           renderRow={(s: Source) => (
             <>
-              <Table.Cell textAlign="center" textDecor={"underline"}>{s.source_name}</Table.Cell>
+              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/sources/${s.source_name}`}>{s.source_name}</Link></Table.Cell>
               <Table.Cell textAlign="center">{s.details?.loc_name}</Table.Cell>
               <Table.Cell textAlign="center">{s.folder_path}</Table.Cell>
               <Table.Cell textAlign="center">{s.file_keyword}</Table.Cell>
@@ -598,13 +610,14 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
       )}
 
       {/* Wizards */}
-      <LocationCreateModal isOpen={isLocCreateOpen} onClose={() => { setSelectedLocation(undefined); setLocCreateOpen(false);}} />
+      <ProjectEditModal isOpen={isProjEditOpen} project={project} onClose={() => { setProjEditOpen(false); }} />
+      <LocationCreateModal isOpen={isLocCreateOpen} projectId={project.id} onClose={() => { setSelectedLocation(undefined); setLocCreateOpen(false);}} />
       <LocationEditModal isOpen={isLocEditOpen} location={selectedLocation} onClose={() => { setSelectedLocation(undefined); setLocEditOpen(false); }} />
       <LocationDeleteModal isOpen={isLocDelOpen} onClose={() => { setLocToDelete(undefined); setLocDelOpen(false); }} location={locToDelete} />
-      <SourceCreateModal isOpen={isSrcCreateOpen} onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } } />
+      <SourceCreateModal isOpen={isSrcCreateOpen} projectId={project.id} onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } } />
       <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }} />
       <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }} />
-      <SensorCreateModal isOpen={isSenCreateOpen} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
+      <SensorCreateModal isOpen={isSenCreateOpen} projectId={project.id} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
       <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }} />
       <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }} />
     </Box>

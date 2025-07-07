@@ -133,10 +133,10 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
         </Flex>
       </Flex>
       {hydrated? (
-        <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)}
+        <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name="locations"
           renderRow={(l: Location) => (
             <>
-              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/locations`} passHref>{l.loc_name}</Link></Table.Cell>
+              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/locations/${l.loc_name}`} passHref>{l.loc_name}</Link></Table.Cell>
               <Table.Cell textAlign="center" textTransform="capitalize">{l.loc_number||"N/A"}</Table.Cell>
               <Table.Cell textAlign="center">{l.details?.project_name ?? l.project_id}</Table.Cell>
               <Table.Cell textAlign="center">{l.lat}</Table.Cell>
@@ -192,7 +192,6 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
           <Spinner />
         </Flex>
       )}
-      <CountFooter count={displayed.length} total={sorted.length} name="locations" color={textSub} />
       <LocationCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedLocation(undefined); setCreateOpen(false);}} />
       <LocationEditModal isOpen={isEditOpen} location={selectedLocation} onClose={() => { setSelectedLocation(undefined); setEditOpen(false); }} />
       <LocationDeleteModal isOpen={isDelOpen} onClose={() => { setToDelete(undefined); setDelOpen(false); }} location={toDelete} />

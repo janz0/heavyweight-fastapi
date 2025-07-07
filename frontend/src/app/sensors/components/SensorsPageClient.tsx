@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo } from "react";
 // import Link from "next/link";
 
 // Chakra Imports + Icons
-import { Box, Button, Flex, Heading, IconButton, Popover, Spinner, Text, Table, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, IconButton, Link, Popover, Spinner, Text, Table, VStack } from "@chakra-ui/react";
 import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 import { toaster } from "@/components/ui/toaster"
 import { useColorMode } from "@/app/src/components/ui/color-mode";
@@ -18,7 +18,6 @@ import { Breadcrumb } from "@/app/components/Breadcrumb";
 import SearchInput from "@/app/components/SearchInput";
 import PageSizeSelect from "@/app/components/PageSizeSelect";
 import DataTable from "@/app/components/DataTable";
-import CountFooter from "@/app/components/CountFooter";
 
 // Services + Types
 import type { MonitoringSensor } from "@/types/sensor";
@@ -126,7 +125,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   }, []);
 
   return (
-    <Box minH="100vh" bg={bg} p={6} color={text}>
+    <Box minH="100vh" bg={bg} p={6}>
       <Breadcrumb crumbs={[{ label: "Dashboard", href: "/"}, { label: "Sensors", href: "/sensors"} ]}/>
       <Flex mb={4} align="center" position="relative" w="100%">
         <Heading fontSize={"3xl"}>Monitoring Sensors</Heading>
@@ -141,12 +140,12 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
         </Flex>
       </Flex>
       {hydrated? (
-        <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)}
+        <DataTable columns={columns} data={displayed} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name="sensors"
           renderRow={(s: MonitoringSensor) => (
             <>
-              <Table.Cell textAlign="center" textTransform="capitalize" textDecor={"underline"}>{s.sensor_name}</Table.Cell>
+              <Table.Cell textAlign="center" textTransform="capitalize" textDecor={"underline"}><Link href={`/sensors/${s.sensor_name}`}>{s.sensor_name}</Link></Table.Cell>
               <Table.Cell textAlign="center" textTransform="capitalize">{s.sensor_type}</Table.Cell>
-              <Table.Cell textAlign="center">{s.source_name ?? s.mon_source_id}</Table.Cell>
+              <Table.Cell textAlign="center">{s.details?.mon_source_name ?? s.mon_source_id}</Table.Cell>
               <Table.Cell textAlign="center">{s.sensor_group_id ?? "None"}</Table.Cell>
               <Table.Cell textAlign="center">{s.created_at?.split('T')[0]||"-"}</Table.Cell>
               <Table.Cell textAlign="center">{s.last_updated?.split('T')[0]||"-"}</Table.Cell>
@@ -227,7 +226,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
           <Spinner />
         </Flex>
       )}
-      <CountFooter count={displayed.length} total={sorted.length} name="sensors" color={textSub} />
+
       <SensorCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); } } />
       <SensorEditModal isOpen={isEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }} />
       <SensorDeleteModal isOpen={isDelOpen} sensor={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />

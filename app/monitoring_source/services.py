@@ -43,6 +43,20 @@ def list_sources_for_project(
           .all()
     )
 
+def list_sources_for_location(
+    db: Session,
+    loc_id: UUID,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Source]:
+    return (
+        db.query(Source)
+          .filter(Source.mon_loc_id == loc_id)
+          .offset(skip)
+          .limit(limit)
+          .all()
+    )
+
 def enrich_source(source: Source) -> dict:
     details = None
     if source.mon_loc and source.mon_loc.project:

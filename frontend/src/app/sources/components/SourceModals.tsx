@@ -32,15 +32,21 @@ function SourceForm({
   onSubmit,
   onClose,
   initialData,
+  initialProjectId,
   submitLabel,
 }: {
   onSubmit: (payload: SourcePayload) => Promise<void>;
   onClose(): void;
   initialData?: Source;
+  initialProjectId?: string;
   submitLabel: string;
 }) {
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
+  const fixedProjectId = initialProjectId ?? initialData?.details?.project_id;
+  const isProjectLocked = Boolean(fixedProjectId);
+  const fixedLocationId = initialData?.mon_loc_id;
+  const isLocationLocked = Boolean(fixedLocationId);
 
   const router = useRouter();
   const editMode = Boolean(initialData);
@@ -49,10 +55,11 @@ function SourceForm({
   const [projects, setProjects]     = useState<Project[]>([]);
   const [locations, setLocations]   = useState<Location[]>([]);
   const [projectIds, setProjectIds] = useState<string[]>(
-    initialData?.details ? [initialData.details.project_id] : []
+    fixedProjectId ? [fixedProjectId] : []
   );
+
   const [locationIds, setLocationIds] = useState<string[]>(
-    initialData ? [initialData.mon_loc_id] : []
+    isLocationLocked ? [fixedLocationId!] : []
   );
   const [sourceName,  setSourceName]  = useState(initialData?.source_name  || "");
   const [folderPath,  setFolderPath]  = useState(initialData?.folder_path  || "");
@@ -189,6 +196,7 @@ function SourceForm({
           collection={projectCollection}
           value={projectIds}
           onValueChange={e => setProjectIds(e.value)}
+          disabled={isProjectLocked}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -196,7 +204,7 @@ function SourceForm({
               <Select.ValueText placeholder="Select project" />
             </Select.Trigger>
             <Select.IndicatorGroup>
-              <Select.ClearTrigger />
+              {!isProjectLocked && <Select.ClearTrigger />}
               <Select.Indicator />
             </Select.IndicatorGroup>
           </Select.Control>
@@ -219,7 +227,7 @@ function SourceForm({
           collection={locationCollection}
           value={locationIds}
           onValueChange={e => setLocationIds(e.value)}
-          disabled={!projectIds[0]}
+          disabled={isLocationLocked || !projectIds[0]}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -231,7 +239,7 @@ function SourceForm({
               />
             </Select.Trigger>
             <Select.IndicatorGroup>
-              <Select.ClearTrigger />
+              {!isLocationLocked && <Select.ClearTrigger />}
               <Select.Indicator />
             </Select.IndicatorGroup>
           </Select.Control>
@@ -350,9 +358,11 @@ function SourceForm({
 export function SourceCreateModal({
   isOpen,
   onClose,
+  projectId,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  projectId?: string;
 }) {
   const handleCreate = async (payload: SourcePayload) => {
     await createSource(payload);
@@ -379,6 +389,7 @@ export function SourceCreateModal({
                 onSubmit={handleCreate}
                 onClose={onClose}
                 submitLabel="Create"
+                initialProjectId={projectId}
               />
             </Dialog.Body>
           </Dialog.Content>

@@ -1,7 +1,6 @@
 // File: app/locations/[location_name]/page.tsx
 
 // Services + Types
-import { Location } from "@/types/location";
 import { getLocationByName } from "@/services/locations";
 import LocationPageClient from "./LocationPageClient";
 import { listSources } from "@/services/sources";
@@ -13,13 +12,11 @@ interface PageProps {
 
 export default async function SensorsPage({ params }: PageProps) {
   const { location_name } = await params;
-
-  const [location, initialSources, initialSensors] = await Promise.all([
-    (getLocationByName(location_name)),
-    listSources(),
-    listSensors(),
-  ]); 
-
+  const location = await getLocationByName(location_name);
+  const [initialSources, initialSensors] = await Promise.all([
+    listSources(undefined, location.id),
+    listSensors(undefined, location.id),
+  ]);
   return (
     <LocationPageClient location={location} initialSources={initialSources} initialSensors={initialSensors}/>
   );

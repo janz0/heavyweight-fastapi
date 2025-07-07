@@ -37,6 +37,8 @@ function LocationForm({
 }) {
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
+  const fixedProjectId = initialProjectId ?? initialData?.project_id;
+  const isProjectLocked = Boolean(fixedProjectId);
 
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -120,7 +122,7 @@ function LocationForm({
           collection={projectCollection}
           value={projectId ? [projectId] : []}
           onValueChange={(e) => setProjectId(e.value[0])}
-          disabled={!!initialProjectId}
+          disabled={isProjectLocked}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -128,7 +130,7 @@ function LocationForm({
               <Select.ValueText placeholder="Select project" />
             </Select.Trigger>
             <Select.IndicatorGroup>
-              <Select.ClearTrigger />
+              {!isProjectLocked && <Select.ClearTrigger />}
               <Select.Indicator />
             </Select.IndicatorGroup>
           </Select.Control>

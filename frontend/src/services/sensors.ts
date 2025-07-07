@@ -3,24 +3,31 @@ import type { MonitoringSensor, MonitoringSensorPayload } from '@/types/sensor';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 const BASE = `${API}monitoring-sensors`;
-const PROJECTS_BASE = `${API}projects`
+const PROJECTS_BASE = `${API}projects`;
+const LOCATIONS_BASE = `${API}locations`;
 
 /**
  * Fetch a list of monitoring sensors
  */
 export async function listSensors(
-  projectId?: string,   // optional
+  projectId?: string,
+  locId?: string,
   skip = 0,
   limit = 200
 ): Promise<MonitoringSensor[]> {
-  const url = projectId
-    ? `${PROJECTS_BASE}/${projectId}/sensors?skip=${skip}&limit=${limit}`
-    : `${BASE}/?skip=${skip}&limit=${limit}`;
-
+  let url: string;
+  if (locId) {
+    url = `${LOCATIONS_BASE}/${locId}/sensors?skip=${skip}&limit=${limit}`;
+  } else if (projectId) {
+    url = `${PROJECTS_BASE}/${projectId}/sensors?skip=${skip}&limit=${limit}`;
+  } else {
+    url = `${BASE}/?skip=${skip}&limit=${limit}`;
+  }
   const res = await fetch(url);
   if (!res.ok) throw new Error(`List sensors failed (${res.status})`);
-  return res.json() as Promise<MonitoringSensor[]>;
+  return res.json();
 }
+
 export async function getSensorByName(
   name: string
 ): Promise<MonitoringSensor> {

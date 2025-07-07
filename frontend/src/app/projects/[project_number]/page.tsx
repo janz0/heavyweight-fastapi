@@ -26,8 +26,7 @@ export default async function ProjectPage({ params }: PageProps) {
     listSensors(project.id),
     listSources(project.id),
   ]);
-  
-  console.log(initialLocations);
+
   // If you also want to server-fetch its locations:
   return (
     <ProjectPageClient
