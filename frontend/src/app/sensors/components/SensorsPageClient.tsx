@@ -79,10 +79,9 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   // Colors 
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const text = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
   
-  const filtered = useMemo(() => sensors.filter(s => s.sensor_name.toLowerCase().includes(search.toLowerCase())), [search, initialSensors]);
+  const filtered = useMemo(() => sensors.filter(s => s.sensor_name.toLowerCase().includes(search.toLowerCase())), [search, sensors]);
   const sorted = useMemo(() => {
     if (!sortConfig) return filtered;
     const { key, direction } = sortConfig;

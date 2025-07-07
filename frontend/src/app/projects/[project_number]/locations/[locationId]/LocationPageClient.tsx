@@ -7,11 +7,10 @@ import { Box, Button, CloseButton, Dialog, Flex, Heading, IconButton, Portal, Ra
 import { FiEdit2 } from 'react-icons/fi';
 import { Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/tabs';
 import { FiMapPin } from 'react-icons/fi';
-import { ProjectsBreadcrumb } from '@/app/components/ProjectsBreadcrumb';
+import { Breadcrumb } from '@/app/components/Breadcrumb';
 import { LocationMap } from '@/app/components/LocationMap';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { SensorsList } from '@/app/components/SensorsList';
-import { CreateLocationWizard } from '@/app/components/CreateLocationWizard';
 import type { Location } from '@/types/location';
 import type { Data } from 'plotly.js';
 
@@ -61,20 +60,13 @@ interface Props {
 }
 
 export default function LocationPageClient({ projectName, location }: Props) {
-  const { open, onOpen, onClose } = useDisclosure();
-  const [selected, setSelected] = useState<Location | undefined>(undefined);
-
+  console.log(projectName);
     // new disclosure for inspection checklist
   const {
     open: isChecklistOpen,
     onOpen: onChecklistOpen,
     onClose: onChecklistClose,
   } = useDisclosure();
-
-  const handleEdit = () => {
-    setSelected(location);
-    onOpen();
-  };
 
   // initialize all answers to ''
   const [answers, setAnswers] = useState<Record<string, 'yes' | 'no' | ''>>(
@@ -157,13 +149,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
   return (
     <Box px={6} py={4}>
       {/* Breadcrumb */}
-      <ProjectsBreadcrumb
-        projectName={projectName}
-        projectId={location.project_id}
-        locationName={location.loc_name}
-        locationId={location.id}
-      />
-
+      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/"}, { label: "Projects", href: "/projects"}, { label: `${location.loc_name}`, href: `/projects/${location.loc_name}`} ]}/>
       {/* 1. Info Card */}
       <Box px={6} py={3} mb={3} className='c-card shadow-md'>
         <Flex justify="space-between" align="center" mb={1}>
@@ -171,7 +157,7 @@ export default function LocationPageClient({ projectName, location }: Props) {
             <FiMapPin style={{ marginRight: 8 }}/>
             {location.loc_name}
           </Heading>
-          <IconButton aria-label="Edit location" variant="ghost" size="md" onClick={handleEdit}>
+          <IconButton aria-label="Edit location" variant="ghost" size="md">
             <FiEdit2 />
           </IconButton>
         </Flex>
@@ -385,16 +371,6 @@ export default function LocationPageClient({ projectName, location }: Props) {
           </TabPanel>
         </TabPanels>
       </Tabs>
-
-      <CreateLocationWizard
-        isOpen={open}
-        onClose={() => {
-          setSelected(undefined);
-          onClose();
-        }}
-        location={selected}
-        projectId={location.project_id}
-      />
 
       {/* Inspection Checklist Dialog */}
       <Dialog.Root

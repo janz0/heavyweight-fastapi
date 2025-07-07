@@ -63,7 +63,7 @@ function SensorForm({
           console.error("Failed to load sources:", err);
           toaster.create({ description: "Could not load sources", type: "error" });
         });
-  }, []);
+  }, [fixedProjectId]);
 
   useEffect(() => {
     if (initialData) {

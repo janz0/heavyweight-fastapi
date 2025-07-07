@@ -70,9 +70,8 @@ export default function SourcesPageClient({ sources: initialSources }: Props) {
   // Colors
   const bg = colorMode === "light" ? "gray.100" : "gray.800";
   const text = colorMode === "light" ? "gray.800" : "gray.200";
-  const textSub = colorMode === "light" ? "gray.600" : "gray.400";
 
-  const filtered = useMemo(() => sources.filter(s => s.source_name.toLowerCase().includes(search.toLowerCase())), [search, initialSources]);
+  const filtered = useMemo(() => sources.filter(s => s.source_name.toLowerCase().includes(search.toLowerCase())), [search, sources]);
   const sorted = useMemo(() => {
     if (!sortConfig) return filtered;
     const { key, direction } = sortConfig;

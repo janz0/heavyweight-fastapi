@@ -16,7 +16,7 @@ export default async function LocationPage({ params }: PageProps) {
   // Fetch both in parallel
   const [ project, location ] = await Promise.all([
     getProject(projectId),
-    getLocation(projectId, locationId),
+    getLocation(locationId),
   ]) as [Project, Location]
 
   return (

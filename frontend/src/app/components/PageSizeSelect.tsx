@@ -20,7 +20,7 @@ export default function PageSizeSelect({ value, options, onChange, minW = "62px"
   );
 
   const bg = useColorModeValue("white", "gray.600");
-
+  const select_bg = useColorModeValue("gray.100","gray.700");
   return (
     <Select.Root
       collection={collection}
@@ -41,7 +41,7 @@ export default function PageSizeSelect({ value, options, onChange, minW = "62px"
       <Select.Positioner>
         <Select.Content>
           {options.map((n) => (
-            <Select.Item key={n} item={{ value: n.toString(), label: n.toString() }} _hover={{ bg: useColorModeValue("gray.100","gray.700") }}>
+            <Select.Item key={n} item={{ value: n.toString(), label: n.toString() }} _hover={{ bg: select_bg }}>
               {n}
             </Select.Item>
           ))}

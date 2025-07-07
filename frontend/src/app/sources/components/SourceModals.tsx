@@ -156,13 +156,17 @@ function SourceForm({
       await onSubmit(payload);
       onClose();
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : String(err); // fallback for non-Error throws
       toaster.create({
-        description: `${editMode ? "Update" : "Create"} failed: ${err.message}`,
+        description: `${editMode ? "Update" : "Create"} failed: ${message}`,
         type: "error",
       });
     }
-  };
+  }
 
   // if initialData changes, re-populate fields
   useEffect(() => {

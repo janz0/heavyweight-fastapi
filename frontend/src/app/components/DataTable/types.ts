@@ -1,7 +1,7 @@
 // components/DataTable/types.ts
 import { ReactNode } from "react";
 
-export interface ColumnDef<T> {
+export interface ColumnDef {
   key: string;
   label: string;
   width?: string;
@@ -13,7 +13,7 @@ export interface SortConfig {
 }
 
 export interface DataTableProps<T> {
-  columns: ColumnDef<T>[];
+  columns: ColumnDef[];
   data: T[];
   sortConfig: SortConfig | null;
   onSort: (key: string) => void;

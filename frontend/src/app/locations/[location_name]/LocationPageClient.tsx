@@ -1,10 +1,6 @@
 "use client";
 
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 import React, { useMemo, useState } from 'react';
 import { Box, HStack, Heading, Text, VStack, Button, Tabs, Popover, Flex, Table, IconButton, Link, Separator } from '@chakra-ui/react';
@@ -22,28 +18,10 @@ import { Line } from "react-chartjs-2";
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/sources/components/SourceModals';
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/sensors/components/SensorModals';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
-
 interface LocationPageClientProps {
   location: Location;
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
-}
-
-// Utility to format ISO date strings to "Month day, year"
-function formatDate(dateString?: string | null) {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date);
 }
 
 function getNestedValue<T>(obj: T, path: string): unknown {
@@ -88,7 +66,6 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const text = colorMode === "light" ? "gray.800" : "gray.200";
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
-  const cardBg  = colorMode === 'light' ? 'white'    : 'gray.700';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
   const [activeTab, setActiveTab] = useState<'sources'|'sensors'>('sources');
   const [search, setSearch] = useState("");
@@ -223,7 +200,7 @@ export default function LocationPageClient({ location, initialSources, initialSe
           <Box border="inset" borderRadius="xl" p="12px" w="100%">
             <HStack align="start" gap={4}>
               <Text fontWeight="light" color={textSub}>Inspected:</Text>
-              <Text fontWeight="medium">{location.last_inspected? formatDate(location.last_inspected) : "N/A"}</Text>
+              <Text fontWeight="medium">{location.last_inspected ? formatDate(location.last_inspected) : "N/A"}</Text>
             </HStack>
           </Box>
           <Button

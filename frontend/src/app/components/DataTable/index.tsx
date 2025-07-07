@@ -1,6 +1,6 @@
 // components/DataTable/index.tsx
 import React from "react";
-import { Table, Text, Icon, Flex, Button, Box } from "@chakra-ui/react";
+import { Table, Icon, Flex, Button, Box } from "@chakra-ui/react";
 import { useColorMode, useColorModeValue } from "@/app/src/components/ui/color-mode";
 import type { DataTableProps } from "./types";
 import { CaretUp, CaretDown } from "phosphor-react";
@@ -22,6 +22,7 @@ export default function DataTable<T>({
   const { colorMode } = useColorMode();
   const cardBg = colorMode === "light" ? "gray.400" : "gray.700";
   const textSub = colorMode === "light" ? "gray.600" : "gray.400";
+  const row_bg = useColorModeValue("gray.50", "gray.600");
 
   return (
     <>
@@ -77,7 +78,7 @@ export default function DataTable<T>({
             {data.map((item, i) => (
               <Table.Row
                 key={i}
-                _hover={{ bg: useColorModeValue("gray.50", "gray.600") }}
+                _hover={{ bg: row_bg }}
               >
                 {renderRow(item)}
               </Table.Row>

@@ -12,7 +12,6 @@ import {
   Button,
   IconButton,
   Input,
-  InputGroup,
   HStack,
 } from "@chakra-ui/react";
 import { Tooltip } from "@/app/src/components/ui/tooltip";
@@ -53,7 +52,6 @@ ChartJS.register(
 // ---------------------------------------
 function LoginForm() {
   const { signIn } = useAuth();
-  const { colorMode } = useColorMode();
   const [email, setEmail] = useState("");
   const [emailIsValid, setEmailIsValid] = useState(false);
   const [password, setPassword] = useState("");
@@ -73,12 +71,6 @@ function LoginForm() {
       setLoading(false);
     }
   };
-
-  const bgGradient = useColorModeValue(
-    "linear(to-br, blue.600, purple.600)",
-    "linear(to-br, gray.800, gray.900)"
-  );
-
 
   return (
     <Flex
