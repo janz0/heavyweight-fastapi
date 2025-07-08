@@ -57,9 +57,8 @@ export async function getProjectByNumber(number: string): Promise<Project> {
 
 export async function listProjects(
   skip = 0,
-  limit = 100
 ): Promise<Project[]> {
-  const res = await fetch(`${BASE}/?skip=${skip}&limit=${limit}`);
+  const res = await fetch(`${BASE}/?skip=${skip}`);
   if (!res.ok) throw new Error(`List failed (${res.status})`);
   return (await res.json()) as Project[];
 }

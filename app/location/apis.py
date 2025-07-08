@@ -49,10 +49,9 @@ def get_location_by_name(
 def list_location_sensors(
     loc_id: UUID,
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    sensors = sensor_services.list_sensors_for_location(db, loc_id, skip=skip, limit=limit)
+    sensors = sensor_services.list_sensors_for_location(db, loc_id, skip=skip)
     return [sensor_services.enrich_sensor(sen) for sen in sensors]
 
 @router.get(
@@ -62,10 +61,9 @@ def list_location_sensors(
 def list_location_sources(
     loc_id: UUID,
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    sources = source_services.list_sources_for_location(db, loc_id, skip=skip, limit=limit)
+    sources = source_services.list_sources_for_location(db, loc_id, skip=skip)
     return [source_services.enrich_source(src) for src in sources]
 
 @router.patch("/{loc_id}", response_model=schemas.Location)

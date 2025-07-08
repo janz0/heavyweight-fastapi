@@ -38,7 +38,6 @@ def list_sensors_for_project(
     db: Session,
     project_id: UUID,
     skip: int = 0,
-    limit: int = 100
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
@@ -47,7 +46,6 @@ def list_sensors_for_project(
           .filter(Location.project_id == project_id)
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
-          .limit(limit)
           .all()
     )
 
@@ -55,7 +53,6 @@ def list_sensors_for_location(
     db: Session,
     loc_id: UUID,
     skip: int = 0,
-    limit: int = 100
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
@@ -64,7 +61,6 @@ def list_sensors_for_location(
           .filter(Location.id == loc_id)
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
-          .limit(limit)
           .all()
     )
 

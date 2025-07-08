@@ -19,7 +19,6 @@ def get_monitoring_sensor(
 def get_monitoring_sensors(
     db: Session,
     skip: int = 0,
-    limit: int = 100
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
@@ -27,7 +26,6 @@ def get_monitoring_sensors(
           .options(joinedload(MonitoringSensor.mon_source))
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
-          .limit(limit)
           .all()
     )
 

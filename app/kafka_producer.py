@@ -28,7 +28,7 @@ def ensure_kafka_topic(bootstrap_servers: str, topic_name: str):
 def init_producer(topics: list[str] = None,):
     global producer
 
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka.railway.internal:29092")
+    kafka_broker = os.getenv("KAFKA_BROKER", "kafka_test:29092")
     client_id = os.getenv("KAFKA_CLIENT_ID", "fastapi-kafka")
 
     producer = Producer({
