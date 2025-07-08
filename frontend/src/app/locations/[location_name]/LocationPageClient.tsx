@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 
 import React, { useMemo, useState } from 'react';
-import { Box, HStack, Heading, Text, VStack, Button, Tabs, Popover, Flex, Table, IconButton, Link, Separator } from '@chakra-ui/react';
+import { Box, HStack, Heading, Text, VStack, Button, Menu, Tabs, Popover, Flex, Table, IconButton, Link, Separator } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import { Breadcrumb } from '@/app/components/Breadcrumb';
 import type { Location } from '@/types/location';
@@ -17,6 +17,7 @@ import PageSizeSelect from '@/app/components/PageSizeSelect';
 import { Line } from "react-chartjs-2";
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/sources/components/SourceModals';
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/sensors/components/SensorModals';
+import { CheckIcon, Filter } from 'lucide-react';
 
 interface LocationPageClientProps {
   location: Location;
@@ -76,25 +77,25 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const pageSizeOptions = [10, 25, 50, 100];
 
   // Source Variables
-    const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
-    const [isSrcEditOpen, setSrcEditOpen] = useState(false);
-    const [isSrcDelOpen, setSrcDelOpen] = useState(false);
-    const [selectedSource, setSelectedSource] = useState<Source | undefined>();
-    const [srcToDelete, setSrcToDelete] = useState<Source | undefined>();
-    const handleNewSource = () => { setSelectedSource(undefined); setSrcCreateOpen(true); };
-    const handleEditSource = (s: Source) => { setSelectedSource(s); setSrcEditOpen(true); };
-    const handleDeleteSource = (s: Source) => { setSrcToDelete(s); setSrcDelOpen(true); };
-  
-    // Sensor Variables
-    const [isSenCreateOpen, setSenCreateOpen] = useState(false);
-    const [isSenEditOpen, setSenEditOpen] = useState(false);
-    const [isSenDelOpen, setSenDelOpen] = useState(false);
-    const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
-    const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
-    const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
-    const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
-    const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
-    const readings: string[] = [];
+  const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
+  const [isSrcEditOpen, setSrcEditOpen] = useState(false);
+  const [isSrcDelOpen, setSrcDelOpen] = useState(false);
+  const [selectedSource, setSelectedSource] = useState<Source | undefined>();
+  const [srcToDelete, setSrcToDelete] = useState<Source | undefined>();
+  const handleNewSource = () => { setSelectedSource(undefined); setSrcCreateOpen(true); };
+  const handleEditSource = (s: Source) => { setSelectedSource(s); setSrcEditOpen(true); };
+  const handleDeleteSource = (s: Source) => { setSrcToDelete(s); setSrcDelOpen(true); };
+
+  // Sensor Variables
+  const [isSenCreateOpen, setSenCreateOpen] = useState(false);
+  const [isSenEditOpen, setSenEditOpen] = useState(false);
+  const [isSenDelOpen, setSenDelOpen] = useState(false);
+  const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
+  const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
+  const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
+  const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
+  const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
+  const readings: string[] = [];
   
   const items = useMemo(() => {
     switch (activeTab) {
@@ -104,16 +105,38 @@ export default function LocationPageClient({ location, initialSources, initialSe
     }
   }, [activeTab, initialSources, initialSensors]);
 
+  const allGroups = useMemo(() => {
+    return Array.from(
+      new Set(
+        initialSensors
+          .map((s) => s.sensor_group_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    ).map((id) => ({ id, label: `Group ${id}` }));
+  }, [initialSensors]);
+
+  // 2) which groups are checked
+  const [groupFilter, setGroupFilter] = useState<string[]>([]);
+
+  // 3) combine with your existing search filter
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return items.filter(item => {
-      // pick the right “name” field per type:
-      let value = '';
-      if (activeTab === 'sources')    value = (item as Source).source_name;
-      if (activeTab === 'sensors')    value = (item as MonitoringSensor).sensor_name;
-      return value.toLowerCase().includes(q);
+    return items.filter((item) => {
+      // text search
+      const name =
+        activeTab === "sensors"
+          ? (item as MonitoringSensor).sensor_name
+          : (item as Source).source_name;
+      if (!name.toLowerCase().includes(search.toLowerCase())) return false;
+
+      // group‐filter (only for sensors)
+      if (activeTab === "sensors" && groupFilter.length > 0) {
+        return groupFilter.includes(
+          (item as MonitoringSensor).sensor_group_id || ""
+        );
+      }
+      return true;
     });
-  }, [items, search, activeTab]);
+  }, [items, search, activeTab, groupFilter]);
   
   const sorted = useMemo(() => {
     if (!sortConfig) return filtered;
@@ -154,8 +177,8 @@ export default function LocationPageClient({ location, initialSources, initialSe
       <Breadcrumb
         crumbs={[
           { label: 'Dashboard', href: '/' },
-          { label: 'Locations', href: '/Locations' },
-          { label: `${location.loc_name}`, href: `/Locations/${location.loc_name}` },
+          { label: 'Locations', href: '/locations' },
+          { label: `${location.loc_name}`, href: `/locations/${location.loc_name}` },
         ]}
       />
       <Box w="100%" gap="4" mb="4">
@@ -287,13 +310,45 @@ export default function LocationPageClient({ location, initialSources, initialSe
       <Separator variant="solid" size="lg" m="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <Flex mb={4} align="center" position="relative" w="100%">
         <Box position="absolute" left="50%" transform="translateX(-50%)" width={{ base: "100%", sm: "400px" }} px={4}>
-          <SearchInput value={search} onChange={setSearch}
-            placeholder={
-              activeTab === 'sources'
-                ? 'Search sources…'
-                : 'Search sensors…'
-            }
-          />
+          <HStack>
+            <SearchInput value={search} onChange={setSearch}
+              placeholder={
+                activeTab === 'sources'
+                  ? 'Search sources…'
+                  : 'Search sensors…'
+              }
+            />
+            <Menu.Root>
+              <Menu.Trigger asChild>
+                <Button size="sm">
+                  <Filter />
+                </Button>
+              </Menu.Trigger>
+              <Menu.Positioner>
+                <Menu.Content w="200px" p={2}>
+                  {allGroups.map((g) => (
+                    <Menu.CheckboxItem
+                      key={g.id}
+                      checked={groupFilter.includes(g.id)}
+                      onChange={() =>
+                        setGroupFilter((prev) =>
+                          prev.includes(g.id)
+                            ? prev.filter((x) => x !== g.id)
+                            : [...prev, g.id]
+                        )
+                      }
+                      value={g.id}
+                    >
+                      <Menu.ItemIndicator>
+                        <CheckIcon />
+                      </Menu.ItemIndicator>
+                      {g.label}
+                    </Menu.CheckboxItem>
+                  ))}
+                </Menu.Content>
+              </Menu.Positioner>
+            </Menu.Root>
+          </HStack>
         </Box>
         
         <Flex ml="auto" align="center" gap={4}>

@@ -49,14 +49,12 @@ def list_sources_for_project(
     db: Session,
     project_id: UUID,
     skip: int = 0,
-    limit: int = 100
 ) -> List[Source]:
     return (
         db.query(Source)
           .join(Location, Source.mon_loc_id == Location.id)
           .filter(Location.project_id == project_id)
           .offset(skip)
-          .limit(limit)
           .all()
     )
 
@@ -64,13 +62,11 @@ def list_sources_for_location(
     db: Session,
     loc_id: UUID,
     skip: int = 0,
-    limit: int = 100
 ) -> List[Source]:
     return (
         db.query(Source)
           .filter(Source.mon_loc_id == loc_id)
           .offset(skip)
-          .limit(limit)
           .all()
     )
 

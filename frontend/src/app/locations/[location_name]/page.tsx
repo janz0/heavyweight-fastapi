@@ -10,7 +10,7 @@ interface PageProps {
   params: Promise<{ location_name: string }>;
 }
 
-export default async function SensorsPage({ params }: PageProps) {
+export default async function LocationPage({ params }: PageProps) {
   const { location_name } = await params;
   const location = await getLocationByName(location_name);
   const [initialSources, initialSensors] = await Promise.all([

@@ -13,15 +13,14 @@ export async function listSensors(
   projectId?: string,
   locId?: string,
   skip = 0,
-  limit = 200
 ): Promise<MonitoringSensor[]> {
   let url: string;
   if (locId) {
-    url = `${LOCATIONS_BASE}/${locId}/sensors?skip=${skip}&limit=${limit}`;
+    url = `${LOCATIONS_BASE}/${locId}/sensors?skip=${skip}`;
   } else if (projectId) {
-    url = `${PROJECTS_BASE}/${projectId}/sensors?skip=${skip}&limit=${limit}`;
+    url = `${PROJECTS_BASE}/${projectId}/sensors?skip=${skip}`;
   } else {
-    url = `${BASE}/?skip=${skip}&limit=${limit}`;
+    url = `${BASE}/?skip=${skip}`;
   }
   const res = await fetch(url);
   if (!res.ok) throw new Error(`List sensors failed (${res.status})`);

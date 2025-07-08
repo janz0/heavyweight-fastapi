@@ -19,14 +19,12 @@ def get_monitoring_sensor(
 def get_monitoring_sensors(
     db: Session,
     skip: int = 0,
-    limit: int = 100
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
           # same eager-load on the list endpoint
           .options(joinedload(MonitoringSensor.mon_source))
           .offset(skip)
-          .limit(limit)
           .all()
     )
 

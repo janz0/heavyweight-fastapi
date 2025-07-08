@@ -1,10 +1,12 @@
 "use client";
 
-import React from 'react';
-import { Box, HStack, Heading, Tabs, Text, VStack, Button } from '@chakra-ui/react';
+import React, { useState } from 'react';
+import { Box, HStack, Heading, IconButton, Tabs, Text, VStack, Button } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import { Breadcrumb } from '@/app/components/Breadcrumb';
 import type { Source } from '@/types/source';
+import { PencilSimple } from 'phosphor-react';
+import { SourceEditModal } from '../components/SourceModals';
 
 interface SourcePageClientProps {
   source: Source;
@@ -25,6 +27,8 @@ export default function SourcePageClient({ source }: SourcePageClientProps) {
   const { colorMode } = useColorMode();
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
+  const [isSrcEditOpen, setSrcEditOpen] = useState(false);
+  const handleEditSource = () => { setSrcEditOpen(true); };
 
   return (
     <Box minH="100vh" p={6} bg={bg}>
@@ -44,7 +48,18 @@ export default function SourcePageClient({ source }: SourcePageClientProps) {
       </Box>
       <HStack mb={3} h="50vh" align="stretch">
         <VStack w="40%" h="fit-content">
-          <Box border="inset" borderRadius="xl" p="12px" w="100%">
+          <Box position="relative" border="inset" borderRadius="xl" p="12px" w="100%">
+            <IconButton
+              position="absolute"
+              top="8px"
+              right="8px"
+              aria-label="Edit sensor"
+              variant="ghost"
+              size="sm"
+              onClick={handleEditSource}
+              _hover={{ bg: "gray.200" }}
+              _dark={{ _hover: { bg: "whiteAlpha.200" }}}
+            ><PencilSimple weight='bold'/></IconButton>
             {/* Project Details */}
             <HStack align="start" gap={4}>
               <Text fontWeight="light" color={textSub}>Project Name:</Text>
@@ -63,7 +78,7 @@ export default function SourcePageClient({ source }: SourcePageClientProps) {
               <Text fontWeight="medium">{source.file_keyword}</Text>
             </HStack>
             <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>FileType:</Text>
+              <Text fontWeight="light" color={textSub}>File Type:</Text>
               <Text fontWeight="medium">{source.file_type}</Text>
             </HStack>
             <HStack align="start" gap={4}>
@@ -125,6 +140,7 @@ export default function SourcePageClient({ source }: SourcePageClientProps) {
           </Box>
         </Tabs.Root>
       </HStack>
+      <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />
     </Box>
   );
 }

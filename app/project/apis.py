@@ -25,10 +25,9 @@ def create_project(
 def list_project_locations(
     project_id: UUID,
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    locations = location_services.list_locations_for_project(db, project_id, skip=skip, limit=limit)
+    locations = location_services.list_locations_for_project(db, project_id, skip=skip)
     return [location_services.enrich_location(loc) for loc in locations]
 
 @router.get(
@@ -38,10 +37,9 @@ def list_project_locations(
 def list_project_sources(
     project_id: UUID,
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    sources = source_services.list_sources_for_project(db, project_id, skip=skip, limit=limit)
+    sources = source_services.list_sources_for_project(db, project_id, skip=skip)
     return [source_services.enrich_source(src) for src in sources]
 
 @router.get(
@@ -51,10 +49,9 @@ def list_project_sources(
 def list_project_sensors(
     project_id: UUID,
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    sensors = sensor_services.list_sensors_for_project(db, project_id, skip=skip, limit=limit)
+    sensors = sensor_services.list_sensors_for_project(db, project_id, skip=skip)
     return [sensor_services.enrich_sensor(sen) for sen in sensors]
 
 @router.get("/{project_id}", response_model=schemas.Project)
@@ -74,10 +71,9 @@ def get_project_by_number(project_number: str, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[schemas.Project])
 def list_projects(
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    return selectors.get_projects(db, skip=skip, limit=limit)
+    return selectors.get_projects(db, skip=skip)
 
 @router.patch("/{project_id}", response_model=schemas.Project)
 def update_project(
