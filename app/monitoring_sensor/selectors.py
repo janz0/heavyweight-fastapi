@@ -25,6 +25,7 @@ def get_monitoring_sensors(
         db.query(MonitoringSensor)
           # same eager-load on the list endpoint
           .options(joinedload(MonitoringSensor.mon_source))
+          .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
           .limit(limit)
           .all()
