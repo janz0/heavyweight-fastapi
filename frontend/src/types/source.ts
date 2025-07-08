@@ -25,6 +25,17 @@ export interface Source {
   };
 }
 
+export interface SourcePayload {
+  mon_loc_id?: string;
+  source_name?: string;
+  folder_path?: string;
+  file_keyword?: string;
+  file_type?: string;
+  source_type?: string;
+  config?: string;
+  active?: number;
+}
+
 /**
  * Payload sent to POST /monitoring-sources/ in order to create a new Source.
  */

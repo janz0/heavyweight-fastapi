@@ -1,29 +1,27 @@
 // File: app/locations/page.tsx
 "use client";
 
+// React + Next Imports
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Flex,
-  Spinner,
-} from "@chakra-ui/react";
+
+// Chakra Imports + Icons
+import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { useColorMode } from "../src/components/ui/color-mode";
-import LocationsPageClient from "./LocationsPageClient";
+
+// UI Components
+import LocationsPageClient from "./components/LocationsPageClient";
+
+// Services + Types
 import { listLocations } from "@/services/locations";
 import type { Location } from "@/types/location";
-import { CreateLocationWizard } from "../components/CreateLocationWizard";
 
-export default function SensorsPage() {
+export default function LocationsPage() {
   const { colorMode } = useColorMode();
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
-  const text = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   const [locations, setLocations] = useState<Location[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const [isWizardOpen, setWizardOpen] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Location | undefined>(undefined);
 
   useEffect(() => {
     listLocations()
@@ -48,29 +46,6 @@ export default function SensorsPage() {
       </Box>
     );
   }
-
-  return (
-    <Box bg={bg} color={text} minH="100vh">
-      <LocationsPageClient
-        locations={locations!}
-        onEdit={(location) => {
-          setEditingLocation(location);
-          setWizardOpen(true);
-        }}
-        onCreate={() => {
-          setEditingLocation(undefined);
-          setWizardOpen(true);
-        }}
-      />
-
-      <CreateLocationWizard
-        isOpen={isWizardOpen}
-        location={editingLocation}
-        onClose={() => {
-          setWizardOpen(false);
-          setEditingLocation(undefined);
-        }}
-      />
-    </Box>
-  );
+  
+  return <LocationsPageClient locations={locations!} />;
 }

@@ -9,18 +9,12 @@ export interface MonitoringSensor {
   active: number;
   created_at: string;
   last_updated: string;
+  details?: {
+    mon_source_name: string;
+  };
 }
 
-// Optional create/update payload types
-export interface MonitoringSensorCreate {
-  mon_source_id: string;
-  sensor_group_id: string;
-  sensor_name: string;
-  sensor_type: string;
-  active?: number;
-}
-
-export interface MonitoringSensorUpdate {
+export interface MonitoringSensorPayload {
   mon_source_id?: string;
   sensor_group_id?: string;
   sensor_name?: string;

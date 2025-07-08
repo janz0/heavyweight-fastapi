@@ -41,8 +41,6 @@ def init_producer(topics: list[str] = None,):
         for topic in topics:
             ensure_kafka_topic(kafka_broker, topic)
 
-
-
 def send_kafka_message(topic: str, key: str, value: dict):
     if producer is None:
         raise RuntimeError("Kafka producer not initialized")

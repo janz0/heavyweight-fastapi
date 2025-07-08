@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
-import { ProjectsBreadcrumb } from "@/app/components/ProjectsBreadcrumb";
 import {
   Box,
   Flex,
@@ -70,13 +69,6 @@ export default function SourcesPageClient({
   
   return (
     <Box px={6} py={4}>
-      {/* Breadcrumb: Dashboard → Projects → [projectId] → [locationId] */}
-      <ProjectsBreadcrumb
-        projectName={projectId}
-        projectId={projectId}
-        locationName={locationId}
-        locationId={locationId}
-      />
 
       <Box p={6} mb={6} className="c-card shadow-md">
         <Heading as="h2" size="lg">

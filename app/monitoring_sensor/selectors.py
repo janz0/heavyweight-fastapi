@@ -30,6 +30,18 @@ def get_monitoring_sensors(
           .all()
     )
 
+def get_monitoring_sensor_by_name(
+    db: Session,
+    sensor_name: str
+) -> Optional[MonitoringSensor]:
+    return (
+        db.query(MonitoringSensor)
+          # only eager-load the source
+          .options(joinedload(MonitoringSensor.mon_source))
+          .filter(MonitoringSensor.sensor_name == sensor_name)
+          .first()
+    )
+
 
 def get_sensor_by_source_and_name(
     db: Session,

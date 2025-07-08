@@ -6,7 +6,6 @@ const BASE     = `${API_ROOT}locations`;
 const PROJECTS_BASE = `${API_ROOT}projects`
 
 export async function getLocation(
-  projectId: string,
   locationId: string
 ): Promise<Location> {
   const res = await fetch(
@@ -19,8 +18,16 @@ export async function getLocation(
   return (await res.json()) as Location;
 }
 
+export async function getLocationByName(
+  name: string
+): Promise<Location> {
+  const res = await fetch(`${BASE}/name/${name}`);
+  if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
+  return (await res.json()) as Location;
+}
+
 export async function listLocations(
-  projectId?: string  // optional projectId
+  projectId?: string,  // optional projectId
 ): Promise<Location[]> {
   let url: string;
 
@@ -36,9 +43,8 @@ export async function listLocations(
     throw new Error(`List failed (${res.status})`);
   }
 
-  return (await res.json()) as Location[];
+  return res.json() as Promise<Location[]>;
 }
-
 
 export async function createLocation(
   payload: LocationPayload

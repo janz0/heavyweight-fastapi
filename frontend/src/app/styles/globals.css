@@ -64,3 +64,45 @@ html[style*="color-scheme: dark"] .breadcrumb:hover {
   background-color: "black";
   box-shadow: 0 2px 5px rgb(255, 255, 255);
 }
+
+/* Navbar Styling */
+.navbar-button {
+  text-decoration: none;
+  position: relative;
+}
+
+.navbar-button::before,
+.navbar-button::after {
+  content: "";
+  position: absolute;
+  display: block;
+  border: 0 solid transparent;
+  width: 0%;
+  height: 0%;
+  transition: all 0.3s ease;
+}
+
+.navbar-button::after {
+  top: 0;
+  left: 0;
+  border-top: 2px solid transparent;
+  border-left: 2px solid transparent;
+}
+
+.navbar-button::before {
+  right: 0;
+  bottom: 0;
+  border-bottom: 2px solid transparent;
+  border-right: 2px solid transparent;
+}
+
+.navbar-button:hover {
+  background: none;
+}
+
+.navbar-button:hover::before,
+.navbar-button:hover::after {
+  width: 10px;
+  height: 10px;
+  border-color: #A6A6A6;
+}
