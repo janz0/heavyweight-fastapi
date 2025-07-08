@@ -55,6 +55,7 @@ def list_sources_for_project(
         db.query(Source)
           .join(Location, Source.mon_loc_id == Location.id)
           .filter(Location.project_id == project_id)
+          .order_by(Source.source_name)
           .offset(skip)
           .limit(limit)
           .all()
@@ -69,6 +70,7 @@ def list_sources_for_location(
     return (
         db.query(Source)
           .filter(Source.mon_loc_id == loc_id)
+          .order_by(Source.source_name)
           .offset(skip)
           .limit(limit)
           .all()
@@ -95,11 +97,11 @@ def enrich_source(
 
     if children:
         sensors: List = []
-        for sensor in source.mon_sensors:
+        for sensor in sorted(source.mon_sensors, key=lambda s: s.sensor_name or ""):
             if minimal:
                 fields = [
                     MonitoringSensorFieldName.model_construct(**f.__dict__)
-                    for f in sensor.fields
+                    for f in sorted(sensor.fields, key=lambda f: f.field_name or "")
                 ]
                 sensor_model = schemas.MonitoringSensorNameWithFields(
                     id=sensor.id,
@@ -112,7 +114,7 @@ def enrich_source(
                     **base_model.model_dump(),
                     fields=[
                         MonitoringSensorField.model_construct(**f.__dict__)
-                        for f in sensor.fields
+                        for f in sorted(sensor.fields, key=lambda f: f.field_name or "")
                     ],
                 )
             sensors.append(sensor_model)

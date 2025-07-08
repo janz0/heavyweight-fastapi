@@ -8,7 +8,12 @@ def get_sensor_field(db: Session, field_id: UUID) -> Optional[MonitoringSensorFi
     return db.query(MonitoringSensorField).filter(MonitoringSensorField.id == field_id).first()
 
 def get_sensor_fields(db: Session, sensor_id: UUID) -> List[MonitoringSensorField]:
-    return db.query(MonitoringSensorField).filter(MonitoringSensorField.sensor_id == sensor_id).all()
+    return (
+        db.query(MonitoringSensorField)
+        .filter(MonitoringSensorField.sensor_id == sensor_id)
+        .order_by(MonitoringSensorField.field_name)
+        .all()
+    )
 
 
 def get_sensor_field_by_sensor_and_name(
