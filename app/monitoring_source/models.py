@@ -19,6 +19,7 @@ class Source(DBBase):
     last_data_upload = Column(Text, nullable=True)
     active = Column(Integer, default=1)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    root_directory = Column(Text, nullable=True)
 
     # reciprocal side of the relationship
     mon_loc = relationship(

@@ -7,7 +7,6 @@ from datetime import datetime
 class MonitoringSensorBase(BaseModel):
     mon_source_id: UUID
     sensor_group_id: Optional[UUID] = None
-    source_name: Optional[str] = None
     sensor_name: str
     sensor_type: str
     active: Optional[int] = 1
