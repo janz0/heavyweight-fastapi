@@ -24,6 +24,30 @@ export default function DataTable<T>({
   const textSub = colorMode === "light" ? "gray.600" : "gray.400";
   const row_bg = useColorModeValue("gray.50", "gray.600");
 
+  // build a small window of pages with ellipses
+  const pageItems: (number | string)[] = React.useMemo(() => {
+    if (totalPages <= 7) {
+      // if few pages, just list them all
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const delta = 2; // how many pages around current
+    const left = Math.max(2, page - delta);
+    const right = Math.min(totalPages - 1, page + delta);
+    const nums: (number | string)[] = [1];
+
+    if (left > 2) {
+      nums.push("…");
+    }
+    for (let p = left; p <= right; p++) {
+      nums.push(p);
+    }
+    if (right < totalPages - 1) {
+      nums.push("…");
+    }
+    nums.push(totalPages);
+    return nums;
+  }, [page, totalPages]);
+  
   return (
     <>
       <Box maxH="60vh" overflowY="auto">
@@ -98,19 +122,22 @@ export default function DataTable<T>({
               Prev
             </Button>
 
-            {[...Array(totalPages)].map((_, idx) => {
-              const p = idx + 1;
-              return (
+            {pageItems.map((item, idx) =>
+              typeof item === "string" ? (
+                <Box key={`dots-${idx}`} px={2}>
+                  {item}
+                </Box>
+              ) : (
                 <Button
-                  key={p}
+                  key={item}
                   size="sm"
-                  variant={p === page ? "solid" : "outline"}
-                  onClick={() => onPageChange(p)}
+                  variant={item === page ? "solid" : "outline"}
+                  onClick={() => onPageChange(item)}
                 >
-                  {p}
+                  {item}
                 </Button>
-              );
-            })}
+              )
+            )}
 
             <Button
               size="sm"
