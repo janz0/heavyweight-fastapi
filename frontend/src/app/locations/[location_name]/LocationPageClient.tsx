@@ -2,8 +2,8 @@
 
 import 'leaflet/dist/leaflet.css';
 
-import React, { useMemo, useState } from 'react';
-import { Box, HStack, Heading, Text, VStack, Button, Menu, Tabs, Popover, Flex, Table, IconButton, Link, Separator } from '@chakra-ui/react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Box, Checkbox, CheckboxGroup, HStack, Heading, Text, VStack, Button, Menu, Tabs, Popover, Portal, Flex, Table, IconButton, Link, Separator } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import { Breadcrumb } from '@/app/components/Breadcrumb';
 import type { Location } from '@/types/location';
@@ -17,12 +17,17 @@ import PageSizeSelect from '@/app/components/PageSizeSelect';
 import { Line } from "react-chartjs-2";
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/sources/components/SourceModals';
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/sensors/components/SensorModals';
-import { CheckIcon, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
+import { MonitoringGroupCreateModal } from '@/app/sensors/components/MonitoringGroupModals';
+import { listMonitoringGroups } from '@/services/monitoringGroups';
+import type { MonitoringGroup } from '@/types/monitoringGroup';
+import { LocationEditModal } from '../components/LocationModals';
 
 interface LocationPageClientProps {
   location: Location;
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
+  initialGroups: MonitoringGroup[];
 }
 
 function getNestedValue<T>(obj: T, path: string): unknown {
@@ -62,13 +67,22 @@ const sensorColumns: Column[] = [
   { key: 'active', label: 'Active' },
 ];
 
-export default function LocationPageClient({ location, initialSources, initialSensors }: LocationPageClientProps) {
+const groupColumns: Column[] = [
+  { key: 'group_name', label: 'Group Name' },
+  { key: 'group_type', label: 'Group Type' },
+  { key: 'data', label: 'Data' },
+  { key: 'created_at', label: 'Created' },
+  { key: 'last_updated', label: 'Updated' },
+  { key: 'active', label: 'Active' },
+];
+
+export default function LocationPageClient({ location, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
   const { colorMode } = useColorMode();
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const text = colorMode === "light" ? "gray.800" : "gray.200";
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
-  const [activeTab, setActiveTab] = useState<'sources'|'sensors'>('sources');
+  const [activeTab, setActiveTab] = useState<'sources'|'sensors'|'groups'>('sources');
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -97,26 +111,41 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
   const readings: string[] = [];
   
+  const [isLocEditOpen, setLocEditOpen] = useState(false);
+  const handleEditLocation = () => (setLocEditOpen(true));
+
+  const [isGrpCreateOpen, setGrpCreateOpen] = useState(false);
+  const [locationGroups, setLocationGroups] = useState<MonitoringGroup[]>([])
+
   const items = useMemo(() => {
     switch (activeTab) {
       case 'sources':   return initialSources;
       case 'sensors':   return initialSensors;
+      case 'groups':    return initialGroups;
       default:          return [];
     }
-  }, [activeTab, initialSources, initialSensors]);
+  }, [activeTab, initialSources, initialSensors, initialGroups]);
 
+  useEffect(() => {
+    listMonitoringGroups(location.id)
+      .then(setLocationGroups)
+      .catch(err => {
+        console.error("Could not load groups:", err)
+        // optionally show a toaster
+      })
+  }, [location.id])
   const allGroups = useMemo(() => {
-    return Array.from(
-      new Set(
-        initialSensors
-          .map((s) => s.sensor_group_id)
-          .filter((id): id is string => Boolean(id))
-      )
-    ).map((id) => ({ id, label: `Group ${id}` }));
-  }, [initialSensors]);
+    return locationGroups.map(g => ({
+      id:    g.id,
+      label: g.group_name
+    }))
+  }, [locationGroups])
 
   // 2) which groups are checked
   const [groupFilter, setGroupFilter] = useState<string[]>([]);
+  useEffect(() => {
+    setGroupFilter(allGroups.map((g) => g.id));
+  }, [allGroups]);
 
   // 3) combine with your existing search filter
   const filtered = useMemo(() => {
@@ -125,18 +154,20 @@ export default function LocationPageClient({ location, initialSources, initialSe
       const name =
         activeTab === "sensors"
           ? (item as MonitoringSensor).sensor_name
-          : (item as Source).source_name;
+          : activeTab === "groups"
+            ? (item as MonitoringGroup).group_name
+            : (item as Source).source_name;
       if (!name.toLowerCase().includes(search.toLowerCase())) return false;
 
       // group‐filter (only for sensors)
-      if (activeTab === "sensors" && groupFilter.length > 0) {
+      if (activeTab === "sensors" && allGroups.length > 0) {
         return groupFilter.includes(
           (item as MonitoringSensor).sensor_group_id || ""
         );
       }
       return true;
     });
-  }, [items, search, activeTab, groupFilter]);
+  }, [items, search, activeTab, groupFilter, allGroups.length]);
   
   const sorted = useMemo(() => {
     if (!sortConfig) return filtered;
@@ -155,7 +186,35 @@ export default function LocationPageClient({ location, initialSources, initialSe
 
   const totalPages = Math.ceil(sorted.length / pageSize);
   const displayed  = sorted.slice((page - 1) * pageSize, page * pageSize);
+  // track which sensor IDs are selected
+  const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
 
+  // helper: are *all* visible sensors selected?
+  /*const allVisibleSelected =
+    displayed.length > 0 &&
+    displayed.every((s) => selectedSensors.includes(s.id));
+  */
+  // toggle one sensor
+  function toggleSensor(id: string) {
+    setSelectedSensors((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  // toggle all visible
+  /*
+  function toggleAllVisible() {
+    if (allVisibleSelected) {
+      // unselect them
+      setSelectedSensors((prev) =>
+        prev.filter((x) => !displayed.some((s) => s.id === x))
+      );
+    } else {
+      // add all visible
+      const visibleIds = displayed.map((s) => s.id);
+      setSelectedSensors((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  } */
   function formatDate(dateString?: string | null) {
     if (!dateString) return '—';
     const date = new Date(dateString);
@@ -181,16 +240,26 @@ export default function LocationPageClient({ location, initialSources, initialSe
           { label: `${location.loc_name}`, href: `/locations/${location.loc_name}` },
         ]}
       />
-      <Box w="100%" gap="4" mb="4">
-        {/* Metrics */}
-        <Box mb={3} border="inset" borderRadius="xl" p="12px" h="full" alignItems="center" justifyItems={"center"}>
-          {/* Title */}
-            <Heading size="3xl">{location.loc_name}</Heading>
-        </Box>
-      </Box>
       <HStack mb={3} h="50vh" align="stretch">
         <VStack w="40%" h="fit-content">
-          <Box border="inset" borderRadius="xl" p="12px" w="100%">
+          <Box w="100%">
+          {/* Metrics */}
+          <Box border="inset" borderRadius="xl" p="12px" h="full" alignItems="center" justifyItems={"center"}>
+            <Heading size="3xl">{location.loc_name}</Heading>
+          </Box>
+        </Box>
+          <Box position="relative" border="inset" borderRadius="xl" p="12px" w="100%">
+            <IconButton
+              position="absolute"
+              top="8px"
+              right="8px"
+              aria-label="Edit sensor"
+              variant="ghost"
+              size="sm"
+              onClick={handleEditLocation}
+              _hover={{ bg: "gray.200" }}
+              _dark={{ _hover: { bg: "whiteAlpha.200" }}}
+            ><PencilSimple weight='bold'/></IconButton>
             <HStack align="start" gap={4}>
               <Text fontWeight="light" color={textSub}>Project Name:</Text>
               <Text fontWeight="medium">{location.details?.project_name||"N/A"}</Text>
@@ -238,7 +307,6 @@ export default function LocationPageClient({ location, initialSources, initialSe
           >
             Inspection Checklist
           </Button>
-          {
           <HStack w="100%" gap="4">
             <Button
               variant={activeTab === 'sources' ? 'solid' : 'ghost'}
@@ -267,7 +335,19 @@ export default function LocationPageClient({ location, initialSources, initialSe
               Sensors
             </Button>
           </HStack>
-          }
+          <Button
+            variant={activeTab === 'groups' ? 'solid' : 'ghost'}
+            borderWidth={"2px"}
+            borderColor={"black"}
+            borderRadius={"xl"}
+            border="inset"
+            _dark={{borderColor: "white"}}
+            fontSize={"xl"}
+            w="100%"
+            onClick={() => setActiveTab("groups")}
+          >
+            Groups
+          </Button>
         </VStack>
         {/* Map View */}
         <Tabs.Root defaultValue="map" orientation="horizontal" h="full" w="full" >
@@ -318,39 +398,44 @@ export default function LocationPageClient({ location, initialSources, initialSe
                   : 'Search sensors…'
               }
             />
-            <Menu.Root>
+            <Menu.Root positioning={{ strategy: "fixed", placement: "top" }} closeOnSelect={false}>
               <Menu.Trigger asChild>
-                <Button size="sm">
+                  <IconButton
+                    aria-label="Filter groups"
+                    size="sm"
+                    variant="outline"
+                  >
                   <Filter />
-                </Button>
+                </IconButton>
               </Menu.Trigger>
+              <Portal>
               <Menu.Positioner>
-                <Menu.Content w="200px" p={2}>
-                  {allGroups.map((g) => (
-                    <Menu.CheckboxItem
-                      key={g.id}
-                      checked={groupFilter.includes(g.id)}
-                      onChange={() =>
-                        setGroupFilter((prev) =>
-                          prev.includes(g.id)
-                            ? prev.filter((x) => x !== g.id)
-                            : [...prev, g.id]
-                        )
-                      }
-                      value={g.id}
-                    >
-                      <Menu.ItemIndicator>
-                        <CheckIcon />
-                      </Menu.ItemIndicator>
-                      {g.label}
-                    </Menu.CheckboxItem>
-                  ))}
+                <Menu.Content p={2} zIndex={"popover"}>
+                    <CheckboxGroup value={groupFilter} onValueChange={(newFilter: string[]) => setGroupFilter(newFilter)} name="mon_groups">
+                      {allGroups.length === 0 ? (
+                        <Menu.Item value="left" disabled>
+                          No groups found
+                        </Menu.Item>
+                      ) : (
+                          allGroups.map((g) => (
+                            <Checkbox.Root key={g.id} value={g.id} checked={groupFilter.includes(g.id)}>
+                              <Checkbox.HiddenInput />
+                              <Checkbox.Control />
+                              <Checkbox.Label>{g.label}</Checkbox.Label>
+                            </Checkbox.Root>
+                          ))
+                        )}
+                    </CheckboxGroup>
+                  <Menu.Item value="center" onSelect={() => setGrpCreateOpen(true)}>
+                    + New Group
+                  </Menu.Item>
                 </Menu.Content>
               </Menu.Positioner>
+              </Portal>
             </Menu.Root>
           </HStack>
         </Box>
-        
+
         <Flex ml="auto" align="center" gap={4}>
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
           {activeTab === 'sources' && (
@@ -365,7 +450,7 @@ export default function LocationPageClient({ location, initialSources, initialSe
           )}
         </Flex>
       </Flex>
-      {/* ←––––– CONTENT PANELS –––––→ */}
+
       <Box border="inset" borderRadius="3xl" overflow="hidden">
         {activeTab === 'sources' && (
           <DataTable columns={sourcesColumns} data={displayed as Source[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
@@ -425,13 +510,22 @@ export default function LocationPageClient({ location, initialSources, initialSe
         )}
 
         {activeTab === 'sensors' && (
-          <DataTable columns={sensorColumns} data={displayed as MonitoringSensor[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
+          <DataTable columns={[ {key: "__select__", label: "" }, ...sensorColumns]} data={displayed as MonitoringSensor[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
             renderRow={(s: MonitoringSensor) => (
               <>
+                <Table.Cell textAlign="center">
+                  <Checkbox.Root
+                    checked={selectedSensors.includes(s.id)}
+                    onChange={() => toggleSensor(s.id)}
+                  >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control />
+                  </Checkbox.Root>
+                </Table.Cell>
                 <Table.Cell textAlign="center" textTransform="capitalize" textDecor={"underline"}><Link href={`/sensors/${s.sensor_name}`}>{s.sensor_name}</Link></Table.Cell>
                 <Table.Cell textAlign="center" textTransform="capitalize">{s.sensor_type}</Table.Cell>
                 <Table.Cell textAlign="center">{s.details?.mon_source_name ?? s.mon_source_id}</Table.Cell>
-                <Table.Cell textAlign="center">{s.sensor_group_id ?? "None"}</Table.Cell>
+                <Table.Cell textAlign="center">{s.details?.group_name ?? "None"}</Table.Cell>
                 <Table.Cell textAlign="center">{s.created_at?.split('T')[0]||"-"}</Table.Cell>
                 <Table.Cell textAlign="center">{s.last_updated?.split('T')[0]||"-"}</Table.Cell>
                 <Table.Cell textAlign="center">
@@ -504,6 +598,61 @@ export default function LocationPageClient({ location, initialSources, initialSe
                   </Box>
                 </Table.Cell>
               </>
+              
+            )}
+          />
+        )}
+        {activeTab === 'groups' && (
+          <DataTable columns={groupColumns} data={displayed as MonitoringGroup[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
+            renderRow={(g: MonitoringGroup) => (
+              <>
+                <Table.Cell textAlign="center" textTransform="capitalize" textDecor={"underline"}><Link href={`/groups/${g.group_name}`}>{g.group_name}</Link></Table.Cell>
+                <Table.Cell textAlign="center" textTransform="capitalize">{g.group_type}</Table.Cell>
+                <Table.Cell textAlign="center">{ "N/A" }</Table.Cell>
+                <Table.Cell textAlign="center">{g.created_at?.split('T')[0]||"-"}</Table.Cell>
+                <Table.Cell textAlign="center">{g.last_updated?.split('T')[0]||"-"}</Table.Cell>
+                <Table.Cell textAlign="center">
+                  <Box display="inline-block" boxSize="10px" borderRadius="full" bg={g.active ? 'green.400' : 'red.400'} />
+                </Table.Cell>
+                <Table.Cell textAlign="center">
+                  <Box display={"inline-block"}>
+                    <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
+                      <Popover.Trigger asChild>
+                        <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="48px" width={"32px"}
+                          onClick={(e) => e.stopPropagation()}
+                          _hover={{
+                            backgroundColor: 'blackAlpha.300',
+                          }}
+                          _dark={{
+                            color: "white",
+                            _hover: {backgroundColor: "whiteAlpha.200"}
+                          }}
+                        >
+                          <DotsThreeVertical weight="bold"/>
+                        </IconButton>
+                      </Popover.Trigger>
+        
+                      <Popover.Positioner>
+                        <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                          <Popover.Arrow>
+                            <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1}  _dark={{borderColor: "whiteAlpha.600"}}/>
+                          </Popover.Arrow>
+                          <Popover.Body height="100px" p={0}>
+                            <VStack gap={0} justifyContent={"center"} height="inherit">
+                              <Button variant="ghost" size="md">
+                                <PencilSimple />
+                              </Button>
+                              <Button variant="ghost" size="md">
+                                <Trash />
+                              </Button>
+                            </VStack>
+                          </Popover.Body>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Popover.Root>
+                  </Box>
+                </Table.Cell>
+              </>
             )}
           />
         )}
@@ -514,6 +663,8 @@ export default function LocationPageClient({ location, initialSources, initialSe
       <SensorCreateModal isOpen={isSenCreateOpen} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
       <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }} />
       <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }} />
+      <MonitoringGroupCreateModal isOpen={isGrpCreateOpen} onClose={() => setGrpCreateOpen(false)} locationId={location.id} />
+      <LocationEditModal isOpen={isLocEditOpen} location={location} onClose={() => { setLocEditOpen(false); }} />
     </Box>
   );
 }

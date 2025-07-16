@@ -77,7 +77,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   
 
   // Colors 
-  const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
+  const bg      = colorMode === 'light' ? 'gray.300' : 'gray.600';
   const text = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
   

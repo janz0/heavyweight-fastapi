@@ -16,7 +16,8 @@ import { listSources } from "@/services/sources";
 import { createSensor, updateSensor, deleteSensor } from "@/services/sensors";
 import type { Source } from "@/types/source";
 import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
-
+import type { MonitoringGroup } from "@/types/monitoringGroup";
+import { listMonitoringGroups } from "@/services/monitoringGroups";
 // ==============================
 // Shared Form Component
 // ==============================
@@ -47,6 +48,7 @@ function SensorForm({
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const fixedSourceId = initialData?.mon_source_id;
   const isSourceLocked = Boolean(fixedSourceId);
+  const [groups, setGroups] = useState<MonitoringGroup[]>([]);
 
   useEffect(() => {
     if (fixedProjectId)
@@ -64,6 +66,25 @@ function SensorForm({
           toaster.create({ description: "Could not load sources", type: "error" });
         });
   }, [fixedProjectId]);
+
+  useEffect(() => {
+    if (!monSourceId) {
+      setGroups([]);
+      return;
+    }
+    const src = sources.find((s) => s.id === monSourceId);
+    if (!src) return;
+    // fetch monitoring groups for this source’s location
+    listMonitoringGroups(src.mon_loc_id)
+      .then(setGroups)
+      .catch((err) => {
+        console.error("Failed to load groups:", err);
+        toaster.create({
+          description: "Could not load sensor groups",
+          type: "error",
+        });
+      });
+  }, [monSourceId, sources]);
 
   useEffect(() => {
     if (initialData) {
@@ -86,6 +107,16 @@ function SensorForm({
       items: sources.map((s) => ({ label: s.source_name, value: s.id })),
     }),
     [sources]
+  );
+  const groupCollection = useMemo(
+    () =>
+      createListCollection({
+        items: groups.map((g) => ({
+          label: g.group_name,
+          value: g.id,
+        })),
+      }),
+    [groups]
   );
 
   const handleSubmit = async (e: FormEvent) => {
@@ -135,13 +166,33 @@ function SensorForm({
       </Field.Root>
 
       <Field.Root mb={4}>
-        <Field.Label>Sensor Group ID</Field.Label>
-        <Input
-          placeholder="Optional UUID"
-          value={sensorGroupId}
-          borderColor={bc}
-          onChange={(e) => setSensorGroupId(e.target.value)}
-        />
+        <Field.Label>Sensor Group</Field.Label>
+        <Select.Root
+          collection={groupCollection}
+          value={sensorGroupId ? [sensorGroupId] : []}
+          onValueChange={(e) => setSensorGroupId(e.value[0])}
+          disabled={!monSourceId || !sources[0]}
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger borderColor={bc}>
+              <Select.ValueText placeholder={!monSourceId ? "Select a source first" : "[Optional] Select group"} />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              {monSourceId && <Select.ClearTrigger />}
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {groupCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
       </Field.Root>
 
       <Field.Root required mb={4}>

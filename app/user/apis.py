@@ -12,7 +12,6 @@ from app.user.models import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-
 @router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
 def register(
     payload: schemas.UserCreate,

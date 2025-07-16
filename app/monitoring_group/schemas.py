@@ -4,9 +4,9 @@ from uuid import UUID
 from datetime import datetime
 
 class MonitoringGroupBase(BaseModel):
-    project_id: UUID
+    mon_loc_id: UUID
     group_name: str
-    type: str
+    group_type: str
     data: Optional[Any]
     status: Optional[str] = "Created"
     active: Optional[int] = 1
@@ -15,9 +15,9 @@ class MonitoringGroupCreate(MonitoringGroupBase):
     pass
 
 class MonitoringGroupUpdate(BaseModel):
-    project_id: Optional[UUID]
+    mon_loc_id: Optional[UUID]
     group_name: Optional[str]
-    type: Optional[str]
+    group_type: Optional[str]
     data: Optional[Any]
     status: Optional[str]
     active: Optional[int]

@@ -22,6 +22,21 @@ def list_monitoring_groups(
 ):
     return selectors.get_monitoring_groups(db, skip=skip, limit=limit)
 
+@router.get(
+    "/by-location/{location_id}",
+    response_model=List[schemas.MonitoringGroup],
+    summary="List all monitoring-groups for a given location",
+)
+def list_location_monitoring_groups(
+    location_id: UUID,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    return selectors.get_location_monitoring_groups(
+        db, location_id=location_id, skip=skip, limit=limit
+    )
+
 @router.get("/{group_id}", response_model=schemas.MonitoringGroup)
 def get_monitoring_group(group_id: UUID, db: Session = Depends(get_db)):
     obj = selectors.get_monitoring_group(db, group_id)
