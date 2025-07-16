@@ -22,7 +22,8 @@ class MonitoringSensorUpdate(BaseModel):
     active: Optional[int] = None
 
 class MonitoringSensorMetadata(BaseModel):
-    mon_source_name: str
+    mon_source_name: Optional[str] = "N/A"
+    group_name: Optional[str] = "N/A"
 
 class MonitoringSensor(MonitoringSensorBase):
     id: UUID

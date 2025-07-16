@@ -17,7 +17,6 @@ import type { MonitoringSensor } from "@/types/sensor";
 
 export default function SensorsPage() {
   const { colorMode } = useColorMode();
-  const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   const [sensors, setSensors] = useState<MonitoringSensor[] | null>(null);
@@ -33,7 +32,7 @@ export default function SensorsPage() {
   // Loading state
   if (!sensors && !error) {
     return (
-      <Flex h="60vh" align="center" justify="center" bg={bg}>
+      <Flex h="60vh" align="center" justify="center" bg={"inherit"}>
         <Spinner size="xl" color={accent} />
       </Flex>
     );
@@ -42,7 +41,7 @@ export default function SensorsPage() {
   // Error state
   if (error) {
     return (
-      <Box p={6} bg={bg} color="red.500">
+      <Box p={6} bg={"inherit"} color="red.500">
         Error loading sensors: {error}
       </Box>
     );

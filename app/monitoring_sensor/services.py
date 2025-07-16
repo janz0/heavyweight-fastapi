@@ -78,7 +78,8 @@ def enrich_sensor(sensor: MonitoringSensor) -> dict:
     details = None
     if sensor.mon_source:
         details = schemas.MonitoringSensorMetadata(
-            mon_source_name = sensor.mon_source.source_name
+            mon_source_name=sensor.mon_source.source_name,
+            group_name=getattr(sensor.mon_loc_group, "group_name", None),
         )
     sensor_dict = dict(sensor.__dict__)
     sensor_dict["details"] = details
