@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Flex, Spinner } from "@chakra-ui/react";
 import { ColorModeProvider } from "./src/components/ui/color-mode";
+import { NavigationProvider } from "./context/NavigationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,11 +58,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ChakraProvider>
           <AuthProvider>
+            <NavigationProvider>
             {/* 
               AuthenticatedLayout will conditionally show <Navbar> 
               based on whether `useAuth()` says we have a token.
@@ -70,6 +73,7 @@ export default function RootLayout({
               <ColorModeProvider>{children}</ColorModeProvider>
             </AuthenticatedLayout>
             <Toaster />
+            </NavigationProvider>
           </AuthProvider>
         </ChakraProvider>
       </body>

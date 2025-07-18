@@ -11,7 +11,7 @@ def get_monitoring_sensor(
     return (
         db.query(MonitoringSensor)
           # load the related Source so we can read source.source_name
-          .options(joinedload(MonitoringSensor.mon_source))
+          .options(joinedload(MonitoringSensor.mon_source), joinedload(MonitoringSensor.mon_loc_group))
           .filter(MonitoringSensor.id == sensor_id)
           .first()
     )
@@ -19,15 +19,13 @@ def get_monitoring_sensor(
 def get_monitoring_sensors(
     db: Session,
     skip: int = 0,
-    limit: int = 100
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
           # same eager-load on the list endpoint
-          .options(joinedload(MonitoringSensor.mon_source))
+          .options(joinedload(MonitoringSensor.mon_source), joinedload(MonitoringSensor.mon_loc_group))
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
-          .limit(limit)
           .all()
     )
 
@@ -38,11 +36,10 @@ def get_monitoring_sensor_by_name(
     return (
         db.query(MonitoringSensor)
           # only eager-load the source
-          .options(joinedload(MonitoringSensor.mon_source))
+          .options(joinedload(MonitoringSensor.mon_source), joinedload(MonitoringSensor.mon_loc_group))
           .filter(MonitoringSensor.sensor_name == sensor_name)
           .first()
     )
-
 
 def get_sensor_by_source_and_name(
     db: Session,

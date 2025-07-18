@@ -74,7 +74,7 @@ async def get_current_user(
         raise credentials_exc
 
     # Fetch the user from the database
-    user = await get_user_by_email(db, token_data.email)
+    user = get_user_by_email(db, token_data.email)
     if not user:
         raise credentials_exc
 

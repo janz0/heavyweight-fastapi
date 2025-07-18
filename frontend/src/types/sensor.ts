@@ -11,6 +11,7 @@ export interface MonitoringSensor {
   last_updated: string;
   details?: {
     mon_source_name: string;
+    group_name: string;
   };
 }
 

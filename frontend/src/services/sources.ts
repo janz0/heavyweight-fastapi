@@ -10,22 +10,21 @@ export async function listSources(
   projectId?: string,
   locationId?: string,
   skip = 0,
-  limit = 100
 ): Promise<Source[]> {
   let url: string;
 
   if (projectId && locationId) {
     // get sources for a specific project *and* location
-    url = `${PROJECTS_BASE}/${projectId}/locations/${locationId}/sources?skip=${skip}&limit=${limit}`;
+    url = `${PROJECTS_BASE}/${projectId}/locations/${locationId}/sources?skip=${skip}`;
   } else if (projectId) {
     // get all sources for a project
-    url = `${PROJECTS_BASE}/${projectId}/sources?skip=${skip}&limit=${limit}`;
+    url = `${PROJECTS_BASE}/${projectId}/sources?skip=${skip}`;
   } else if (locationId) {
     // get all sources for a location (across projects)
-    url = `${LOCATIONS_BASE}/${locationId}/sources?skip=${skip}&limit=${limit}`;
+    url = `${LOCATIONS_BASE}/${locationId}/sources?skip=${skip}`;
   } else {
     // fallback: list *all* sources
-    url = `${BASE}/?skip=${skip}&limit=${limit}`;
+    url = `${BASE}/?skip=${skip}`;
   }
 
   const res = await fetch(url);

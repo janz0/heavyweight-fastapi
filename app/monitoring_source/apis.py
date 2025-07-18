@@ -18,20 +18,18 @@ def create_source(payload: schemas.SourceCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[schemas.Source])
 def list_sources(
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    sources = selectors.get_sources(db, skip, limit)
+    sources = selectors.get_sources(db, skip)
     return [services.enrich_source(src, False, False) for src in sources]
 
 
 @router.get("/last-updated", response_model=List[schemas.SourceLastUpdated])
 def list_sources_last_updated(
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    rows = selectors.get_source_updates(db, skip, limit)
+    rows = selectors.get_source_updates(db, skip)
     return [schemas.SourceLastUpdated(id=row[0], last_updated=row[1]) for row in rows]
 
 

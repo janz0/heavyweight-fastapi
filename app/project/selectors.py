@@ -8,8 +8,8 @@ from sqlalchemy import select
 from app.project.models  import Project as ProjectModel
 from app.project.schemas import Project as ProjectSchema
 
-def get_projects(db: Session, skip: int = 0, limit: int = 100) -> List[ProjectSchema]:
-    stmt     = select(ProjectModel).order_by(ProjectModel.start_date.desc()).offset(skip).limit(limit)
+def get_projects(db: Session, skip: int = 0) -> List[ProjectSchema]:
+    stmt     = select(ProjectModel).order_by(ProjectModel.start_date.desc()).offset(skip)
     projects = db.execute(stmt).scalars().all()
     return [ProjectSchema.from_orm(p) for p in projects]
 

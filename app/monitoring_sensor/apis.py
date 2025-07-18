@@ -32,10 +32,9 @@ def create_monitoring_sensor(
 @router.get("/", response_model=List[schemas.MonitoringSensor])
 def list_monitoring_sensors(
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    sensors = selectors.get_monitoring_sensors(db, skip=skip, limit=limit)
+    sensors = selectors.get_monitoring_sensors(db, skip=skip)
     return [services.enrich_sensor(s) for s in sensors]
 
 @router.get("/{sensor_id}", response_model=schemas.MonitoringSensor)

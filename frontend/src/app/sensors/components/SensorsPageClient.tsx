@@ -7,14 +7,13 @@ import { useEffect, useState, useMemo } from "react";
 
 // Chakra Imports + Icons
 import { Box, Button, Flex, Heading, IconButton, Link, Popover, Spinner, Text, Table, VStack } from "@chakra-ui/react";
-import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
+import { PencilSimple, Trash, DotsThreeVertical, MagnifyingGlass, Plus } from "phosphor-react";
 import { toaster } from "@/components/ui/toaster"
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // UI Components
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { Breadcrumb } from "@/app/components/Breadcrumb";
 import SearchInput from "@/app/components/SearchInput";
 import PageSizeSelect from "@/app/components/PageSizeSelect";
 import DataTable from "@/app/components/DataTable";
@@ -77,8 +76,8 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   
 
   // Colors 
-  const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
-  const text = colorMode === 'light' ? 'gray.800' : 'gray.200';
+  const bg      = colorMode === 'light' ? 'gray.300' : '#111111';
+  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
   
   const filtered = useMemo(() => sensors.filter(s => s.sensor_name.toLowerCase().includes(search.toLowerCase())), [search, sensors]);
@@ -124,17 +123,33 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   }, []);
 
   return (
-    <Box minH="100vh" bg={bg} p={6}>
-      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/"}, { label: "Sensors", href: "/sensors"} ]}/>
+    <Box minH="100vh" bg={bg} p={6} color={text}>
       <Flex mb={4} align="center" position="relative" w="100%">
         <Heading fontSize={"3xl"}>Monitoring Sensors</Heading>
-        <Box position="absolute" left="50%" transform="translateX(-50%)" width={{ base: "100%", sm: "400px" }} px={4}>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search sensors..." />
-        </Box>
         <Flex ml="auto" align="center" gap={4}>
+          <Box minW="20ch" display={{base: "none", sm: "block"}}>
+            <SearchInput value={search} onChange={setSearch} placeholder="Search sensors..." />
+          </Box>
+          <IconButton
+            display={{base: "block", sm: "none"}}
+            aria-label="Search"
+            as={MagnifyingGlass}
+            variant="outline"
+            borderRadius="full"
+            borderColor={colorMode==="dark" ? "gray.700" : "gray.400"}
+            borderWidth="2px"
+            p={2}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+            _active={{ bg: "gray.200" }}
+            _dark={{
+              _hover: { bg: "whiteAlpha.100" },
+              _active: { bg: "whiteAlpha.200" },
+            }}
+          />
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
-          <Button onClick={handleNew} borderRadius="md" boxShadow="sm" bg={"orange"} color={text}>
-            + Add New Sensor
+          <Button onClick={handleNew} borderRadius="md" boxShadow="sm" bg="orange" color={text} size={{base: "xs", md:"sm"}}>
+            <Plus/><Text display={{base: "none", md: "block"}}>Add New Sensor</Text>
           </Button>
         </Flex>
       </Flex>
