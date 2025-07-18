@@ -20,6 +20,7 @@ def get_sources(db: Session, skip: int = 0) -> list[type[Source]]:
     return (
         db.query(Source)
         .options(joinedload(Source.mon_loc).joinedload(Location.project))
+        .order_by(Source.source_name)
         .offset(skip)
         .all()
     )

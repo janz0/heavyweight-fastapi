@@ -41,7 +41,7 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
         timestamp = entry.timestamp
         mon_loc_id = entry.mon_loc_id
         for sensor_obj in entry.sensors:
-            sensor_id = sensor_obj.sensor
+            sensor_id = sensor_obj.sensor_id
 
             sensor = db.query(MonitoringSensor).filter_by(id=sensor_id, mon_source_id=source_id).first()
             if not sensor:
@@ -55,7 +55,7 @@ def create_bulk_sensor_data_from_source(db: Session, request: schemas.Monitoring
             }
 
             for field_val in sensor_obj.data:
-                field_id = field_val.field
+                field_id = field_val.field_id
                 value = field_val.value
 
                 field = db.query(MonitoringSensorField).filter_by(id=field_id, sensor_id=sensor_id).first()

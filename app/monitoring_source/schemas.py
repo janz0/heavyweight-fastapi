@@ -20,6 +20,7 @@ class SourceBase(BaseModel):
     config: Optional[str] = None
     last_data_upload: Optional[str] = None
     active: Optional[int] = 1
+    root_directory: Optional[str] = None
 
 
 class SourceCreate(SourceBase):
@@ -36,6 +37,7 @@ class SourceUpdate(BaseModel):
     config: Optional[str] = None
     last_data_upload: Optional[str] = None
     active: Optional[int] = None
+    root_directory: Optional[str] = None
 
 
 class SourceMetadata(BaseModel):
