@@ -10,7 +10,7 @@ export interface SearchInputProps {
   maxW?: string;
 }
 
-export default function SearchInput({ value, placeholder = "Search...", onChange, maxW = "400px" }: SearchInputProps) {
+export default function SearchInput({ value, placeholder = "Search...", onChange }: SearchInputProps) {
   const bg = useColorModeValue("white", "gray.600");
   const placeholderColor = useColorModeValue("gray.600", "white");
 
@@ -20,7 +20,7 @@ export default function SearchInput({ value, placeholder = "Search...", onChange
       _placeholder={{ color: placeholderColor }}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      maxW={maxW}
+      minW="20ch"
       w="100%"
       variant="outline"
       borderRadius="md"

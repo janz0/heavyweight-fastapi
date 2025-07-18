@@ -1,7 +1,7 @@
 // File: app/components/LoginForm.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Box, Button, Container, Flex, Heading, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import bgImg from '@/app/styles/main-screen.png'
@@ -10,13 +10,18 @@ import { FcGoogle } from "react-icons/fc";
 import { FaFacebook, FaTwitter, FaGithub } from "react-icons/fa";
 import { ColorModeButton } from "@/app/src/components/ui/color-mode";
 import { useAuth } from "@/lib/auth";
-import { loginUser } from "@/services/auth";
+import { loginUser, } from "@/services/auth";
 import { useColorModeValue } from "../src/components/ui/color-mode";
+import { toaster } from "@/components/ui/toaster"
+import { createUser } from "@/services/auth";
 
 export function LoginForm() {
   const { signIn } = useAuth();
+  const [mode, setMode] = useState<"login"|"register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName,  setLastName]  = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -39,51 +44,204 @@ export function LoginForm() {
   const invertedTextColor   = useColorModeValue("gray.100", "gray.800");
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formIsValid) {
+      setShowErrors(true)
+      return;
+    }
+    setShowErrors(false)
     setLoading(true);
     try {
-      const { access_token } = await loginUser(email, password);
-      signIn(access_token);
+      if (mode === "login") {
+        const { access_token } = await loginUser(email, password);
+        signIn(access_token);
+        toaster.create({
+          description: "Logged in successfully",
+          type: "success",
+          duration: 3000,
+        });
+      } else {
+        await createUser({ email, password, first_name: firstName, last_name: lastName });
+        toaster.create({
+          description: "Account created successfully",
+          type: "success",
+          duration: 3000,
+        });
+        const { access_token } = await loginUser(email, password);
+        signIn(access_token);
+        toaster.create({
+          description: "Logged in as new user",
+          type: "success",
+          duration: 3000,
+        });
+      }
     } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === "string"
+            ? err
+            : "An unexpected error occurred";
+
+        console.error(err);
+        toaster.create({
+          description:
+            mode === "login"
+              ? `Login failed: ${message}`
+              : `Registration failed: ${message}`,
+          type: "error",
+          duration: 5000,
+        });
+      } finally {
+        setLoading(false);
+      }
   };
   const [isPwdFocused, setIsPwdFocused] = useState(false);
   const [isUsrFocused, setIsUsrFocused] = useState(false);
+  const [isFNFocused, setIsFNFocused] = useState(false);
+  const [isLNFocused, setIsLNFocused] = useState(false);
   const floatingPwd = isPwdFocused || Boolean(password);
   const floatingUsr = isUsrFocused || Boolean(email);
+  const floatingFN = isFNFocused || Boolean(firstName);
+  const floatingLN = isLNFocused || Boolean(lastName);
+  const [showErrors,   setShowErrors]   = useState(false)   
+
+  // --- validation rules
+  const emailIsValid    = useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
+  const pwdIsValid      = useMemo(() => password.length >= 8,       [password]);
+  const firstIsValid    = useMemo(() => firstName.trim().length > 0, [firstName]);
+  const lastIsValid     = useMemo(() => lastName.trim().length > 0,  [lastName]);
+  const formIsValid     = mode === "login"
+    ? emailIsValid && pwdIsValid
+    : emailIsValid && pwdIsValid && firstIsValid && lastIsValid;
+
+  useEffect(() => {
+    setEmail("")
+    setPassword("")
+    setFirstName("")
+    setLastName("")
+    // if you want to clear focus flags too:
+    setIsUsrFocused(false)
+    setIsPwdFocused(false)
+    setIsFNFocused(false)
+    setIsLNFocused(false)
+  }, [mode])
 
   return (
-    <Box as="section" minH="100vh" bg={sectionBg}>
-      <Box pos="fixed" inset={0} minH="100vh" bg={panelBg} bgImage={`url(${bgImg.src})`} bgSize={"cover"} bgRepeat={"no-repeat"} filter="blur(8px)"></Box>
-      <Container maxW="container.xl" py={5} h="100vh">
-        <Flex h="100%" align="center" justify="center">
+    <Box as="section" bg={sectionBg}>
+      <Box pos="fixed" inset={0} bg={panelBg} bgImage={`url(${bgImg.src})`} bgSize={"cover"} bgRepeat={"no-repeat"} filter="blur(8px)"></Box>
+      <Container py={[4, 6, 8]}>
+        <Flex direction={["column", "column", "row"]} h="90vh" align="center" justify="center">
           <Box
             bg={panelBg}
             rounded="md"
             shadow="lg"
-            w={{ base: "100%", md: "80%", lg: "60%" }}
+            w={{base: "80%", sm: "55%"}}
+            h="60%"
             overflow="hidden"
+            position="relative"
           >
-            <Flex h="100%">
+            <Flex h="full">
               {/** Left (form) */}
-              <Box w={{ base: "100%", md: "50%" }} p={{ base: 6, md: 10 }}>
-                <VStack gap={12} align="stretch">
-                  <Box textAlign="center">
-                    <Heading size="lg" mb={4}>
-                      RWH Engineering Inc
-                    </Heading>
-                  </Box>
-
+              <Box minW={["100%", "50%"]} h="100%" p={[4,6,8]} flex="1" position="relative">
+                <Box textAlign="center" mb={6}>
+                  <Heading size={["md","lg","xl"]} mb={2}>
+                    {mode === 'login' ? "Log in" : "Sign up"}
+                  </Heading>
+                </Box>
+                <VStack gap={[2,4,6]} align="stretch">
                   <Box as="form" onSubmit={handleSubmit}>
-                    <VStack gap={4} align="stretch">
-
+                    <VStack gap={4} align="stretch" position="relative">
+                      {mode === "register" && (
+                        <Flex gap={4} flexDir={"row"}>
+                          <Box position="relative" flex="1">
+                            <Input
+                              onChange={e => {setFirstName(e.target.value); setShowErrors(false)}}
+                              onFocus={() => setIsFNFocused(true)}
+                              onBlur={() => setIsFNFocused(false)}
+                              bg={inputBg}
+                              _autofill={{
+                                boxShadow: `0 0 0px 1000px ${inputBg} inset`,
+                                WebkitTextFillColor: floatingFN ? `currentColor` : 'transparent',
+                              }}
+                              _focus={{
+                                borderColor: focusColor,
+                              }}
+                              borderColor={showErrors && !firstIsValid ? "red.500" : undefined}
+                              required
+                            />
+                            <Text
+                              as="label"
+                              htmlContent="firstName"
+                              position="absolute"
+                              truncate
+                              text-overflow="ellipsis"
+                              left="0.75rem"
+                              w="calc(100% - 1rem)"
+                              top={floatingFN ? "-25%" : "50%"}
+                              transform={floatingFN ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
+                              transformOrigin="left top"
+                              transition="all 0.2s ease-out"
+                              bg={labelBg}
+                              px="0.25rem"
+                              color={isFNFocused ? focusColor : labelColor}
+                              pointerEvents="none"
+                            >
+                              First name
+                            </Text>
+                            {showErrors && !firstIsValid && (
+                              <Text color="red.500" fontSize="sm" mt="1">
+                                Please enter your first name
+                              </Text>
+                            )}
+                          </Box>
+                          <Box position="relative" flex="1">
+                            <Input
+                              onChange={e => {setLastName(e.target.value); setShowErrors(false)}}
+                              onFocus={() => setIsLNFocused(true)}
+                              onBlur={() => setIsLNFocused(false)}
+                              bg={inputBg}
+                              _autofill={{
+                                boxShadow: `0 0 0px 1000px ${inputBg} inset`,
+                                WebkitTextFillColor: floatingLN ? `currentColor` : 'transparent',
+                              }}
+                              _focus={{
+                                borderColor: focusColor,
+                              }}
+                              borderColor={showErrors && !lastIsValid ? "red.500" : undefined}
+                              required
+                            />
+                            <Text
+                              as="label"
+                              htmlContent="lastName"
+                              position="absolute"
+                              truncate
+                              w="calc(100% - 1rem)"
+                              left="0.75rem"
+                              top={floatingLN ? "-25%" : "50%"}
+                              transform={floatingLN ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
+                              transformOrigin="left top"
+                              transition="all 0.2s ease-out"
+                              bg={labelBg}
+                              px="0.25rem"
+                              color={isLNFocused ? focusColor : labelColor}
+                              pointerEvents="none"
+                            >
+                              Last name
+                            </Text>
+                            {showErrors && !lastIsValid && (
+                              <Text color="red.500" fontSize="sm" mt="1">
+                                Please enter your last name
+                              </Text>
+                            )}
+                          </Box>
+                        </Flex>
+                      )}
                       {/** Email Label + Input */}
                       <Box position="relative">
                         <Input
                           type="email"
-                          onChange={(e) => setEmail(e.target.value)}
+                          value={email}
+                          onChange={(e) => {setEmail(e.target.value); setShowErrors(false)}}
                           onFocus={() => setIsUsrFocused(true)}
                           onBlur={() => setIsUsrFocused(false)}
                           bg={inputBg}
@@ -94,11 +252,12 @@ export function LoginForm() {
                           _focus={{
                             borderColor: focusColor,
                           }}
+                          borderColor={showErrors && !emailIsValid ? "red.500" : undefined}
                           required
                         />
                         <Text
                           as="label"
-                          htmlContent="username"
+                          htmlContent="email"
                           position="absolute"
                           left="0.75rem"
                           top={floatingUsr ? "-25%" : "50%"}
@@ -110,15 +269,21 @@ export function LoginForm() {
                           color={isUsrFocused ? focusColor : labelColor}
                           pointerEvents="none"
                         >
-                          Username
+                          Email
                         </Text>
+                        {showErrors && !emailIsValid && (
+                          <Text color="red.500" fontSize="sm" mt="1">
+                            Enter a valid email address
+                          </Text>
+                        )}
                       </Box>
 
                       {/** Password Label + Input + toggle */}
-                      <Box position="relative">
+                      <Box position="relative" mb={[-3, -5]}>
                         <Input
                           type={showPassword ? "text" : "password"}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={password}
+                          onChange={(e) => {setPassword(e.target.value); setShowErrors(false)}}
                           onFocus={() => setIsPwdFocused(true)}
                           onBlur={() => setIsPwdFocused(false)}
                           _autofill={{
@@ -129,6 +294,7 @@ export function LoginForm() {
                             bg: inputBg,
                             borderColor: focusColor,
                           }}
+                          borderColor={showErrors && !pwdIsValid ? "red.500" : undefined}
                           required
                           pr="3rem"
                         />
@@ -149,7 +315,6 @@ export function LoginForm() {
                           Password
                         </Text>
                         <IconButton
-                          ml={2}
                           aria-label={
                             showPassword ? "Hide password" : "Show password"
                           }
@@ -158,19 +323,24 @@ export function LoginForm() {
                           right="0.5rem"
                           top="50%"
                           transform="translateY(-50%)"
-                          size="sm"
+                          size={["sm","md"]}
                           variant="ghost"
                         >{showPassword ? <EyeSlash /> : <Eye />}</IconButton>
                       </Box>
-
+                      {showErrors && !pwdIsValid && (
+                        <Text color="red.500" fontSize="sm" mt="1">
+                          Password must be at least 8 characters
+                        </Text>
+                      )}
                       {/** Submit */}
-                      <VStack mb={12}>
+                      <VStack mb={[2, 4]} mt={[2, 4]}>
                         <Button
                           type="submit"
                           loading={loading}
-                          loadingText="Logging in…"
+                          loadingText={mode==="login"?"Logging in…":"creating..."}
                           w="full"
-                          h="2rem"
+                          size={["sm","md"]}
+                          h={["2rem"]}
                           bgGradient={buttonLight}//"linear-gradient(to right, #ee7724, #d8363a, #dd3675, #b44593)"
                           boxShadow="0px 3px 6px #888888"
                           _hover={{
@@ -178,66 +348,96 @@ export function LoginForm() {
                               //"linear-gradient(to right, #b44593, #dd3675, #d8363a, #ee7724)",
                           }}
                         >
-                          Log in
+                          {mode==="login" ? "Log in" : "Create Account"}
                         </Button>
-
-                        <Link href="#!" style={{width: "fit-content", alignSelf: "center"}}>
-                          <Text color="gray.400" verticalAlign={"top"}>Forgot password?</Text>
+                        <Link href="#!" style={{width: "fit-content", alignSelf: "center"}} onClick={e => {e.preventDefault(); setMode(m => m==="login"?"register":"login");}}>
+                          <Text color="gray.400" verticalAlign={"top"}>{mode === "login" ? "Forgot password?" : "Already have an account?"}</Text>
                         </Link>
-                        <Flex w="full" justify="center" mt={4}>
-                          <Text color={textColor}>— or login with —</Text>
-                        </Flex>
-                        <Flex w="full" justify="center">
-                        <HStack gap={4}>
-                          <IconButton
-                            aria-label="Login with Google"
-                            variant="outline"
-                            rounded="full"
-                          >{<FcGoogle size="24px" />}</IconButton>
-                          <IconButton
-                            aria-label="Login with Facebook"
-                            variant="outline"
-                            rounded="full"
-                          >{<FaFacebook color="#4267B2" size="20px" />}</IconButton>
-                          <IconButton
-                            aria-label="Login with Twitter"
-                            variant="outline"
-                            rounded="full"
-                          >{<FaTwitter color="#1DA1F2" size="20px" />}</IconButton>
-                          <IconButton
-                            aria-label="Login with GitHub"
-                            variant="outline"
-                            rounded="full"
-                          >{<FaGithub size="20px" />}</IconButton>
-                        </HStack>
-                      </Flex>
                       </VStack>
-                      
-                      <Flex justify="center" align="center">
-                        <Text mr={2} >Don`t have an account?</Text>
-                        <Button
-                          variant="outline"
-                          color={textColor}
-                          borderColor={textColor}
-                          borderWidth={"2px"}
-                          _hover={
-                            {backgroundColor: "gray.200"/*"red.50"*/}
-                          }
-                        >
-                          Create New
-                        </Button>
-                      </Flex>
                     </VStack>
                   </Box>
                 </VStack>
+                <Flex position="absolute" justify="center" left={0} right={0} align="center" bottom={"5%"}>
+                  <VStack>
+                    <Flex w="full" justify="center" mt={[2, 4]} display={["flex", "flex"]}>
+                      <Text color={textColor}>{mode=="login" ? "— or login with —" : "— or sign up with —"}</Text>
+                    </Flex>
+                    <Flex w="full" justify="center">
+                      <HStack gap={4}>
+                        <IconButton
+                          aria-label="Login with Google"
+                          variant="outline"
+                          rounded="full"
+                          size={["sm","md"]}
+                          p={[2,3]}
+                        >{<FcGoogle size="24px" />}</IconButton>
+                        <IconButton
+                          aria-label="Login with Facebook"
+                          variant="outline"
+                          rounded="full"
+                          size={["sm","md"]}
+                          p={[2,3]}
+                        >{<FaFacebook color="#4267B2" size="20px" />}</IconButton>
+                        <IconButton
+                          aria-label="Login with Twitter"
+                          variant="outline"
+                          rounded="full"
+                          size={["sm","md"]}
+                          p={[2,3]}
+                        >{<FaTwitter color="#1DA1F2" size="20px" />}</IconButton>
+                        <IconButton
+                          aria-label="Login with GitHub"
+                          variant="outline"
+                          rounded="full"
+                          size={["sm","md"]}
+                          p={[2,3]}
+                        >{<FaGithub size="20px" />}</IconButton>
+                      </HStack>
+                    </Flex>
+                {mode === "login" ? (
+                  <HStack>
+                    <Text display={["none", "block"]} mr={6}>Don`t have an account?</Text>
+                    <Button
+                      variant="outline"
+                      color={textColor}
+                      borderColor={textColor}
+                      borderWidth={"2px"}
+                      onClick={e => {e.preventDefault(); setMode(m => m==="login"?"register":"login");}}
+                      _hover={
+                        {backgroundColor: "gray.200"/*"red.50"*/}
+                      }
+                    >
+                      Sign Up
+                    </Button>
+                  </HStack>
+                ) : (
+                  <HStack>
+                    <Text display={["none", "block"]} mr={6}>Already have an account?</Text>
+                    <Button
+                      variant="outline"
+                      color={textColor}
+                      borderColor={textColor}
+                      borderWidth={"2px"}
+                      onClick={e => {e.preventDefault(); setMode(m => m==="login"?"register":"login");}}
+                      _hover={
+                        {backgroundColor: "gray.200"/*"red.50"*/}
+                      }
+                    >
+                      Sign in
+                    </Button>
+                  </HStack>
+                )}
+                  </VStack>
+                </Flex>
               </Box>
 
               {/** Right (marketing) */}
               <Box
-                w={{ base: "100%", md: "50%" }}
+                flex="1"
+                minW={["100%","50%"]}
                 bgGradient={buttonLight}//"linear-gradient(to right, #ee7724, #d8363a, #dd3675, #b44593)"
-                p={{ base: 6, md: 10 }}
-                display="flex"
+                p={[4,6,10]}
+                display={["none", "flex"]}
                 position="relative"
                 alignItems="center"
                 justifyContent="center"

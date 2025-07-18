@@ -10,7 +10,7 @@ export interface PageSizeSelectProps {
   minW?: string;
 }
 
-export default function PageSizeSelect({ value, options, onChange, minW = "62px" }: PageSizeSelectProps) {
+export default function PageSizeSelect({ value, options, onChange }: PageSizeSelectProps) {
   const collection = useMemo(
     () =>
       createListCollection({
@@ -26,7 +26,7 @@ export default function PageSizeSelect({ value, options, onChange, minW = "62px"
       collection={collection}
       value={value ? [value.toString()] : []}
       onValueChange={(e) => onChange(Number(e.value[0]))}
-      minW={minW}
+      minW={"7ch"}
       size="sm"
     >
       <Select.HiddenSelect />

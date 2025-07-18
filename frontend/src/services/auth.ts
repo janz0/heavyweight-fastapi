@@ -9,10 +9,44 @@
  */
 const API_ROOT = process.env.NEXT_PUBLIC_API_URL;
 
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+}
+
+export interface RegisterResponse {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  active: number;
+  created_at: string;
+  last_updated: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   token_type: "bearer";
   // (match your schemas.Token exactly)
+}
+
+export async function createUser(
+  payload: RegisterPayload
+): Promise<RegisterResponse> {
+  const res = await fetch(`${API_ROOT}users/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Registration failed (${res.status}): ${text}`);
+  }
+  return (await res.json()) as RegisterResponse;
 }
 
 export async function loginUser(
