@@ -8,8 +8,9 @@ import { useNavigation } from "../context/NavigationContext";
 export function BackForward() {
   const { canGoBack, canGoForward, back, forward } = useNavigation();
   return (
-    <Flex gap={0} p={0} m={0} flex="1">
+    <Flex gap={0} p={0} m={0} flex="1" align={"center"} px={2}>
       <IconButton
+        as={ChevronLeft}
         aria-label="Back"
         onClick={back}
         disabled={!canGoBack}
@@ -17,8 +18,10 @@ export function BackForward() {
         justifyContent={"flex-end"}
         p={0}
         m={0}
-      ><ChevronLeft /></IconButton>
+        size="2xs"
+      />
       <IconButton
+        as={ChevronRight}
         aria-label="Forward"
         onClick={forward}
         disabled={!canGoForward}
@@ -26,7 +29,8 @@ export function BackForward() {
         justifyContent={"flex-start"}
         p={0}
         m={0}
-      ><ChevronRight /></IconButton>
+        size="2xs"
+      />
     </Flex>
   );
 }
