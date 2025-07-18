@@ -66,8 +66,8 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
   const pageSizeOptions = [10, 25, 50, 100];
 
   // Colors
-  const bg = colorMode === "light" ? "gray.100" : "gray.800";
-  const text = colorMode === "light" ? "gray.800" : "gray.200";
+  const bg      = colorMode === 'light' ? 'gray.300' : '#111111';
+  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
 
   const filtered = useMemo(() => projects.filter(p => p.project_name.toLowerCase().includes(search.toLowerCase())), [search, projects]);
   const sorted = useMemo(() => {
@@ -126,6 +126,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
             as={MagnifyingGlass}
             variant="outline"
             borderRadius="full"
+            borderColor={colorMode==="dark" ? "gray.700" : "gray.300"}
             borderWidth="2px"
             p={2}
             size="md"

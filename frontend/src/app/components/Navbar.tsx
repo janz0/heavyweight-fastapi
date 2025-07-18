@@ -132,32 +132,34 @@ export default function Navbar() {
               </Drawer.Header>
               <Drawer.Body>
                 {links.map((item) => (
-                    <Link
-                      as={NextLink}
+                  <Link
+                    as={NextLink}
+                    w="full"
+                    key={item.label}
+                    href={item.href}
+                    _hover={{ textDecoration: "none" }}
+                  >
+                    <IconButton
+                      aria-label={item.label}
+                      variant="ghost"
+                      color={item.active ? "orange.400" : undefined}
                       w="full"
                       justifyContent="left"
-                      key={item.label}
-                      href={item.href}
-                      _hover={{ textDecoration: "none", color: "orange.400" }}
-                    >
-                      <IconButton
-                        aria-label={item.label}
-                        variant="ghost"
-                        color={item.active ? "orange.400" : undefined}
-                      ><Icon as={item.icon} />{item.label}</IconButton>
-                    </Link>
-                  ))}
+                      _hover={{ textDecoration: "none", color: "black", backgroundColor: "orange.400" }}
+                    ><Icon as={item.icon} />{item.label}</IconButton>
+                  </Link>
+                ))}
 
-                  <Button
-                    variant="ghost"
-                    w="full"
-                    onClick={() => {
-                      signOut();
-                      closeNav();
-                    }}
-                  >
-                    Log out
-                  </Button>
+                <Button
+                  variant="ghost"
+                  w="full"
+                  onClick={() => {
+                    signOut();
+                    closeNav();
+                  }}
+                >
+                  Log out
+                </Button>
               </Drawer.Body>
               <Drawer.CloseTrigger asChild><CloseButton size="sm" onClick={closeNav} /></Drawer.CloseTrigger>
             </Drawer.Content>
