@@ -245,6 +245,7 @@ export default function DataTable<T extends { id: string; }>({
             {data.map((item, i) => (
               <Table.Row
                 key={i}
+                truncate
                 _hover={{ bg: row_bg }}
                 position="relative"
                 overflow="visible"
