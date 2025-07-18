@@ -2,16 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Flex,
-  Text,
-  VStack,
-  Spinner,
-  HStack,
-} from "@chakra-ui/react";
-import { Tooltip } from "@/app/src/components/ui/tooltip";
-import { useColorMode } from "./src/components/ui/color-mode";
+import { Flex, Spinner } from "@chakra-ui/react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,15 +13,12 @@ import {
   Tooltip as ChartTooltip,
   Legend,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
 import { useAuth } from "@/lib/auth";
 import { listProjects } from "@/services/projects";
 import { listSources } from "@/services/sources";
 import { listSensors } from "@/services/sensors";
-import { Info, Folder, MapPin, Gauge, Database, Bell } from "phosphor-react";
-import Link from "next/link";
-import "@/app/styles/squares.css"
 import { LoginForm as Loginform } from "./components/LoginForm";
+import Dashboard, { DashboardProps } from "./components/Dashboard";
 
 ChartJS.register(
   CategoryScale,
@@ -42,161 +30,41 @@ ChartJS.register(
   Legend
 );
 
-// ---------------------------------------
-// 2. Dashboard: Only visible once logged in.
-// ---------------------------------------
-function Dashboard() {
-  const { colorMode } = useColorMode();
-
+export default function Page() {
+  const { authToken, isChecking } = useAuth();
+  const [dashboardData, setDashboardData] = useState<Omit<DashboardProps,'loading'>>({
+    activeProjects:  0,
+    totalProjects:   0,
+    totalLocations:  0,
+    onlineSensors:   0,
+    totalSources:    0,
+  });
   const [loading, setLoading] = useState(true);
-  const [activeProjects, setProjects] = useState(0);
-  const [totalProjects, setTotalProjects] = useState(0);
-  const [totalLocations, setLocations] = useState(0);
-  const [onlineSensors, setSensors] = useState(0);
-  const [totalSources, setSources] = useState(0);
-
-  // derive theme tokens
-  const bg      = colorMode === 'light' ? 'gray.300' : 'gray.600';
-  const cardBg  = colorMode === 'light' ? 'gray.200' : 'gray.700';
-  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
-  const accent  = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   useEffect(() => {
+    if (!authToken) return;
     (async () => {
       try {
         const projects = await listProjects();
-        setProjects(projects.filter(p => p.active === 1).length);
-        setTotalProjects(projects.length);
-        setLocations(projects.reduce((sum, p) => sum + (p.locations_count ?? 0), 0));
-        
-        const sources = await listSources();
-        setSources(sources.length);
+        const sources  = await listSources();
+        const sensors  = await listSensors();
 
-        const sensors = await listSensors();
-        setSensors(sensors.filter(s => s.active === 1).length);
-        
+        setDashboardData({
+          activeProjects:  projects.filter(p => p.active === 1).length,
+          totalProjects:   projects.length,
+          totalLocations:  projects.reduce((sum, p) => sum + (p.locations_count||0), 0),
+          totalSources:    sources.length,
+          onlineSensors:   sensors.filter(s => s.active === 1).length,
+        });
       } catch (err) {
-        console.error(err);
+        console.error("Dashboard load error", err);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [authToken]);
 
-  if (loading) {
-    return (
-      <Flex h="60vh" align="center" justify="center" bg={bg}>
-        <Spinner size="xl" color={accent} />
-      </Flex>
-    );
-  }
-
-const stats = [
-  { label: 'Active Projects', value: activeProjects, href: '/projects', icon: Folder },
-  { label: 'Total Locations', value: totalLocations, href: '/locations', icon: MapPin},
-  { label: 'Online Sensors',  value: onlineSensors, href: '/sensors', icon: Gauge },
-  { label: 'Sources', value: totalSources, href: '/sources', icon: Database },
-  { label: 'Open Alerts', value: 0, icon: Bell },
-];
-
-  // chart data
-  const chartData = {
-    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
-    datasets: [
-      {
-        data: [30,45,28,50,42,60,55],
-        fill: false,
-        tension: 0.4,
-        borderColor: accent,
-        pointBackgroundColor: accent,
-      }
-    ]
-  };
-
-  return (
-    <Box minH="100vh" p={6} bg={bg} color={text}>
-      {/* Metrics */}
-      <Flex wrap="wrap" gap={4} mb={4} maxWidth={"75%"} pr={2}>
-        {stats.map(s => {
-          const IconComp = s.icon;
-          return (
-            <Link key={s.label} href={s.href || '#'} passHref style={{display: "contents"}}>
-              <Box
-                key={s.label}
-                flex="1"
-                bg={cardBg}
-                p={4}
-                borderRadius="md"
-                boxShadow="sm"
-                _hover={{ boxShadow: 'md' }}
-              >
-                <HStack><IconComp size={24} weight="bold" color={accent}/><Text fontSize="xl" fontWeight="bold" color={accent}>{s.value}</Text></HStack>
-                <Text fontSize="sm" color={textSub}>
-                  {s.label}
-                  {s.label === 'Active Projects' && (
-                    <Box as="span" ml={1}>
-                      <Tooltip
-                        content={`${activeProjects} active of ${totalProjects} total`}
-                        showArrow
-                        openDelay={100}
-                        closeDelay={100}
-                      >
-                        <Box as="span" display="inline-flex" alignItems="center" cursor="pointer">
-                          <Info size={14} weight="bold" />
-                        </Box>
-                      </Tooltip>
-                    </Box>
-                  )}
-                </Text>
-                
-              </Box>
-            </Link>
-          );
-        })}
-      </Flex>
-
-      {/* Main Chart & Side Panels */}
-      <Flex direction={['column','row']} gap={6}>
-        {/* Chart */}
-        <Box flex="3" bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
-          <Text fontSize="lg" mb={4}>Requests Per Second</Text>
-          <Line data={chartData} options={{ maintainAspectRatio: true } } />
-        </Box>
-
-        {/* Alerts & Maintenance */}
-        <Flex direction="column" flex="1" gap={6}>
-          <Box bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
-            <Text fontSize="lg" mb={2}>Recent Alerts</Text>
-            <VStack align="start" gap={1} color={textSub}>
-              <Text>• Server CPU usage is high</Text>
-              <Text>• Database response time is slow</Text>
-              <Text>• New user registered</Text>
-              <Text>• Low disk space on Server-2</Text>
-            </VStack>
-          </Box>
-
-          <Box bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
-            <Text fontSize="lg" mb={2}>Upcoming Maintenance</Text>
-            <VStack align="start" gap={1} color={textSub}>
-              <Text>• Configure alerts</Text>
-              <Text>• Connect data source</Text>
-              <Text>• View tutorial</Text>
-            </VStack>
-          </Box>
-        </Flex>
-      </Flex>
-    </Box>
-  );
-}
-
-// ---------------------------------------
-// 3. Default export: show <LoginForm> if not logged in, else show <Dashboard>.
-// ---------------------------------------
-export default function Page() {
-  const { authToken, isChecking } = useAuth();
-
-  if (isChecking) {
+  if (isChecking || (authToken && loading)) {
     return (
       <Flex justify="center" align="center" minH="100vh">
         <Spinner size="xl" />
@@ -204,5 +72,5 @@ export default function Page() {
     );
   }
 
-  return authToken ? <Dashboard /> : <Loginform />;
+  return authToken ? <Dashboard {...dashboardData} loading={loading} /> : <Loginform />;
 }

@@ -50,20 +50,18 @@ export default function DataTable<T>({
   
   return (
     <>
-      <Box maxH="60vh" overflowY="auto">
+      <Box maxH="60vh" overflowY="auto" overflowX="auto">
         <Table.Root
-          width="100%"
           size="sm"
           interactive
           showColumnBorder
           stickyHeader
-          tableLayout="fixed"
+          tableLayout="auto"
           bg={useColorModeValue("white", "gray.700")}
           borderRadius="lg"
           boxShadow="lg"
-          overflowX="auto"
-          overflowY="auto"
           maxH="600px"
+          minW={{ md: "container.md", lg: "container.lg" }}  
           p={4}
         >
           <Table.Header>
@@ -102,6 +100,7 @@ export default function DataTable<T>({
             {data.map((item, i) => (
               <Table.Row
                 key={i}
+                truncate
                 _hover={{ bg: row_bg }}
               >
                 {renderRow(item)}

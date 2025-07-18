@@ -6,13 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 // Chakra Imports + Icons
-import { Box, Button, Flex, Heading, IconButton, Table, Popover, VStack, Spinner } from "@chakra-ui/react";
-import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
+import { Box, Button, Flex, Heading, IconButton, Table, Text, Popover, VStack, Spinner } from "@chakra-ui/react";
+import { PencilSimple, Trash, DotsThreeVertical, Plus, MagnifyingGlass } from "phosphor-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // UI Components
-import { Breadcrumb } from "@/app/components/Breadcrumb";
 import SearchInput from "@/app/components/SearchInput";
 import PageSizeSelect from "@/app/components/PageSizeSelect";
 import DataTable from "@/app/components/DataTable";
@@ -114,17 +113,32 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
 
   return (
     <Box minH="100vh" bg={bg} p={6} color={text}>
-      <Breadcrumb crumbs={[ {label: "Dashboard", href: "/"}, { label: "Projects", href: "/projects"} ]}/>
       {/* Header Row */}
       <Flex mb={4} align="center" position="relative" w="100%">
         <Heading fontSize="3xl">Projects</Heading>
-        <Box position="absolute" left="50%" transform="translateX(-50%)" width={{ base: "100%", sm: "400px" }} px={4}>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search projects..." />
-        </Box>
         <Flex ml="auto" align="center" gap={4}>
+          <Box minW="20ch" display={{base: "none", sm: "block"}}>
+            <SearchInput value={search} onChange={setSearch} placeholder="Search projects..." />
+          </Box>
+          <IconButton
+            display={{base: "block", sm: "none"}}
+            aria-label="Search"
+            as={MagnifyingGlass}
+            variant="outline"
+            borderRadius="full"
+            borderWidth="2px"
+            p={2}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+            _active={{ bg: "gray.200" }}
+            _dark={{
+              _hover: { bg: "whiteAlpha.100" },
+              _active: { bg: "whiteAlpha.200" },
+            }}
+          />
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
-          <Button onClick={handleNew} borderRadius="md" boxShadow="sm" bg={"orange"/*useColorModeValue("white","gray.600")*/} color={text}>
-            + Add New Project
+          <Button onClick={handleNew} borderRadius="md" boxShadow="sm" bg="orange" color={text} size={{base: "xs", md:"sm"}}>
+            <Plus/><Text display={{base: "none", md: "block"}}>Add New Project</Text>
           </Button>
         </Flex>
       </Flex>
