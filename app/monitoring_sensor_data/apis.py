@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -22,6 +22,35 @@ def list_monitoring_sensor_data(
     db: Session = Depends(get_db),
 ):
     return selectors.get_monitoring_sensor_data_list(db, skip=skip, limit=limit)
+
+
+@router.get("/query", response_model=List[schemas.MonitoringSensorDataQueryResult])
+def query_monitoring_sensor_data(
+    project_id: Optional[UUID] = None,
+    location_id: Optional[UUID] = None,
+    sensor_id: Optional[UUID] = None,
+    sensor_type: Optional[str] = None,
+    sensor_group_id: Optional[UUID] = None,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    aggregate_period: Optional[str] = None,
+    trim_percentile_low: Optional[float] = None,
+    trim_percentile_high: Optional[float] = None,
+    db: Session = Depends(get_db),
+):
+    return selectors.query_monitoring_sensor_data(
+        db,
+        project_id=project_id,
+        location_id=location_id,
+        sensor_id=sensor_id,
+        sensor_type=sensor_type,
+        sensor_group_id=sensor_group_id,
+        start=start,
+        end=end,
+        aggregate_period=aggregate_period,
+        trim_low=trim_percentile_low,
+        trim_high=trim_percentile_high,
+    )
 
 @router.get("/{sensor_field_id}/{timestamp}", response_model=schemas.MonitoringSensorData)
 def get_monitoring_sensor_data(sensor_field_id: UUID, timestamp: datetime, db: Session = Depends(get_db)):

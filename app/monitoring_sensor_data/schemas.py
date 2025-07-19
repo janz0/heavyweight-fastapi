@@ -45,3 +45,14 @@ class BulkSensorDataItem(BaseModel):
 
 class MonitoringSensorDataBulkRequest(BaseModel):
     items: List[BulkSensorDataItem]
+
+
+# Response model for queried/aggregated sensor data
+class MonitoringSensorDataQueryResult(BaseModel):
+    timestamp: datetime
+    sensor_id: UUID
+    sensor_field_id: UUID
+    data: float
+
+    class Config:
+        orm_mode = True
