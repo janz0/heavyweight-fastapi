@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
@@ -24,11 +24,14 @@ def list_monitoring_sensor_data(
     return selectors.get_monitoring_sensor_data_list(db, skip=skip, limit=limit)
 
 
-@router.get("/query", response_model=List[schemas.MonitoringSensorDataQueryResult])
-def query_monitoring_sensor_data(
+def _query_data(
+    *,
     project_id: Optional[UUID] = None,
     location_id: Optional[UUID] = None,
     sensor_id: Optional[UUID] = None,
+    project_name: Optional[str] = None,
+    location_name: Optional[str] = None,
+    sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
     start: Optional[datetime] = None,
@@ -36,13 +39,18 @@ def query_monitoring_sensor_data(
     aggregate_period: Optional[str] = None,
     trim_percentile_low: Optional[float] = None,
     trim_percentile_high: Optional[float] = None,
-    db: Session = Depends(get_db),
+    include_field_name: bool = False,
+    output: str = "json",
+    db: Session,
 ):
-    return selectors.query_monitoring_sensor_data(
+    rows = selectors.query_monitoring_sensor_data(
         db,
         project_id=project_id,
         location_id=location_id,
         sensor_id=sensor_id,
+        project_name=project_name,
+        location_name=location_name,
+        sensor_name=sensor_name,
         sensor_type=sensor_type,
         sensor_group_id=sensor_group_id,
         start=start,
@@ -50,6 +58,112 @@ def query_monitoring_sensor_data(
         aggregate_period=aggregate_period,
         trim_low=trim_percentile_low,
         trim_high=trim_percentile_high,
+        include_field_name=include_field_name,
+    )
+
+    def row_to_dict(r):
+        return dict(r._mapping)
+
+    data = [row_to_dict(r) for r in rows]
+
+    if include_field_name:
+        grouped = {}
+        for item in data:
+            key = (item["timestamp"], item["sensor_id"])
+            rec = grouped.setdefault(
+                key, {"timestamp": item["timestamp"], "sensor_id": item["sensor_id"]}
+            )
+            rec[item["field_name"]] = item["data"]
+        data = list(grouped.values())
+
+    if output == "csv":
+        import csv
+        from io import StringIO
+
+        if not data:
+            return Response(content="", media_type="text/csv")
+        f = StringIO()
+        writer = csv.DictWriter(f, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+        return Response(content=f.getvalue(), media_type="text/csv")
+
+    return data
+
+
+@router.get("/query-by-field")
+def query_monitoring_sensor_data(
+    project_id: Optional[UUID] = None,
+    location_id: Optional[UUID] = None,
+    sensor_id: Optional[UUID] = None,
+    project_name: Optional[str] = None,
+    location_name: Optional[str] = None,
+    sensor_name: Optional[str] = None,
+    sensor_type: Optional[str] = None,
+    sensor_group_id: Optional[UUID] = None,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    aggregate_period: Optional[str] = None,
+    trim_percentile_low: Optional[float] = None,
+    trim_percentile_high: Optional[float] = None,
+    output: str = "json",
+    db: Session = Depends(get_db),
+):
+    return _query_data(
+        project_id=project_id,
+        location_id=location_id,
+        sensor_id=sensor_id,
+        project_name=project_name,
+        location_name=location_name,
+        sensor_name=sensor_name,
+        sensor_type=sensor_type,
+        sensor_group_id=sensor_group_id,
+        start=start,
+        end=end,
+        aggregate_period=aggregate_period,
+        trim_percentile_low=trim_percentile_low,
+        trim_percentile_high=trim_percentile_high,
+        include_field_name=False,
+        output=output,
+        db=db,
+    )
+
+
+@router.get("/query-by-sensor")
+def query_sensor_pivot(
+    project_id: Optional[UUID] = None,
+    location_id: Optional[UUID] = None,
+    sensor_id: Optional[UUID] = None,
+    project_name: Optional[str] = None,
+    location_name: Optional[str] = None,
+    sensor_name: Optional[str] = None,
+    sensor_type: Optional[str] = None,
+    sensor_group_id: Optional[UUID] = None,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    aggregate_period: Optional[str] = None,
+    trim_percentile_low: Optional[float] = None,
+    trim_percentile_high: Optional[float] = None,
+    output: str = "json",
+    db: Session = Depends(get_db),
+):
+    return _query_data(
+        project_id=project_id,
+        location_id=location_id,
+        sensor_id=sensor_id,
+        project_name=project_name,
+        location_name=location_name,
+        sensor_name=sensor_name,
+        sensor_type=sensor_type,
+        sensor_group_id=sensor_group_id,
+        start=start,
+        end=end,
+        aggregate_period=aggregate_period,
+        trim_percentile_low=trim_percentile_low,
+        trim_percentile_high=trim_percentile_high,
+        include_field_name=True,
+        output=output,
+        db=db,
     )
 
 @router.get("/{sensor_field_id}/{timestamp}", response_model=schemas.MonitoringSensorData)
