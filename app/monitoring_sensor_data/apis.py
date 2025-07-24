@@ -132,7 +132,7 @@ def query_monitoring_sensor_data(
         aggregate_period=aggregate_period,
         trim_percentile_low=trim_percentile_low,
         trim_percentile_high=trim_percentile_high,
-        include_field_name=False,
+        include_field_name=True,
         output=output,
         db=db,
     )

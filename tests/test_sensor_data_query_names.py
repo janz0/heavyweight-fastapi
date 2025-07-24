@@ -82,3 +82,4 @@ def test_query_includes_names(client, db):
     assert item["sensor_name"] == "s1"
     assert item["project_name"] == "Proj"
     assert item["location_name"] == "Loc"
+    assert item["field_name"] == "temp"
