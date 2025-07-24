@@ -28,8 +28,8 @@ def query_monitoring_sensor_data(
     project_id: Optional[UUID] = None,
     location_id: Optional[UUID] = None,
     sensor_id: Optional[UUID] = None,
-    project_name: Optional[str] = None,
-    location_name: Optional[str] = None,
+    project_number: Optional[str] = None,
+    location_number: Optional[str] = None,
     sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
@@ -52,12 +52,12 @@ def query_monitoring_sensor_data(
 
     if project_id:
         q = q.filter(Project.id == project_id)
-    if project_name:
-        q = q.filter(Project.project_name == project_name)
+    if project_number:
+        q = q.filter(Project.project_number == project_number)
     if location_id:
         q = q.filter(Location.id == location_id)
-    if location_name:
-        q = q.filter(Location.loc_name == location_name)
+    if location_number:
+        q = q.filter(Location.loc_number == location_number)
     if sensor_id:
         q = q.filter(MonitoringSensor.id == sensor_id)
     if sensor_name:
@@ -100,22 +100,43 @@ def query_monitoring_sensor_data(
         ts = func.date_trunc(aggregate_period, MonitoringSensorData.timestamp).label("timestamp")
         columns = [
             ts,
-            MonitoringSensorData.sensor_id,
-            MonitoringSensorData.sensor_field_id,
+            Project.project_number.label("project_number"),
+            Project.project_name.label("project_name"),
+            Location.loc_number.label("location_number"),
+            Location.loc_name.label("location_name"),
+            MonitoringSensor.id.label("sensor_id"),
+            MonitoringSensor.sensor_name.label("sensor_name"),
+            MonitoringSensorField.id.label("sensor_field_id"),
             func.avg(MonitoringSensorData.data).label("data"),
+        ]
+        group_by_cols = [
+            ts,
+            Project.project_number,
+            Project.project_name,
+            Location.loc_number,
+            Location.loc_name,
+            MonitoringSensor.id,
+            MonitoringSensor.sensor_name,
+            MonitoringSensorField.id,
         ]
         if include_field_name:
             columns.append(MonitoringSensorField.field_name.label("field_name"))
+            group_by_cols.append(MonitoringSensorField.field_name)
         q = (
             q.with_entities(*columns)
-            .group_by(ts, MonitoringSensorData.sensor_id, MonitoringSensorData.sensor_field_id, *( [MonitoringSensorField.field_name] if include_field_name else [] ))
+            .group_by(*group_by_cols)
             .order_by(ts)
         )
     else:
         columns = [
             MonitoringSensorData.timestamp.label("timestamp"),
-            MonitoringSensorData.sensor_id,
-            MonitoringSensorData.sensor_field_id,
+            Project.project_number.label("project_number"),
+            Project.project_name.label("project_name"),
+            Location.loc_number.label("location_number"),
+            Location.loc_name.label("location_name"),
+            MonitoringSensor.id.label("sensor_id"),
+            MonitoringSensor.sensor_name.label("sensor_name"),
+            MonitoringSensorField.id.label("sensor_field_id"),
             MonitoringSensorData.data.label("data"),
         ]
         if include_field_name:
