@@ -76,52 +76,48 @@ def query_monitoring_sensor_data(
         hp = (trim_high or 100) / 100
         if aggregate_period:
             ts_group = func.date_trunc(aggregate_period, MonitoringSensorData.timestamp)
-            low_val = (
-                func.percentile_cont(lp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        ts_group,
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
+            bounds = (
+                q.with_entities(
+                    ts_group.label("ts"),
+                    MonitoringSensorData.sensor_id.label("s_id"),
+                    MonitoringSensorData.sensor_field_id.label("f_id"),
+                    func.percentile_cont(lp).within_group(MonitoringSensorData.data).label("low_val"),
+                    func.percentile_cont(hp).within_group(MonitoringSensorData.data).label("high_val"),
                 )
+                .group_by(ts_group, MonitoringSensorData.sensor_id, MonitoringSensorData.sensor_field_id)
+                .subquery()
             )
-            high_val = (
-                func.percentile_cont(hp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        ts_group,
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
-                )
+            q = q.join(
+                bounds,
+                and_(
+                    bounds.c.ts == ts_group,
+                    bounds.c.s_id == MonitoringSensorData.sensor_id,
+                    bounds.c.f_id == MonitoringSensorData.sensor_field_id,
+                ),
             )
         else:
-            low_val = (
-                func.percentile_cont(lp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
+            bounds = (
+                q.with_entities(
+                    MonitoringSensorData.sensor_id.label("s_id"),
+                    MonitoringSensorData.sensor_field_id.label("f_id"),
+                    func.percentile_cont(lp).within_group(MonitoringSensorData.data).label("low_val"),
+                    func.percentile_cont(hp).within_group(MonitoringSensorData.data).label("high_val"),
                 )
+                .group_by(MonitoringSensorData.sensor_id, MonitoringSensorData.sensor_field_id)
+                .subquery()
             )
-            high_val = (
-                func.percentile_cont(hp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
-                )
+            q = q.join(
+                bounds,
+                and_(
+                    bounds.c.s_id == MonitoringSensorData.sensor_id,
+                    bounds.c.f_id == MonitoringSensorData.sensor_field_id,
+                ),
             )
 
-        q = q.filter(MonitoringSensorData.data >= low_val)
-        q = q.filter(MonitoringSensorData.data <= high_val)
+        q = q.filter(
+            MonitoringSensorData.data >= bounds.c.low_val,
+            MonitoringSensorData.data <= bounds.c.high_val,
+        )
 
     if aggregate_period:
         ts = func.date_trunc(aggregate_period, MonitoringSensorData.timestamp).label("timestamp")
