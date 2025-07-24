@@ -192,7 +192,7 @@ def query_monitoring_sensor_data(
         q = (
             q.with_entities(*columns)
             .group_by(*group_by_cols)
-            .order_by(ts)
+            .order_by(MonitoringSensor.sensor_name, ts)
         )
     else:
         columns = [
@@ -208,6 +208,8 @@ def query_monitoring_sensor_data(
         ]
         if include_field_name:
             columns.append(MonitoringSensorField.field_name.label("field_name"))
-        q = q.with_entities(*columns).order_by(MonitoringSensorData.timestamp)
+        q = q.with_entities(*columns).order_by(
+            MonitoringSensor.sensor_name, MonitoringSensorData.timestamp
+        )
 
     return q.all()
