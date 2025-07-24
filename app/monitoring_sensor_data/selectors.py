@@ -74,54 +74,94 @@ def query_monitoring_sensor_data(
     if trim_low is not None or trim_high is not None:
         lp = (trim_low or 0) / 100
         hp = (trim_high or 100) / 100
+
+        # Collect base filters so the same restrictions are applied to the
+        # percentile calculation subquery.
+        base_filters = []
+        if project_id:
+            base_filters.append(Project.id == project_id)
+        if project_number:
+            base_filters.append(Project.project_number == project_number)
+        if location_id:
+            base_filters.append(Location.id == location_id)
+        if location_number:
+            base_filters.append(Location.loc_number == location_number)
+        if sensor_id:
+            base_filters.append(MonitoringSensor.id == sensor_id)
+        if sensor_name:
+            base_filters.append(MonitoringSensor.sensor_name == sensor_name)
+        if sensor_type:
+            base_filters.append(MonitoringSensor.sensor_type == sensor_type)
+        if sensor_group_id:
+            base_filters.append(MonitoringGroup.id == sensor_group_id)
+        if start:
+            base_filters.append(MonitoringSensorData.timestamp >= start)
+        if end:
+            base_filters.append(MonitoringSensorData.timestamp <= end)
+
         if aggregate_period:
             ts_group = func.date_trunc(aggregate_period, MonitoringSensorData.timestamp)
-            low_val = (
-                func.percentile_cont(lp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        ts_group,
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
+            pct_sub = (
+                db.query(
+                    MonitoringSensorData.sensor_id.label("sensor_id"),
+                    MonitoringSensorData.sensor_field_id.label("sensor_field_id"),
+                    ts_group.label("ts"),
+                    func.percentile_cont(lp).within_group(MonitoringSensorData.data).label("low"),
+                    func.percentile_cont(hp).within_group(MonitoringSensorData.data).label("high"),
                 )
-            )
-            high_val = (
-                func.percentile_cont(hp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        ts_group,
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
-                )
-            )
-        else:
-            low_val = (
-                func.percentile_cont(lp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
-                )
-            )
-            high_val = (
-                func.percentile_cont(hp)
-                .within_group(MonitoringSensorData.data)
-                .over(
-                    partition_by=(
-                        MonitoringSensorData.sensor_id,
-                        MonitoringSensorData.sensor_field_id,
-                    )
-                )
+                .join(MonitoringSensor, MonitoringSensorData.sensor_id == MonitoringSensor.id)
+                .join(MonitoringSensorField, MonitoringSensorData.sensor_field_id == MonitoringSensorField.id)
+                .join(Source, MonitoringSensor.mon_source_id == Source.id)
+                .join(Location, Source.mon_loc_id == Location.id)
+                .join(Project, Location.project_id == Project.id)
+                .outerjoin(MonitoringGroup, MonitoringSensor.sensor_group_id == MonitoringGroup.id)
+                .filter(*base_filters)
+                .group_by(MonitoringSensorData.sensor_id, MonitoringSensorData.sensor_field_id, ts_group)
+                .subquery()
             )
 
-        q = q.filter(MonitoringSensorData.data >= low_val)
-        q = q.filter(MonitoringSensorData.data <= high_val)
+            q = q.join(
+                pct_sub,
+                and_(
+                    MonitoringSensorData.sensor_id == pct_sub.c.sensor_id,
+                    MonitoringSensorData.sensor_field_id == pct_sub.c.sensor_field_id,
+                    ts_group == pct_sub.c.ts,
+                ),
+            )
+            q = q.filter(
+                MonitoringSensorData.data >= pct_sub.c.low,
+                MonitoringSensorData.data <= pct_sub.c.high,
+            )
+        else:
+            pct_sub = (
+                db.query(
+                    MonitoringSensorData.sensor_id.label("sensor_id"),
+                    MonitoringSensorData.sensor_field_id.label("sensor_field_id"),
+                    func.percentile_cont(lp).within_group(MonitoringSensorData.data).label("low"),
+                    func.percentile_cont(hp).within_group(MonitoringSensorData.data).label("high"),
+                )
+                .join(MonitoringSensor, MonitoringSensorData.sensor_id == MonitoringSensor.id)
+                .join(MonitoringSensorField, MonitoringSensorData.sensor_field_id == MonitoringSensorField.id)
+                .join(Source, MonitoringSensor.mon_source_id == Source.id)
+                .join(Location, Source.mon_loc_id == Location.id)
+                .join(Project, Location.project_id == Project.id)
+                .outerjoin(MonitoringGroup, MonitoringSensor.sensor_group_id == MonitoringGroup.id)
+                .filter(*base_filters)
+                .group_by(MonitoringSensorData.sensor_id, MonitoringSensorData.sensor_field_id)
+                .subquery()
+            )
+
+            q = q.join(
+                pct_sub,
+                and_(
+                    MonitoringSensorData.sensor_id == pct_sub.c.sensor_id,
+                    MonitoringSensorData.sensor_field_id == pct_sub.c.sensor_field_id,
+                ),
+            )
+            q = q.filter(
+                MonitoringSensorData.data >= pct_sub.c.low,
+                MonitoringSensorData.data <= pct_sub.c.high,
+            )
 
     if aggregate_period:
         ts = func.date_trunc(aggregate_period, MonitoringSensorData.timestamp).label("timestamp")
