@@ -113,6 +113,7 @@ def query_monitoring_sensor_data(
                     bounds.c.f_id == MonitoringSensorData.sensor_field_id,
                 ),
             )
+
         q = q.filter(
             MonitoringSensorData.data >= bounds.c.low_val,
             MonitoringSensorData.data <= bounds.c.high_val,
