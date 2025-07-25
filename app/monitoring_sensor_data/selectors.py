@@ -33,6 +33,7 @@ def query_monitoring_sensor_data(
     sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
+    field_name: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     aggregate_period: Optional[str] = None,
@@ -66,6 +67,8 @@ def query_monitoring_sensor_data(
         q = q.filter(MonitoringSensor.sensor_type == sensor_type)
     if sensor_group_id:
         q = q.filter(MonitoringGroup.id == sensor_group_id)
+    if field_name:
+        q = q.filter(MonitoringSensorField.field_name == field_name)
     if start:
         q = q.filter(MonitoringSensorData.timestamp >= start)
     if end:
@@ -94,6 +97,8 @@ def query_monitoring_sensor_data(
             base_filters.append(MonitoringSensor.sensor_type == sensor_type)
         if sensor_group_id:
             base_filters.append(MonitoringGroup.id == sensor_group_id)
+        if field_name:
+            base_filters.append(MonitoringSensorField.field_name == field_name)
         if start:
             base_filters.append(MonitoringSensorData.timestamp >= start)
         if end:
