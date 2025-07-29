@@ -25,7 +25,7 @@ export default function Navbar() {
   const { authToken, signOut } = useAuth();
 
   const textColor = useColorModeValue("gray.800","#eeeeee");
-  const navbgColor = useColorModeValue("gray.200","#212121");
+  const navbgColor = useColorModeValue("rgba(230, 234, 243, 0.19)","#212121");
   const links = [
     {
       label: "Dashboard",
@@ -52,11 +52,11 @@ export default function Navbar() {
 
   return (
     <>
-      <Box position="sticky" top={0} zIndex="1000" bg={navbgColor} className="shadow-md">
+      <Box position="sticky" top={0} zIndex="1000" bg={navbgColor}>
         <Flex as="nav" align="center" justify="space-between" pr={"1%"}>
           <Box display="flex" alignItems="center" gap="0">
             <BackForward />
-            <Box fontWeight="bold" display={{ base: "none", sm:"block"}} fontSize={["md", "xl"]} alignContent="center" color={textColor}>
+            <Box fontWeight="bold" display={{ base: "none", sm:"block"}} fontSize={["md", "lg"]} alignContent="center" color={textColor} px={4} py={1} _hover={{backgroundColor: "whiteAlpha.500"}}>
               <NextLink href={"/"}>RWH Monitoring</NextLink>
             </Box>
           </Box>

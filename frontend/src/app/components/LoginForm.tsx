@@ -15,6 +15,8 @@ import { useColorModeValue } from "../src/components/ui/color-mode";
 import { toaster } from "@/components/ui/toaster"
 import { createUser } from "@/services/auth";
 
+const ALLOWED_DOMAINS = ["rwhengineering.ca"];
+
 export function LoginForm() {
   const { signIn } = useAuth();
   const [mode, setMode] = useState<"login"|"register">("login");
@@ -49,6 +51,14 @@ export function LoginForm() {
       return;
     }
     setShowErrors(false)
+    if (!ALLOWED_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))) {
+      toaster.create({
+        description: `Email must be one of: ${ALLOWED_DOMAINS.map(d=>`@${d}`).join(", ")}`,
+        type: "error",
+        duration: 5000,
+      });
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "login") {
@@ -241,6 +251,7 @@ export function LoginForm() {
                       <Input
                         type="email"
                         value={email}
+                        pattern="^[a-zA-Z0-9._%+-]+@rwhengineering\.ca$"
                         onChange={(e) => {setEmail(e.target.value); setShowErrors(false)}}
                         onFocus={() => setIsUsrFocused(true)}
                         onBlur={() => setIsUsrFocused(false)}

@@ -5,6 +5,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 const BASE = `${API}monitoring-sensors`;
 const PROJECTS_BASE = `${API}projects`;
 const LOCATIONS_BASE = `${API}locations`;
+const SOURCES_BASE = `${API}monitoring-sources`;
 
 /**
  * Fetch a list of monitoring sensors
@@ -12,6 +13,7 @@ const LOCATIONS_BASE = `${API}locations`;
 export async function listSensors(
   projectId?: string,
   locId?: string,
+  srcId?: string,
   skip = 0,
 ): Promise<MonitoringSensor[]> {
   let url: string;
@@ -19,6 +21,9 @@ export async function listSensors(
     url = `${LOCATIONS_BASE}/${locId}/sensors?skip=${skip}`;
   } else if (projectId) {
     url = `${PROJECTS_BASE}/${projectId}/sensors?skip=${skip}`;
+  }
+  else if (srcId) {
+    url = `${SOURCES_BASE}/${srcId}/sensors?skip=${skip}`;
   } else {
     url = `${BASE}/?skip=${skip}`;
   }

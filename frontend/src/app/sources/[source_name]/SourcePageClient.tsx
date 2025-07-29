@@ -1,15 +1,34 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Box, HStack, Heading, IconButton, Tabs, Text, VStack, Button } from '@chakra-ui/react';
+import { Box, HStack, Heading, IconButton, Tabs, Text, VStack, Button, Popover, Flex } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
-import { Breadcrumb } from '@/app/components/Breadcrumb';
 import type { Source } from '@/types/source';
-import { PencilSimple } from 'phosphor-react';
-import { SourceEditModal } from '../components/SourceModals';
+import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
+import { SourceEditModal, SourceDeleteModal } from '../../components/Modals/SourceModals';
+import { MonitoringSensor } from '@/types/sensor';
+import { SensorCreateModal, SensorDeleteModal, SensorEditModal } from '@/app/components/Modals/SensorModals';
+import DataTable from '@/app/components/DataTable';
 
-interface SourcePageClientProps {
+interface Column {
+  key: string;
+  label: string;
+}
+
+const sensorColumns: Column[] = [
+  { key: 'sensor_name', label: 'Sensor Name' },
+  { key: 'sensor_type', label: 'Sensor Type' },
+  { key: 'details.mon_source_name', label: 'Source' },
+  { key: 'sensor_group_id', label: 'Sensor Group' },
+  { key: 'created_at', label: 'Created' },
+  { key: 'last_updated', label: 'Updated' },
+  { key: 'sensor data', label: 'Sensor Data'},
+  { key: 'active', label: 'Active' },
+];
+
+interface Props {
   source: Source;
+  initialSensors: MonitoringSensor[];
 }
 
 // Utility to format ISO date strings to "Month day, year"
@@ -23,108 +42,106 @@ function formatDate(dateString?: string | null) {
   }).format(date);
 }
 
-export default function SourcePageClient({ source }: SourcePageClientProps) {
+export default function SourcePageClient({ source, initialSensors }: Props) {
   const { colorMode } = useColorMode();
-  const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
-  const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
+  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
+  const [isSenCreateOpen, setSenCreateOpen] = useState(false);
+  const [isSenEditOpen, setSenEditOpen] = useState(false);
+  const [isSenDelOpen, setSenDelOpen] = useState(false);
+  const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
+  const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
+  const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
+  const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
+  const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
   const [isSrcEditOpen, setSrcEditOpen] = useState(false);
-  const handleEditSource = () => { setSrcEditOpen(true); };
+  const [isSrcDelOpen, setSrcDelOpen] = useState(false);
+  const handleEditSource = () => { setSrcEditOpen(true); setPopoverOpen(false) };
+  const handleDeleteSource = () => { setSrcDelOpen(true); setPopoverOpen(false) };
+
+  const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   return (
-    <Box minH="100vh" p={6} bg={bg}>
-      <Breadcrumb
-        crumbs={[
-          { label: 'Dashboard', href: '/' },
-          { label: 'Sources', href: '/sources' },
-          { label: `${source.source_name}`, href: `/sources/${source.source_name}` },
-        ]}
-      />
-      <Box w="100%" gap="4" mb="4">
-        {/* Metrics */}
-        <Box mb={3} border="inset" borderRadius="xl" p="12px" h="full" alignItems="center" justifyItems={"center"}>
-          {/* Title */}
-            <Heading size="3xl">{source.source_name}</Heading>
-        </Box>
-      </Box>
-      <HStack mb={3} h="50vh" align="stretch">
-        <VStack w="40%" h="fit-content">
-          <Box position="relative" border="inset" borderRadius="xl" p="12px" w="100%">
-            <IconButton
-              position="absolute"
-              top="8px"
-              right="8px"
-              aria-label="Edit sensor"
-              variant="ghost"
-              size="sm"
-              onClick={handleEditSource}
-              _hover={{ bg: "gray.200" }}
-              _dark={{ _hover: { bg: "whiteAlpha.200" }}}
-            ><PencilSimple weight='bold'/></IconButton>
-            {/* Project Details */}
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Project Name:</Text>
-              <Text fontWeight="medium">{source.details?.project_name ?? "N/A"}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Location Name:</Text>
-              <Text fontWeight="medium">{source.details?.loc_name ?? "N/A"}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Folder Path:</Text>
-              <Text fontWeight="medium">{source.folder_path}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>File Keyword:</Text>
-              <Text fontWeight="medium">{source.file_keyword}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>File Type:</Text>
-              <Text fontWeight="medium">{source.file_type}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Source Type:</Text>
-              <Text fontWeight="medium">{source.source_type}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Config:</Text>
-              <Text fontWeight="medium">{source.config}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Data Upload:</Text>
-              <Text fontWeight="medium">{formatDate(source.last_data_upload) ?? "N/A"}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Updated:</Text>
-              <Text fontWeight="medium">{formatDate(source.last_updated)}</Text>
-            </HStack>
-            <HStack align="start" gap={4}>
-              <Text fontWeight="light" color={textSub}>Active:</Text>
-              <Text fontWeight="medium">Active (Placeholder)</Text>
-            </HStack>
+    <Box px={4} py={{base: "2", md: "2"}} color={text}>
+      <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
+        <Heading fontSize="3xl">  
+          <Text as="span" color="purple.600">
+            {source.source_name.charAt(0)}
+          </Text>
+          <Text as="span" fontSize="lg" fontWeight="bold" color="purple.600">
+            {source.source_name.slice(1)}
+          </Text>
+          <Text as="span" ml={2} fontSize="md" fontWeight={"extralight"} color="orange.600">
+            {source.details?.project_name || "No Project"}
+          </Text>
+          <Box
+            display="inline-block"
+            boxSize="14px"
+            borderRadius="full"
+            ml="2"
+            bg={source.active ? "green.400" : "red.400"}
+          />
+          <Box display={"inline-block"}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+              <Popover.Trigger asChild>
+                <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
+                  onClick={(e) => e.stopPropagation()}
+                  _hover={{
+                    backgroundColor: 'blackAlpha.300',
+                  }}
+                  _dark={{
+                    color: "white",
+                    _hover: {backgroundColor: "whiteAlpha.200"}
+                  }}
+                />
+              </Popover.Trigger>
+              <Popover.Positioner>
+                <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                  <Popover.Arrow>
+                    <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
+                  </Popover.Arrow>
+                  <Popover.Body height="100px" p={0} >
+                    <VStack gap={0} justifyContent={"center"} height="inherit">
+                      <Button variant="ghost" size="md" onClick={handleEditSource}>
+                        <PencilSimple />
+                      </Button>
+                      <Button variant="ghost" size="md" onClick={handleDeleteSource}>
+                        <Trash />
+                      </Button>
+                    </VStack>
+                  </Popover.Body>
+                </Popover.Content>
+              </Popover.Positioner>
+            </Popover.Root>
           </Box>
-          <Button
-            variant='solid'
-            borderWidth={"2px"}
-            borderColor={"black"}
-            borderRadius={"xl"}
-            border="inset"
-            _dark={{borderColor: "white"}}
-            w="100%"
-            fontSize={"xl"}
-          >
-            Sensors
-          </Button>
-        </VStack>
-        <Tabs.Root defaultValue="map" orientation="horizontal" h="full" w="full" >
+        </Heading>
+        <Text fontSize="md">
+            {source.source_type}
+        </Text>
+        <Box position="absolute" left={"50%"} transform="translateX(-50%)" textAlign={"center"}>
+          <Text fontWeight={"extralight"}>
+            {source.folder_path}&nbsp;|&nbsp;{source.file_keyword}&nbsp;|&nbsp;{source.file_type}
+          </Text>
+          <Text color="blue.600" fontWeight={"bold"}>
+            {source.details?.loc_name}
+          </Text>
+        </Box>
+        <Box position="absolute" right="0">
+          <Text fontSize="sm">
+            Last Updated: {formatDate(source.last_updated)}
+          </Text>
+          <Text fontSize="sm">
+            Config: {source.config}
+          </Text>
+        </Box>
+      </Flex>
+      <HStack mb={3} h="50vh" align="stretch">
+        <Tabs.Root defaultValue="chart" orientation="horizontal" h="full" w="full" >
           <Box border="inset" borderRadius="xl" overflow="hidden" h="full" w="full">
             <Tabs.List>
-              <Tabs.Trigger value="map">Sensors</Tabs.Trigger>
               <Tabs.Trigger value="chart">Chart</Tabs.Trigger>
               <Tabs.Trigger value="alerts">Alerts</Tabs.Trigger>
               <Tabs.Indicator />
             </Tabs.List>
-            <Tabs.Content value="map" h="calc(100% - 40px)" p="0">
-            </Tabs.Content>
             <Tabs.Content value="chart">
               <Box h="full">
                 {/* Chart placeholder */}
@@ -140,7 +157,12 @@ export default function SourcePageClient({ source }: SourcePageClientProps) {
           </Box>
         </Tabs.Root>
       </HStack>
+      <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"Sensors"}/>
       <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />
+      <SourceDeleteModal isOpen={isSrcDelOpen} source={source} onClose={() => { setSrcDelOpen(false); }} />
+      <SensorCreateModal isOpen={isSenCreateOpen} projectId={source.details?.project_id} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
+      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }} />
+      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }} />
     </Box>
   );
 }

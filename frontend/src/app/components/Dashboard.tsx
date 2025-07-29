@@ -1,7 +1,7 @@
 // File: app/components/Dashboard.tsx
 "use client";
 
-import { Heading, Box, Flex, Text, VStack, SimpleGrid, Spinner, HStack } from "@chakra-ui/react";
+import { Heading, Box, Flex, Text, VStack, SimpleGrid, Spinner, HStack, useBreakpointValue } from "@chakra-ui/react";
 import { Line } from "react-chartjs-2";
 import { Info, Folder, MapPin, Gauge, Database } from "phosphor-react";
 import Link from "next/link";
@@ -28,19 +28,27 @@ export default function Dashboard({
 }: DashboardProps) {
   const { user } = useAuth();
   const firstName = user?.first_name ?? "there";
+  const size = useBreakpointValue({ base: 16, md: 32 });
+  
   const { colorMode } = useColorMode();
-  const bg      = colorMode === 'light' ? 'gray.300' : '#111111';
   const cardBg  = colorMode === 'light' ? 'gray.200' : '#2c2c2c';
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
   const accent  = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
   const stats = [
-    { label: 'Active Projects',   value: activeProjects,  href: '/projects', icon: Folder },
-    { label: 'Total Locations',   value: totalLocations,  href: '/locations', icon: MapPin },
-    { label: 'Online Sensors',    value: onlineSensors,   href: '/sensors',   icon: Gauge },
-    { label: 'Sources',           value: totalSources,    href: '/sources',   icon: Database },
+    { label: 'Active Projects', labelShort: "Projects", value: activeProjects,  href: '/projects', icon: Folder },
+    { label: 'Total Locations', labelShort: "Locations", value: totalLocations,  href: '/locations', icon: MapPin },
+    { label: 'Online Sensors', labelShort: "Sensors", value: onlineSensors,   href: '/sensors',   icon: Gauge },
+    { label: 'Sources', labelShort: "Sources", value: totalSources,    href: '/sources',   icon: Database },
   ];
-
+  
+  const TYPE_COLORS: Record<string,string> = {
+    "Active Projects": "orange.600",
+    "Total Locations": "blue.600",
+    "Online Sensors":  "green.600",
+    "Sources":         "purple.600",
+  };
+  
   // chart data remains static here
   const chartData = {
     labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
@@ -63,49 +71,77 @@ export default function Dashboard({
   }
 
   return (
-    <Box minH="100vh" px={6} py={{base: "2", md: "4"}} bg={bg} color={text}>
-      <VStack align="start" gap={1} mb={{base: "2", md: "6"}} alignItems={{base: "center", md: "normal"}}>
-        <Heading size={{base: "md", md: "xl"}}>Welcome back, {firstName} 👋</Heading>
-        <Text fontSize="md" color={textSub} display={{base: "none", sm: "block"}}>
-          Here`s a quick glance at your monitoring metrics today.
-        </Text>
+    <Box px={4} py={{base: "2", md: "2"}} color={text}>
+      <VStack align="start" gap={1} mb={{base: "2", md: "4"}} alignItems={{base: "center", md: "normal"}}>
+        <Heading size={{base: "sm", md: "md"}}>Welcome <Text as="span" color="blue">{firstName}</Text>!</Heading>
       </VStack>
       {/* Metrics */}
-      <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} mb={4} pr={2} maxW={{base: "full", md: "breakpoint-lg"}} whiteSpace={"nowrap"}>
+      <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} mb={4} pr={2} maxW={{base: "full", md: "breakpoint-xl"}} whiteSpace={"nowrap"}>
         {stats.map(s => {
           const IconComp = s.icon;
+          const color = TYPE_COLORS[s.label] ?? text;
+          let label;
+          if (size == 32) label = s.label; else label = s.labelShort
           return (
             <Link key={s.label} href={s.href || '#'} passHref style={{display: "contents"}}>
               <Box
                 key={s.label}
                 flex="1"
+                borderLeft="4px solid"
+                borderColor={color}
                 bg={cardBg}
+                position="relative"
+                overflow="hidden"
                 p={{base: "2", md: "4"}}
                 borderRadius="md"
                 boxShadow="sm"
-                _hover={{ boxShadow: 'md' }}
+                cursor="pointer"
+                transition="transform 0.2s ease, box-shadow 0.2s ease, border-left-width 0.2s ease"
+                _hover={{ transform: "translateY(-2px)", boxShadow: "lg", borderLeftWidth: "8px" }}
               >
-                <HStack alignItems={"center"} gap={2}>
-                  <IconComp size={24} weight="bold" color={accent}/>
-                  <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={accent}>{s.value}</Text>
-                  <Text fontSize="sm" color={textSub} flexShrink={1} truncate>
-                    {s.label}
-                    {s.label === 'Active Projects' && (
-                      <Box as="span" ml={1}>
-                        <Tooltip
-                          content={`${activeProjects} active of ${totalProjects} total`}
-                          showArrow
-                          openDelay={100}
-                          closeDelay={100}
-                        >
-                          <Box as="span" display="inline-flex" alignItems="center" cursor="pointer">
+                <HStack align="center" justify="space-between">
+                  <HStack>
+                    <IconComp size={size} weight="bold" color={accent}/>
+                    <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={accent}>{s.value}</Text>
+                  </HStack>
+                  <HStack>
+                    <Text display="inline-flex" fontSize="clamp(0.75rem, 2.5vw, 1rem)" color={textSub} flexShrink={1} truncate alignItems={"center"} justifyContent="center">
+                      {label}
+                      {s.label === 'Active Projects' && (
+                        <Box ml={1}>
+                          <Tooltip
+                            content={`${activeProjects} active of ${totalProjects} total`}
+                            showArrow
+                            openDelay={100}
+                            closeDelay={100}
+                          >
                             <Info size={14} weight="bold" />
-                          </Box>
-                        </Tooltip>
-                      </Box>
-                    )}
-                  </Text>
+                          </Tooltip>
+                        </Box>
+                      )}
+                    </Text>
+                  </HStack>
                 </HStack>
+                <Box
+                  as="div"
+                  position="absolute"
+                  bottom="0"
+                  left="0"
+                  width="100%"
+                  height="20px"
+                  opacity={0.1}
+                  color={color}
+                  pointerEvents="none"
+                >
+                  <svg
+                    viewBox="0 0 200 20"
+                    preserveAspectRatio="none"
+                    width="100%"
+                    height="100%"
+                  >
+                    <path d="M0,0 C50,20 150,0 200,20 L200,20 L0,20 Z" fill="currentColor"/>
+                  </svg>
+                </Box>
               </Box>
             </Link>
           );
@@ -115,13 +151,13 @@ export default function Dashboard({
       {/* Main Chart & Side Panels */}
       <Flex direction={['column', 'column', 'row']} gap={6}>
         {/* Chart */}
-        <Box flex="3" bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
+        <Box bg={cardBg} p={4} borderRadius="md" boxShadow="sm" w="55%" h="fit-content">
           <Text fontSize="lg" mb={4}>Requests Per Second</Text>
           <Line data={chartData} options={{ maintainAspectRatio: true } } />
         </Box>
 
         {/* Alerts & Maintenance */}
-        <Flex direction="column" flex="1" gap={6}>
+        <Flex direction="column" gap={6}>
           <Box bg={cardBg} p={4} borderRadius="md" boxShadow="sm">
             <Text fontSize="lg" mb={2}>Recent Alerts</Text>
             <VStack align="start" gap={1} color={textSub}>
