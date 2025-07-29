@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.common.dependencies import get_db
 from app.monitoring_source import schemas, selectors, services
+from app.monitoring_sensor import schemas as sensor_schemas, services as sensor_services
 
 router = APIRouter(prefix="/monitoring-sources", tags=["Monitoring Sources"])
 
@@ -103,3 +104,15 @@ def delete_source(source_id: UUID, db: Session = Depends(get_db)):
     if not selectors.get_source(db, source_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Source not found")
     services.delete_source(db, source_id)
+
+@router.get(
+    "/{source_id}/sensors",
+    response_model=List[sensor_schemas.MonitoringSensor]
+)
+def list_source_sensors(
+    source_id: UUID,
+    skip: int = 0,
+    db: Session = Depends(get_db),
+):
+    sensors = sensor_services.list_sensors_for_source(db, source_id, skip=skip)
+    return [sensor_services.enrich_sensor(sen) for sen in sensors]

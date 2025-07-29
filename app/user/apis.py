@@ -12,11 +12,19 @@ from app.user.models import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+ALLOWED = {"rwhengineering.ca"}
+
 @router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
 def register(
     payload: schemas.UserCreate,
     db: Session = Depends(get_db),
 ):
+    domain = payload.email.split("@")[-1].lower()
+    if domain not in ALLOWED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Registration is restricted to {', '.join('@'+d for d in ALLOWED)} addresses"
+        )
     # 1) Check if the email is already registered:
     existing = selectors.get_user_by_email(db, payload.email)
     if existing:

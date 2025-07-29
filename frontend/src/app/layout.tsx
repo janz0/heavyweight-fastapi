@@ -1,15 +1,18 @@
 // File: app/layout.tsx
 "use client";
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@/app/styles/globals.css";
 import { Provider as ChakraProvider } from "@/app/src/components/ui/provider";
 import { Toaster } from "@/components/ui/toaster";
 import Navbar from "./components/Navbar";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { Flex, Spinner } from "@chakra-ui/react";
+import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { ColorModeProvider } from "./src/components/ui/color-mode";
 import { NavigationProvider } from "./context/NavigationContext";
+import Sidebar from "./components/SideNav";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +20,10 @@ const geistSans = Geist({
 });
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -27,7 +34,15 @@ const geistMono = Geist_Mono({
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   // Pull auth state from your AuthProvider’s context:
   const { authToken, isChecking } = useAuth();
-
+  const router = useRouter();
+  
+  useEffect(() => {
+    if (!isChecking && !authToken) {
+      // Redirect to login if not authenticated
+      router.replace("/");
+    }
+  }, [authToken, isChecking, router]);
+  
   // While we’re still verifying localStorage/session, show a blank (or spinner):
   if (isChecking) {
     return (
@@ -36,7 +51,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       </Flex>
     );
   }
-
+  
   // If not authenticated, don’t render Navbar—just render the page’s children (login page).
   if (!authToken) {
     return <>{children}</>;
@@ -44,10 +59,13 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
   // Once authenticated, show the Navbar + whatever the page is (dashboard, etc.).
   return (
-    <>
+    <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)">
       <Navbar />
-      {children}
-    </>
+      <Flex flex="1" minH="0" w="100vw" pl="2" bg="rgba(230, 234, 243, 0.19)" gap="1">
+        <Sidebar />
+        <Box flex="1" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }} overflowY="auto" bg="gray.100" borderTopLeftRadius={"xl"}>{children}</Box>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -60,7 +78,7 @@ export default function RootLayout({
     <html lang="en">
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
       >
         <ChakraProvider>
           <AuthProvider>

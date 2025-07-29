@@ -9,7 +9,7 @@ import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { useColorMode } from "../src/components/ui/color-mode";
 
 // UI Components
-import SourcesPageClient from "./components/SourcesPageClient";
+import SourcesPageClient from "./SourcesPageClient";
 
 // Sources Components
 import { listSources } from "@/services/sources";
