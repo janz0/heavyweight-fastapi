@@ -8,6 +8,7 @@ import CountFooter from "../CountFooter";
 import SearchInput from "../SearchInput";
 import PageSizeSelect from "../PageSizeSelect";
 import Link from "next/link";
+import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
 
 function getNestedValue<T>(obj: T, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, part) => {
@@ -31,12 +32,15 @@ export default function DataTable<T extends { id: string; }>({
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const textSub = colorMode === "light" ? "gray.600" : "gray.400";
-  const row_bg = useColorModeValue("gray.50", "gray.600");
+  const checkboxColor = colorMode === "light" ? "gray.400" : "gray.600";
+  const checkboxHoverColor = colorMode === "light" ? "black" : "gray.400";
+  const row_bg = useColorModeValue("gray.50", "gray.800");
 
   const [page, setPage] = useState(1);
   const pageSizeOptions = [10, 25, 50, 100];
   const [pageSize, setPageSize] = useState(10);
   const [selectAll, setSelectAll] = useState(false);
+  const [isGrpAssignOpen, setGrpAssign] = useState(false);
 
   // Search
   const [search, setSearch] = useState("");
@@ -116,9 +120,13 @@ export default function DataTable<T extends { id: string; }>({
     }
     setSelectAll(!selectAll);
   };
+  function hasKey<K extends PropertyKey>(obj: unknown, key: K): obj is Record<K, unknown> {
+    return typeof obj === "object" && obj !== null && key in obj;
+  }
+  const showAssignGroups = data.length > 0 && hasKey(data[0], "sensor_name");
 
   return (
-    <>
+    <Box width="full" borderRadius={"md"} borderStyle={"initial"} borderWidth={"2px"} bg="whiteAlpha.50" _dark={{background: "gray.700"}} mb="2" p={4} boxShadow={"md"}>
       <Flex mb={4} align="center" position="relative" w="100%">
         <Heading fontSize="3xl" color={color}>  
           <Text as="span">
@@ -129,6 +137,22 @@ export default function DataTable<T extends { id: string; }>({
           </Text>
         </Heading>
         <Flex ml="auto" align="center" gap={4}>
+          {showAssignGroups && <>
+            <Button
+              variant={'solid'}
+              borderWidth={"2px"}
+              borderColor={"inherit"}
+              bg={'inherit'}
+              color={"black"}
+              _dark={{borderColor: "white"}}
+              w="25%"
+              onClick={() => setGrpAssign(true)}
+            >
+              Assign Groups
+            </Button>
+            <MonitoringGroupAssignModal isOpen={isGrpAssignOpen} onClose={() => setGrpAssign(false)} />
+          </>
+          }
           <Box minW="20ch" display={{base: "none", sm: "block"}}>
             <SearchInput value={search} onChange={setSearch} placeholder={`Search ${name}...`} />
           </Box>
@@ -164,6 +188,7 @@ export default function DataTable<T extends { id: string; }>({
           stickyHeader
           tableLayout="auto"
           bg="white"
+          _dark={{background: "black"}}
           borderBottomLeftRadius={"xl"}
           borderTopLeftRadius={"xl"}
           overflow="hidden"
@@ -183,7 +208,7 @@ export default function DataTable<T extends { id: string; }>({
                   colorPalette="blue"
                 >
                   <Checkbox.HiddenInput />
-                  <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} />
+                  <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
                 </Checkbox.Root>
               </Table.ColumnHeader>
               {columns.map((col) => (
@@ -245,22 +270,22 @@ export default function DataTable<T extends { id: string; }>({
                   <Flex align="center" justify="center" h="100%">
                   <Checkbox.Root size="sm" key={item.id} checked={selectedIds.has(item.id)} colorPalette="blue">
                     <Checkbox.HiddenInput onClick={() => toggleSelection(item.id)}/>
-                    <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}}/>
+                    <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
                   </Checkbox.Root>
                   </Flex>
                 </Table.Cell>
                 {columns.map((col) => {
-                  const value = getNestedValue(item, col.key) ?? "N/A";
+                  const value = getNestedValue(item, col.key) ?? "";
 
                   if (col.key === "project_name")
                     return (
-                    <Table.Cell key={col.key} p={0} pl={2} textAlign="left" textDecor="underline">
+                    <Table.Cell key={col.key} p={0} px={2} textAlign="left" textDecor="underline">
                       <Link href={`/${name}/${getNestedValue(item, "project_number")}`}>{String(value)}</Link>
                     </Table.Cell>
                   )
                   if (col.key === "loc_name" || col.key === "sensor_name" || col.key === "source_name") {
                     return (
-                      <Table.Cell key={col.key} p={0} pl={2} textAlign="left" textDecor="underline">
+                      <Table.Cell key={col.key} p={0} px={2} textAlign="left" textDecor="underline">
                         <Link href={`/${name}/${value}`}>{String(value)}</Link>
                       </Table.Cell>
                     );
@@ -281,20 +306,20 @@ export default function DataTable<T extends { id: string; }>({
 
                   if (typeof value === "string" && (col.key.includes("date") || col.key.includes("created") || col.key.includes("last"))) {
                     return (
-                      <Table.Cell key={col.key} p={0} textAlign="center">
+                      <Table.Cell key={col.key} p={0} px={2} textAlign="center">
                         {value.includes("T") ? value.split("T")[0] : value}
                       </Table.Cell>
                     );
                   }
                   if (typeof value === "number") {
                     return (
-                      <Table.Cell key={col.key} p={0} pr={2} textAlign="right">
+                      <Table.Cell key={col.key} p={0} px={2} textAlign="right">
                         {value}
                       </Table.Cell>
                     )
                   }
                   return (
-                    <Table.Cell key={col.key} p={0} pl={2} textAlign="left">
+                    <Table.Cell key={col.key} p={0} px={2} textAlign="left">
                       {String(value)}
                     </Table.Cell>
                   );
@@ -381,6 +406,6 @@ export default function DataTable<T extends { id: string; }>({
         )}
         <Box position="absolute" right={6}><CountFooter count={data.length} total={filtered.length} name={name} color={textSub} /></Box>
       </Flex>
-    </>
+    </Box>
   );
 }

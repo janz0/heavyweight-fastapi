@@ -12,33 +12,38 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isBoxHovered, setIsBoxHovered] = useState(false);
   const [isShrunk, setShrinkHome] = useState(false);
-  const arrowColor = useColorModeValue("gray.200", "#212121");
+  const arrowColor = useColorModeValue("gray.200", "gray.700");
   const textColor = useColorModeValue("gray.600", "white");
   const hoverBg = useColorModeValue("#dcdde0", "#2a2a2c");
-  const hoverArrowColor = useColorModeValue("gray.400", "#212121");
+  const hoverArrowColor = useColorModeValue("gray.400", "gray.800");
   const hoverButton = useColorModeValue("gray.100", "black");
+  const isActiveColor = useColorModeValue("rgba(194, 213, 255, 0.40)", "blue.400")
   const sidebarWidth = isOpen ? "221px" : isBoxHovered ? "36px" : "30px";  // expanded vs. collapsed
   const iconBgColor = isBoxHovered && !isOpen ? hoverArrowColor : arrowColor;
   const pathname = usePathname();
+  const fadeGradient = useColorModeValue(
+    "linear-gradient(90deg, var(--chakra-colors-gray-200), var(--chakra-colors-gray-400))",
+    "linear-gradient(90deg, var(--chakra-colors-gray-800), var(--chakra-colors-gray-900))"
+  );
   const isHomeActive = pathname === "/", isProjectsActive = pathname === "/projects", isLocationsActive = pathname === "/locations", isSensorsActive = pathname === "/sensors", isSourcesActive = pathname === "/sources";
   return (
-    <Box as="nav" overflow="visible" zIndex={0} borderTopLeftRadius={"lg"} bg="gray.200" position="relative" _hover={isOpen ? undefined : {backgroundColor: hoverBg}} w={sidebarWidth} transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
+    <Box as="nav" overflow="visible" zIndex={10} borderTopLeftRadius={"lg"} bg="gray.200" _dark={{background: "gray.800"}} position="relative" _hover={isOpen ? undefined : {backgroundColor: hoverBg}} w={sidebarWidth} transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
       onMouseLeave={() => {setIsBoxHovered(false); setShrinkHome(false)}}
         _after={{
           content: '""',
           pos: "absolute",
           top: 0,
           bottom: 0,
-          right: "-8px",            // push into the 1-unit gap (e.g. 4px)
-          width: "8px",             // fade over 8px (4px gap + 4px bleed)
-          bg: "linear-gradient(90deg, var(--chakra-colors-gray-200), var(--chakra-colors-gray-300))",
+          right: "-10px",            // push into the 1-unit gap (e.g. 4px)
+          width: "10px",             // fade over 8px (4px gap + 4px bleed)
+          bg: fadeGradient,
           pointerEvents: "none",    // so it never blocks clicks
           zIndex: -1,
         }}>
       <Box position="fixed" w="inherit">
       <Icon as={CaretRight}
         size={"md"} backgroundColor={iconBgColor} cursor="pointer"
-        position="absolute" top="3" right="-4"
+        position="absolute" top="5" right="-4"
         borderRadius={"full"}
         opacity={isOpen && !isBoxHovered ? 0 : 1}
         _hover={{backgroundColor: hoverArrowColor, display: "undefined"}}
@@ -48,27 +53,27 @@ export default function Sidebar() {
       <VStack overflow="hidden" display={isOpen ? "flex" : "none"} alignItems={"left"} p="2" gap="0" truncate transition="display 2s">
         <VStack alignItems={"inherit"}>
           <Link href="/" passHref>
-            <Button z-index={1} justifyContent={"flex-start"} color={isHomeActive ? "blackAlpha.700" : textColor} bg={isHomeActive ? "rgba(194, 213, 255, 0.40)" : "none" } _hover={{bg: isHomeActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+            <Button z-index={1} justifyContent={"flex-start"} color={isHomeActive ? "blackAlpha.700" : textColor} bg={isHomeActive ? isActiveColor : "none" } _hover={{bg: isHomeActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
               <Icon as={House} boxSize={4} />Home
             </Button>
           </Link>
           <Link href="/projects" passHref>
-            <Button z-index={1} justifyContent={"flex-start"} color={isProjectsActive ? "blackAlpha.700" : textColor} bg={isProjectsActive ? "rgba(194, 213, 255, 0.40)" : "none" } _hover={{bg: isProjectsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+            <Button z-index={1} justifyContent={"flex-start"} color={isProjectsActive ? "blackAlpha.700" : textColor} bg={isProjectsActive ? isActiveColor : "none" } _hover={{bg: isProjectsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
               <Icon as={Folder} boxSize={4} />Projects
             </Button>
           </Link>
           <Link href="/locations" passHref>
-            <Button z-index={1} justifyContent={"flex-start"} color={isLocationsActive ? "blackAlpha.700" : textColor} bg={isLocationsActive ? "rgba(194, 213, 255, 0.40)" : "none" } _hover={{bg: isLocationsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+            <Button z-index={1} justifyContent={"flex-start"} color={isLocationsActive ? "blackAlpha.700" : textColor} bg={isLocationsActive ? isActiveColor : "none" } _hover={{bg: isLocationsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
               <Icon as={MapPin} boxSize={4} />Locations
             </Button>
           </Link>
           <Link href="/sensors" passHref>
-            <Button z-index={1} justifyContent={"flex-start"} color={isSensorsActive ? "blackAlpha.700" : textColor} bg={isSensorsActive ? "rgba(194, 213, 255, 0.40)" : "none" } _hover={{bg: isSensorsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+            <Button z-index={1} justifyContent={"flex-start"} color={isSensorsActive ? "blackAlpha.700" : textColor} bg={isSensorsActive ? isActiveColor : "none" } _hover={{bg: isSensorsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
               <Icon as={Gauge} boxSize={4} />Sensors
             </Button>
           </Link>
           <Link href="/sources" passHref>
-            <Button z-index={1} justifyContent={"flex-start"} color={isSourcesActive ? "blackAlpha.700" : textColor} bg={isSourcesActive ? "rgba(194, 213, 255, 0.40)" : "none" } _hover={{bg: isSourcesActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+            <Button z-index={1} justifyContent={"flex-start"} color={isSourcesActive ? "blackAlpha.700" : textColor} bg={isSourcesActive ? isActiveColor : "none" } _hover={{bg: isSourcesActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
               <Icon as={Database} boxSize={4} />Sources
             </Button>
           </Link>

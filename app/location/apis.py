@@ -37,10 +37,10 @@ def get_location_by_name(
     location_name: str,
     db: Session = Depends(get_db)
 ):
-    obj = services.get_location_by_name(db, location_name)
-    if not obj:
+    location = services.get_location_by_name(db, location_name)
+    if not location:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
-    return obj
+    return location
 
 @router.get(
     "/{loc_id}/sensors",

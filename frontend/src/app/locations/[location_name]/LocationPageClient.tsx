@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 
 import React, { useState, useEffect } from 'react';
-import { Box, HStack, Heading, Text, VStack, Button, Tabs, Popover, Flex, IconButton, Separator } from '@chakra-ui/react';
+import { Box, HStack, Heading, Text, VStack, Button, Tabs, Popover, Flex, IconButton, Separator, Table } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
@@ -220,7 +220,8 @@ export default function LocationPageClient({ location, initialSources, initialSe
             <Tabs.Content value="chart">
               <Box h="full">
                 {/* Chart placeholder */}
-                <Text>📈 Chart view coming soon</Text>
+                <Table.Root>
+                </Table.Root>
               </Box>
             </Tabs.Content>
             <Tabs.Content value="alerts">

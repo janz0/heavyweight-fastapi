@@ -7,11 +7,17 @@ const GROUPS_BASE    = `${API_ROOT}monitoring-groups`;
 
 // List all groups for a given location
 export async function listMonitoringGroups(
-  locationId: string,
+  locationId?: string,
   skip = 0,
   limit = 100
 ): Promise<MonitoringGroup[]> {
-  const url = `${GROUPS_BASE}/by-location/${locationId}?skip=${skip}&limit=${limit}`;
+  let url: string;
+
+  if (locationId) { 
+    url = `${GROUPS_BASE}/by-location/${locationId}?skip=${skip}&limit=${limit}`;
+  } else {
+    url = `${GROUPS_BASE}/?skip=${skip}&limit=${limit}`;
+  }
   const res = await fetch(url);
   if (!res.ok) throw new Error(`List groups failed (${res.status})`);
   return res.json() as Promise<MonitoringGroup[]>;
