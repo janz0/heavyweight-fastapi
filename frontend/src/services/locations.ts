@@ -22,7 +22,9 @@ export async function getLocationByName(
   name: string
 ): Promise<Location> {
   const res = await fetch(`${BASE}/name/${name}`);
-  if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
+  if (!res.ok) {
+    throw new Error(`Fetch location failed (${res.status})`);
+  }
   return (await res.json()) as Location;
 }
 

@@ -82,7 +82,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
           <Spinner />
         </Flex>
       )}
-
+      
       <SensorCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); } } />
       <SensorEditModal isOpen={isEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }} />
       <SensorDeleteModal isOpen={isDelOpen} sensor={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />

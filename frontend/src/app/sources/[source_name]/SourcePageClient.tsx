@@ -1,14 +1,18 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Box, HStack, Heading, IconButton, Tabs, Text, VStack, Button, Popover, Flex } from '@chakra-ui/react';
-import { useColorMode } from '@/app/src/components/ui/color-mode';
+import React, { useMemo, useState } from 'react';
+import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex } from '@chakra-ui/react';
+import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
 import type { Source } from '@/types/source';
 import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
 import { SourceEditModal, SourceDeleteModal } from '../../components/Modals/SourceModals';
 import { MonitoringSensor } from '@/types/sensor';
 import { SensorCreateModal, SensorDeleteModal, SensorEditModal } from '@/app/components/Modals/SensorModals';
 import DataTable from '@/app/components/DataTable';
+import { Chart as ChartJS, ChartOptions, registerables } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(...registerables);
 
 interface Column {
   key: string;
@@ -59,6 +63,48 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
   const handleDeleteSource = () => { setSrcDelOpen(true); setPopoverOpen(false) };
 
   const [isPopoverOpen, setPopoverOpen] = useState(false);
+  // scrollbar colors
+  const trackBg = useColorModeValue('gray.200', 'gray.700');
+  const thumbBg = useColorModeValue('purple.600', 'purple.300');
+  const thumbBorder = useColorModeValue('gray.100', 'gray.800');
+
+  const sampleData = useMemo(() => {
+    const labels = Array.from({ length: 12 }, (_, i) => `T-${11 - i}`);
+    const values = labels.map((_, i) => Math.sin(i * 0.5) * 10 + 50); // just example fluctuation
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Sample Metric',
+          data: values,
+          fill: false,
+          tension: 0.3,
+          borderColor: "black",
+          pointRadius: 3,
+          pointHoverRadius: 5,
+        },
+      ],
+    };
+  }, []);
+
+  const chartOptions: ChartOptions<'line'> = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        title: { display: true, text: 'Time' },
+        grid:  { display: false },
+      },
+      y: {
+        title:      { display: true, text: 'Value' },
+        beginAtZero: false,
+      },
+    },
+    plugins: {
+      legend:  { position: 'top' },
+      tooltip: { enabled: true },
+    },
+  }), []);
 
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
@@ -134,28 +180,60 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
           </Text>
         </Box>
       </Flex>
-      <HStack mb={3} h="50vh" align="stretch">
-        <Tabs.Root defaultValue="chart" orientation="horizontal" h="full" w="full" >
-          <Box border="inset" borderRadius="xl" overflow="hidden" h="full" w="full">
-            <Tabs.List>
-              <Tabs.Trigger value="chart">Chart</Tabs.Trigger>
-              <Tabs.Trigger value="alerts">Alerts</Tabs.Trigger>
-              <Tabs.Indicator />
-            </Tabs.List>
-            <Tabs.Content value="chart">
-              <Box h="full">
-                {/* Chart placeholder */}
-                <Text>📈 Chart view coming soon</Text>
-              </Box>
-            </Tabs.Content>
-            <Tabs.Content value="alerts">
-              <Box h="full">
-                {/* Alerts placeholder */}
-                <Text>🚨 Alerts view coming soon</Text>
-              </Box>
-            </Tabs.Content>
-          </Box>
-        </Tabs.Root>
+      <HStack>
+        <Box minW="25vw" h="50vh" borderRadius={"sm"} border={"initial"} borderColor="purple.600" borderWidth={"2px"} bg="whiteAlpha.50" mb="2" p={4} boxShadow={"md"}>
+          {/* Chart placeholder */}
+          <Table.ScrollArea borderWidth={1} borderRadius={"sm"} height="100%" bg="blackAlpha.200" css={{
+            /* WebKit (Chrome/Safari) */
+            '&::-webkit-scrollbar': {
+              width: '10px',
+              height: '10px',
+              color: trackBg,
+              background: trackBg,
+              borderRadius: "md",
+            },
+            '&::-webkit-scrollbar-track': {
+              background: trackBg,
+              borderRadius: '8px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: thumbBg,
+              borderRadius: '8px',
+              border: '2px solid',
+              borderColor: thumbBorder,
+            },
+            /* Firefox */
+            scrollbarColor: `${thumbBg} ${trackBg}`,
+          }}>
+            <Table.Root showColumnBorder variant="line" stickyHeader interactive>
+              <Table.Header>
+                <Table.Row bg="gray.100" fontSize={16}>
+                  <Table.ColumnHeader textAlign={"center"} color="green.600">
+                    Sensor
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader textAlign={"center"}>
+                    Data
+                  </Table.ColumnHeader>
+                </Table.Row>   
+              </Table.Header>
+              <Table.Body>
+                {initialSensors.map((sensor) => (
+                  <Table.Row key={sensor.id}>
+                    <Table.Cell p={3}>
+                      {sensor.sensor_name}
+                    </Table.Cell>
+                    <Table.Cell textAlign={"right"} p={3}>
+                      15.6
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </Table.ScrollArea>
+        </Box>
+        <Box width="full" h="50vh" borderRadius={"md"} borderStyle={"initial"} borderColor="purple.600" borderWidth={"2px"} bg="whiteAlpha.50" mb="2" p={4} boxShadow={"md"}>
+          <Line data={sampleData} options={chartOptions} />
+        </Box>
       </HStack>
       <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"Sensors"}/>
       <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />

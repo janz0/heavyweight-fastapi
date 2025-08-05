@@ -20,6 +20,7 @@ export default function SensorsPage() {
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   const [sensors, setSensors] = useState<MonitoringSensor[] | null>(null);
+
   const [error, setError] = useState<string | null>(null);
 
   // fetch sensors on mount

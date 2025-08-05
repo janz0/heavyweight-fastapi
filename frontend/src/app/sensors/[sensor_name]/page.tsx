@@ -26,7 +26,7 @@ export default async function SensorsPage({ params }: PageProps) {
   );
   // now entries: Array<[ fieldName, MonitoringSensorData[] ]>
   const dataByField: Record<string, typeof entries[number][1]> =
-    Object.fromEntries(entries);
+  Object.fromEntries(entries);
   console.log(fields);
   console.log(dataByField);
   return (

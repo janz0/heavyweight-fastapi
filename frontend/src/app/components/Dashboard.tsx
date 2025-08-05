@@ -31,7 +31,7 @@ export default function Dashboard({
   const size = useBreakpointValue({ base: 16, md: 32 });
   
   const { colorMode } = useColorMode();
-  const cardBg  = colorMode === 'light' ? 'gray.200' : '#2c2c2c';
+  const cardBg  = colorMode === 'light' ? 'gray.200' : 'gray.700';
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
   const accent  = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
