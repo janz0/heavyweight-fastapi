@@ -1,6 +1,6 @@
 // components/DataTable/index.tsx
 import React, { useMemo, useState } from "react";
-import { Table, Checkbox, Icon, Text, Flex, Button, Box, IconButton, Heading, Popover, VStack } from "@chakra-ui/react";
+import { Table, Checkbox, Icon, Text, Flex, Button, Box, IconButton, Heading, Popover, VStack, Pagination, ButtonGroup } from "@chakra-ui/react";
 import { useColorMode, useColorModeValue } from "@/app/src/components/ui/color-mode";
 import type { DataTableProps } from "./types";
 import { CaretUp, CaretDown, MagnifyingGlass, Plus, DotsThreeVertical, PencilSimple, Trash } from "phosphor-react";
@@ -9,6 +9,8 @@ import SearchInput from "../SearchInput";
 import PageSizeSelect from "../PageSizeSelect";
 import Link from "next/link";
 import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
+
 
 function getNestedValue<T>(obj: T, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, part) => {
@@ -35,7 +37,7 @@ export default function DataTable<T extends { id: string; }>({
   const checkboxColor = colorMode === "light" ? "gray.400" : "gray.600";
   const checkboxHoverColor = colorMode === "light" ? "black" : "gray.400";
   const row_bg = useColorModeValue("gray.50", "gray.800");
-
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const pageSizeOptions = [10, 25, 50, 100];
   const [pageSize, setPageSize] = useState(10);
@@ -55,7 +57,6 @@ export default function DataTable<T extends { id: string; }>({
     }),
     [search, data, firstKey]
   );
-  const totalPages = Math.ceil(filtered.length / pageSize);
 
   const sorted = useMemo(() => {
     if (!sortConfig) return filtered;
@@ -78,26 +79,16 @@ export default function DataTable<T extends { id: string; }>({
         : { key, direction: "asc" }
     );
   };
-
+  const totalPages = Math.ceil(filtered.length / pageSize);
   React.useEffect(() => {
     if (page > totalPages)
       setPage(1);
   }, [page, totalPages]);
 
-  const pageItems: (number | string)[] = React.useMemo(() => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const delta = 2;
-    const left = Math.max(2, page - delta);
-    const right = Math.min(totalPages - 1, page + delta);
-    const items: (number | string)[] = [1];
-    if (left > 2) items.push("…");
-    for (let p = left; p <= right; p++) items.push(p);
-    if (right < totalPages - 1) items.push("…");
-    items.push(totalPages);
-    return items;
-  }, [page, totalPages]);
-  data = sorted.slice((page - 1) * pageSize, page * pageSize)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const startRange = (page - 1) * pageSize;
+  const endRange = startRange + pageSize;
+
+  const visibleItems = sorted.slice(startRange, endRange);
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
@@ -242,7 +233,7 @@ export default function DataTable<T extends { id: string; }>({
           </Table.Header>
 
           <Table.Body>
-            {data.map((item, i) => (
+            {visibleItems.map((item, i) => (
               <Table.Row
                 key={i}
                 _hover={{ bg: row_bg }}
@@ -366,45 +357,31 @@ export default function DataTable<T extends { id: string; }>({
           </Table.Body>
         </Table.Root>
       </Box>
-      <Flex w="100%" align="center" position="relative">
-        
-        {totalPages >= 0 && (
-          <Flex w="100%" align="center" justify="center" mt={4} gap={2}>
-            <Button
-              size="sm"
-              onClick={() => setPage(page - 1)}
-              disabled={page <= 1}
-            >
-              Prev
-            </Button>
+      <Flex w="100%" justify="center" position="relative">
+        <Pagination.Root p={2} count={filtered.length} pageSize={pageSize} defaultPage={1} onPageChange={(e) => setPage(e.page)}>
+          <ButtonGroup variant="ghost" size="sm">
+            <Pagination.PrevTrigger asChild>
+              <IconButton>
+                <LuChevronLeft />
+              </IconButton>
+            </Pagination.PrevTrigger>
 
-            {pageItems.map((item, idx) =>
-              typeof item === "string" ? (
-                <Box key={`dots-${idx}`} px={2}>
-                  {item}
-                </Box>
-              ) : (
-                <Button
-                  key={item}
-                  size="sm"
-                  variant={item === page ? "solid" : "outline"}
-                  onClick={() => setPage(item)}
-                >
-                  {item}
-                </Button>
-              )
-            )}
+            <Pagination.Items
+              render={(page) => (
+                <IconButton variant={{ base: "ghost", _selected: "outline" }}>
+                  {page.value}
+                </IconButton>
+              )}
+            />
 
-            <Button
-              size="sm"
-              onClick={() => setPage(page + 1)}
-              disabled={page >= totalPages}
-            >
-              Next
-            </Button>
-          </Flex>
-        )}
-        <Box position="absolute" right={6}><CountFooter count={data.length} total={filtered.length} name={name} color={textSub} /></Box>
+            <Pagination.NextTrigger asChild>
+              <IconButton>
+                <LuChevronRight />
+              </IconButton>
+            </Pagination.NextTrigger>
+          </ButtonGroup>
+        </Pagination.Root>
+        <Box position="absolute" py={1} right={6}><CountFooter count={data.length} total={filtered.length} name={name} color={textSub} /></Box>
       </Flex>
     </Box>
   );
