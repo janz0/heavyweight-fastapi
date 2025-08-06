@@ -40,6 +40,7 @@ import { MonitoringSensor } from "@/types/sensor";
 import { Source } from "@/types/source";
 import { listSensors } from "@/services/sensors";
 import { listSources } from "@/services/sources";
+import { Plus } from "phosphor-react";
 
 // ==============================
 // Shared Form Component
@@ -230,8 +231,8 @@ export function MonitoringGroupCreateModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="md">
       <Portal>
         <Dialog.Backdrop onClick={onClose} />
-        <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+        <Dialog.Positioner >
+          <Dialog.Content border="2px solid" >
             <Dialog.Header>
               <Dialog.Title>New Sensor Group</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -546,11 +547,11 @@ export function MonitoringGroupAssignModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()} size="cover">
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
-        <Dialog.Positioner>
-          <Dialog.Content>
+        <Dialog.Backdrop />
+        <Dialog.Positioner background={"whiteAlpha.400"}>
+          <Dialog.Content >
             <Dialog.Header justifyContent="center">
-              <Dialog.Title color="blue.600">Monitoring Groups</Dialog.Title>
+              <Dialog.Title color="blue.500">Monitoring Groups</Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" onClick={onClose} />
               </Dialog.CloseTrigger>
@@ -560,10 +561,10 @@ export function MonitoringGroupAssignModal({
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Flex gap={4} justify="center" mx="auto" width="80%">
                   {/* Left: searchable table for selection */
-                  <Box w="30%" p={2} bg="gray.100" border={"visible"} borderWidth={1} borderColor={"black"}>
+                  <Box position="relative" w="30%" p={2} bg="gray.100" border={"visible"} borderWidth={1} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
                     {/* Left: searchable table for selection with tags inside search */}
                     <Box position="relative">
-                    <Box border="1px solid" px={2} py={1} mb={2} maxW="100%" overflowX="auto" overflowY="visible" whiteSpace="nowrap" bg="white">
+                    <Box border="1px solid" px={2} py={1} mb={2} maxW="100%" overflowX="auto" overflowY="visible" whiteSpace="nowrap" bg="white" _dark={{ bg: "black" }}>
                       <Flex wrap="nowrap" align="center" gap={1}>
                         {[...selectedIds].map(id => {
                           const opt = options.find(o => o.id === id);
@@ -592,10 +593,11 @@ export function MonitoringGroupAssignModal({
                           position="relative"
                           onFocus={() => setAutoComplete(true)}
                           onBlur={() => setAutoComplete(false)}
+                          _placeholder={{color: "gray.400"}}
                         />
                       </Flex>
                     </Box>
-                    <Table.Root size="sm" interactive position="absolute" top={"100%"} zIndex={2000} borderWidth={1} borderColor={"black"} left={0} pl={2} py={1} bg="white">
+                    <Table.Root size="sm" interactive position="absolute" top={"100%"} zIndex={2000} borderWidth={1} borderColor={"black"} left={0} pl={2} py={1} bg="white" _dark={{ bg: "black", borderColor: "white" }}>
                       <Table.Body>
                       {query.length > 0 && autoComplete && autocompleteFilter.map(o => (
                         <Table.Row key={o.id} onClick={() => toggle(o.id)}>
@@ -607,9 +609,9 @@ export function MonitoringGroupAssignModal({
                       </Table.Body>
                     </Table.Root>
                     </Box>
-                    <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white">
+                    <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white" _dark={{ bg: "black" }}>
                       <Table.Header>
-                        <Table.ColumnHeader textAlign={"center"} bg="white" color="blue.600" fontWeight={"bold"}>Sensor Groups</Table.ColumnHeader>
+                        <Table.ColumnHeader textAlign={"center"} bg="white" color="blue.500" fontWeight={"bold"} _dark={{ bg: "black" }}>Sensor Groups</Table.ColumnHeader>
                       </Table.Header>
                       <Table.Body>
                         {filtered.map(o => (
@@ -617,6 +619,7 @@ export function MonitoringGroupAssignModal({
                             key={o.id}
                             cursor="pointer"
                             bg={selectedIds.has(o.id) ? "gray.100" : "undefined"}
+                            _dark={{bg: selectedIds.has(o.id) ? "gray.900" : "undefined"}}
                             onClick={() => toggle(o.id)}
                           >
                             <Table.Cell h="full">
@@ -628,20 +631,20 @@ export function MonitoringGroupAssignModal({
                                   mr={"10px"}
                                 >
                                   <Checkbox.HiddenInput />
-                                  <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} />
+                                  <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} _dark={{ _hover: {borderColor: "white"}}} />
                                 </Checkbox.Root>
                                 {o.label}
                               </Flex>
                             </Table.Cell>
                           </Table.Row>
                         ))}
-                        <Table.Row>
-                          <Table.Cell textAlign="center" color="blue.600" onClick={() => setCreateGrp(true)} cursor="pointer">
-                            + New Group
-                          </Table.Cell>
-                        </Table.Row>
                       </Table.Body>
                     </Table.Root>
+                    <Box position="absolute" right="5" bottom="5">
+                      <Button onClick={() => setCreateGrp(true)} borderRadius="md" boxShadow="sm" bg="orange" size={{base: "xs", md:"sm"}}>
+                        <Plus/><Text display={{base: "none", md: "block"}}>Add New</Text>
+                      </Button>
+                    </Box>
                   </Box>
                   /* Middle: Droppable */}
                   <Droppable droppableId="middle">
@@ -652,11 +655,11 @@ export function MonitoringGroupAssignModal({
                         w="30%"
                         borderWidth={1}
                         p={2}
-                        bg="gray.50"
+                        bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <Box textAlign={"center"} border="1px solid gray" bg="white" p={2} color="red.600" fontWeight={"bold"}>Not Assigned</Box>
+                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} color="red.600" fontWeight={"bold"}>Not Assigned</Box>
                         {middleItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (
@@ -666,6 +669,7 @@ export function MonitoringGroupAssignModal({
                                 {...prov.dragHandleProps}
                                 p={2}
                                 bg="white"
+                                _dark={{bg: "black"}}
                                 border="1px solid gray"
                               >
                                 {sensor.sensor_name}
@@ -687,11 +691,11 @@ export function MonitoringGroupAssignModal({
                         w="30%"
                         borderWidth={1}
                         p={2}
-                        bg="gray.50"
+                        bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <Text textAlign={"center"} border="1px solid gray" bg="white" p={2} color="green.600" fontWeight={"bold"}>Assigned</Text>
+                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} color="green.600" fontWeight={"bold"}>Assigned</Text>
                         {rightItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (
@@ -701,6 +705,7 @@ export function MonitoringGroupAssignModal({
                                 {...prov.dragHandleProps}
                                 p={2}
                                 bg="white"
+                                _dark={{bg: "black"}}
                                 border="1px solid gray"
                               >
                                 {sensor.sensor_name}

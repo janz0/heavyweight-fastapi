@@ -73,7 +73,7 @@ export default function Dashboard({
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <VStack align="start" gap={1} mb={{base: "2", md: "4"}} alignItems={{base: "center", md: "normal"}}>
-        <Heading size={{base: "sm", md: "md"}}>Welcome <Text as="span" color="blue">{firstName}</Text>!</Heading>
+        <Heading size={{base: "sm", md: "md"}}>Welcome <Text as="span" color="blue.600" _dark={{ color: "blue.300" }}>{firstName}</Text>!</Heading>
       </VStack>
       {/* Metrics */}
       <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} mb={4} pr={2} maxW={{base: "full", md: "breakpoint-xl"}} whiteSpace={"nowrap"}>
