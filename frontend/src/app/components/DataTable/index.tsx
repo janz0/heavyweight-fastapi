@@ -126,7 +126,7 @@ export default function DataTable<T extends { id: string; }>({
   const showAssignGroups = data.length > 0 && hasKey(data[0], "sensor_name");
 
   return (
-    <Box width="full" borderRadius={"md"} borderStyle={"initial"} borderWidth={"2px"} bg="whiteAlpha.50" _dark={{background: "gray.700"}} mb="2" p={4} boxShadow={"md"}>
+    <Box width="full" borderRadius={"md"} borderStyle={"initial"} borderWidth={"2px"} bg="whiteAlpha.50" _dark={{background: "gray.800"}} mb="2" p={4} boxShadow={"md"}>
       <Flex mb={4} align="center" position="relative" w="100%">
         <Heading fontSize="3xl" color={color}>  
           <Text as="span">
@@ -144,7 +144,7 @@ export default function DataTable<T extends { id: string; }>({
               borderColor={"inherit"}
               bg={'inherit'}
               color={"black"}
-              _dark={{borderColor: "white"}}
+              _dark={{borderColor: "gray.700", color: "white"}}
               w="25%"
               onClick={() => setGrpAssign(true)}
             >
