@@ -9,7 +9,7 @@ import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { useColorMode } from "../src/components/ui/color-mode";
 
 // UI Components
-import SensorsPageClient from "./components/SensorsPageClient";
+import SensorsPageClient from "./SensorsPageClient";
 
 // Services + Types
 import { listSensors } from "@/services/sensors";
@@ -20,6 +20,7 @@ export default function SensorsPage() {
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   const [sensors, setSensors] = useState<MonitoringSensor[] | null>(null);
+
   const [error, setError] = useState<string | null>(null);
 
   // fetch sensors on mount

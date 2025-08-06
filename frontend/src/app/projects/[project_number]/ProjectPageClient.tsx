@@ -1,26 +1,22 @@
 // File: app/projects/[projectId]/ProjectsPageClient.tsx
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { Box, Button, Flex, Heading, IconButton, Popover, Text, VStack, HStack, Table } from '@chakra-ui/react';
-import { Breadcrumb } from '@/app/components/Breadcrumb';
+import React, { useState } from 'react';
+import { Box, Button, Flex, Heading, IconButton, Popover, Text, VStack, HStack, SimpleGrid } from '@chakra-ui/react';
 import type { Project } from '@/types/project';
 import Link from 'next/link';
 import { Bell, ArrowCircleUp, ArrowCircleDown } from "phosphor-react";
 import { useColorMode } from '@/app/src/components/ui/color-mode';
-import SearchInput from '@/app/components/SearchInput';
-import PageSizeSelect from '@/app/components/PageSizeSelect';
 import DataTable from "@/app/components/DataTable";
 import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
-import { Line } from "react-chartjs-2";
 
 // Services + Types
-import { ProjectEditModal } from '@/app/projects/components/ProjectModals';
-import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/sources/components/SourceModals';
+import { ProjectEditModal, ProjectDeleteModal } from '@/app/components/Modals/ProjectModals';
+import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/components/Modals/SourceModals';
 import { Source } from '@/types/source';
 import { MonitoringSensor } from '@/types/sensor';
-import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/sensors/components/SensorModals';
-import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from '@/app/locations/components/LocationModals';
+import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/components/Modals/SensorModals';
+import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from '@/app/components/Modals/LocationModals';
 import { Location } from '@/types/location';
 
 interface Column {
@@ -31,7 +27,7 @@ interface Column {
 const locationColumns: Column[] = [
   { key: 'loc_name', label: 'Location Name' },
   { key: 'loc_number', label: 'Location Number' },
-  { key: 'project_id', label: 'Project' },
+  { key: 'details.project_name', label: 'Project' },
   { key: 'lat', label: 'Latitude' },
   { key: 'lon', label: 'Longitude' },
   { key: 'created_at', label: 'Created' },
@@ -55,7 +51,7 @@ const sourcesColumns: Column[] = [
 const sensorColumns: Column[] = [
   { key: 'sensor_name', label: 'Sensor Name' },
   { key: 'sensor_type', label: 'Sensor Type' },
-  { key: 'mon_source_id', label: 'Source' },
+  { key: 'details.mon_source_name', label: 'Source' },
   { key: 'sensor_group_id', label: 'Sensor Group' },
   { key: 'created_at', label: 'Created' },
   { key: 'last_updated', label: 'Updated' },
@@ -66,36 +62,18 @@ const sensorColumns: Column[] = [
 interface Props {
   project: Project;
   initialLocations: Location[];
-  initialSources: Source[];     // <- add this prop
-  initialSensors: MonitoringSensor[]; // <- and this
-}
-
-function getNestedValue<T>(obj: T, path: string): unknown {
-  return path.split(".").reduce<unknown>((acc, part) => {
-    if (typeof acc === "object" && acc !== null && part in acc) {
-      return (acc as Record<string, unknown>)[part];
-    }
-    return undefined;
-  }, obj);
+  initialSources: Source[];
+  initialSensors: MonitoringSensor[];
 }
 
 export default function ProjectsPageClient({ project, initialLocations, initialSources, initialSensors, }: Props) {
   const { colorMode } = useColorMode();
   const [activeTab, setActiveTab] = useState<'locations'|'sources'|'sensors'>('locations');
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc"|"desc" }|null>(null);
-  
-  
-  const pageSizeOptions = [10, 25, 50, 100];
 
   // derive theme tokens
-  const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
-  const cardBg  = colorMode === 'light' ? 'white'    : 'gray.700';
+  const cardBg  = colorMode === 'light' ? 'gray.200' : '#2c2c2c';
+  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
-  const text = colorMode === "light" ? "gray.800" : "gray.200";
-  const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
   const locActiveCount   = initialLocations.filter(l => l.active).length;
   const locInactiveCount = initialLocations.length - locActiveCount;
@@ -126,46 +104,13 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
       activeCount: senActiveCount,
       inactiveCount: senInactiveCount,
     },
-    { label: "Open Alerts", href: "/", value: 2, icons: [Bell, ] as const, },
+    { label: "Alerts", href: "/", value: 2, icons: [Bell, ] as const, },
   ];
-  const items = useMemo(() => {
-    switch (activeTab) {
-      case 'locations': return initialLocations;
-      case 'sources':   return initialSources;
-      case 'sensors':   return initialSensors;
-      default:          return [];
-    }
-  }, [activeTab, initialLocations, initialSources, initialSensors]);
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return items.filter(item => {
-      // pick the right “name” field per type:
-      let value = '';
-      if (activeTab === 'locations')  value = (item as Location).loc_name;
-      if (activeTab === 'sources')    value = (item as Source).source_name;
-      if (activeTab === 'sensors')    value = (item as MonitoringSensor).sensor_name;
-      return value.toLowerCase().includes(q);
-    });
-  }, [items, search, activeTab]);
-
-  const sorted = useMemo(() => {
-    if (!sortConfig) return filtered;
-    const { key, direction } = sortConfig;
-    return [...filtered].sort((a, b) => {
-      const av = getNestedValue(a, key), bv = getNestedValue(b, key);
-      if (av == null || bv == null) return av == null ? -1 : 1;
-      if (typeof av === 'number' && typeof bv === 'number') {
-        return direction === 'asc' ? av - bv : bv - av;
-      }
-      return direction === 'asc'
-        ? String(av).localeCompare(String(bv))
-        : String(bv).localeCompare(String(av));
-    });
-  }, [filtered, sortConfig]);
-
-  const totalPages = Math.ceil(sorted.length / pageSize);
-  const displayed  = sorted.slice((page - 1) * pageSize, page * pageSize);
+  const TYPE_COLORS: Record<string,string> = {
+    "Locations": "blue.600",
+    "Sensors":  "green.600",
+    "Sources":  "purple.600",
+  };
 
   function formatDate(dateString?: string | null) {
     if (!dateString) return '—';
@@ -178,7 +123,9 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
   }
   // Project Variables
   const [isProjEditOpen, setProjEditOpen] = useState(false);
-  const handleEditProject = () => { setProjEditOpen(true); };
+  const [isProjDelOpen, setProjDelOpen] = useState(false);
+  const handleEditProject = () => { setProjEditOpen(true); setPopoverOpen(false)};
+  const handleDeleteProject = () => { setProjDelOpen(true); setPopoverOpen(false)};
 
   // Location Variables
   const [isLocCreateOpen, setLocCreateOpen] = useState(false);
@@ -209,150 +156,209 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
   const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
   const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
-  const readings: string[] = [];
-
-  const requestSort = (key: string) => {
-    setSortConfig(sc =>
-      sc?.key===key && sc.direction==="asc"
-        ? { key, direction: "desc" }
-        : { key, direction: "asc" }
-    );
-  };
-  const leftStats = stats.slice(0, 2);
-  const rightStats = stats.slice(2, 4);
   
+  const [isPopoverOpen, setPopoverOpen] = useState(false);
+
   return (
-    <Box minH="100vh" p={6} bg={bg}>
-      <Breadcrumb crumbs={[{ label: "Dashboard", href: "/"}, { label: "Projects", href: "/projects"}, { label: `${project.project_number}`, href: `/projects/${project.project_number}`} ]}/>
-      <Box display="grid" gridTemplateColumns="3fr 2fr" w="100%" gap="4" mb="4">
-        {/* Metrics */}
-        <Box mb={3} border="inset" borderRadius="xl" p="12px" h="full">
-          {/* Title + Link */}
-          <Flex align="center" justify="space-between" w="100%">
-            <Heading size="3xl">{project.project_name}</Heading>
-            <IconButton
-              aria-label="Edit project"
-              variant="ghost"
-              size="sm"
-              onClick={handleEditProject}
-              _hover={{ bg: "gray.200" }}
-              _dark={{ _hover: { bg: "whiteAlpha.200" }}}
-            ><PencilSimple weight='bold'/></IconButton>
-          </Flex>
-
-          {/* Description */}
-          <HStack w="fit-content" gap="4" mt="2px">
-            <VStack align="start" gap="0">
-              <Text fontWeight="light" color={textSub}>Project Number</Text>
-              <Text fontWeight="medium">{project.project_number}</Text>
-            </VStack>
-            <VStack align="start" gap="0">
-              <Text fontWeight="light" color={textSub}>Start Date</Text>
-              <Text fontWeight="medium">{formatDate(project.start_date)}</Text>
-            </VStack>
-            <VStack align="start" gap="0">
-              <Text fontWeight="light" color={textSub}>End Date</Text>
-              <Text fontWeight="medium">{formatDate(project.end_date)}</Text>
-            </VStack>
-            <VStack align="start" gap="0">
-              <Text fontWeight="light" color={textSub}>Created At</Text>
-              <Text fontWeight="medium">{formatDate(project.created_at)}</Text>
-            </VStack>
-            <VStack align="start" gap="0">
-              <Text fontWeight="light" color={textSub}>Last Updated</Text>
-              <Text fontWeight="medium">{formatDate(project.last_updated)}</Text>
-            </VStack>
-          </HStack>
-          <Box mt={2}>
-            <Text fontWeight="light" color={textSub}>Description</Text>
-            <Text fontWeight="medium" fontSize="md">
-              {project.description}
-            </Text>
+    <Box px={4} py={{base: "2", md: "2"}} color={text}>
+      <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
+        <Heading fontSize="3xl">  
+          <Text as="span" color="orange.600">
+            {project.project_name.charAt(0)}
+          </Text>
+          <Text as="span" fontSize="lg" fontWeight="bold" color="orange.600">
+            {project.project_name.slice(1)}
+          </Text>
+          <Text as="span" ml={2} fontSize="md" fontWeight={"extralight"}>
+            {project.project_number}
+          </Text>
+          <Box
+            display="inline-block"
+            boxSize="14px"
+            borderRadius="full"
+            ml="2"
+            bg={project.active ? "green.400" : "red.400"}
+          />
+          <Box display={"inline-block"}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+              <Popover.Trigger asChild>
+                <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
+                  onClick={(e) => e.stopPropagation()}
+                  _hover={{
+                    backgroundColor: 'blackAlpha.300',
+                  }}
+                  _dark={{
+                    color: "white",
+                    _hover: {backgroundColor: "whiteAlpha.200"}
+                  }}
+                />
+              </Popover.Trigger>
+              <Popover.Positioner>
+                <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                  <Popover.Arrow>
+                    <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
+                  </Popover.Arrow>
+                  <Popover.Body height="100px" p={0}>
+                    <VStack gap={0} justifyContent={"center"} height="inherit">
+                      <Button variant="ghost" size="md" onClick={handleEditProject}>
+                        <PencilSimple />
+                      </Button>
+                      <Button variant="ghost" size="md" onClick={handleDeleteProject}>
+                        <Trash />
+                      </Button>
+                    </VStack>
+                  </Popover.Body>
+                </Popover.Content>
+              </Popover.Positioner>
+            </Popover.Root>
           </Box>
-        </Box>
-        <HStack gap={4} h="full">
-          {[leftStats, rightStats].map((group, colIdx) => (
-            <VStack key={colIdx} gap={4} flex="1">
-              {group.map((s) => {
-                if (Array.isArray(s.icons) && s.icons.length === 2) {
-                  const [UpIcon, DownIcon] = s.icons;
-                  return (
-                    <Link
-                      key={s.label}
-                      href={s.href || '#'}
-                      passHref
-                      style={{ display: 'contents' }}
-                    >
-                      <Box
-                        bg={cardBg}
-                        p={4}
-                        borderRadius="md"
-                        boxShadow="sm"
-                        _hover={{ boxShadow: 'md' }}
-                        w="100%"
-                      >
-                        <HStack gap="10%" mb={2}>
-                          <HStack gap={1}>
-                            <UpIcon size={24} weight="bold" color="green" />
-                            <Text fontSize="xl" fontWeight="bold" color={textSub}>
-                              {s.activeCount}
-                            </Text>
-                          </HStack>
-                          <HStack gap={1}>
-                            <DownIcon size={24} weight="bold" color="red" />
-                            <Text fontSize="xl" fontWeight="bold" color={textSub}>
-                              {s.inactiveCount}
-                            </Text>
-                          </HStack>
-                        </HStack>
-                        <Text fontSize="xl" color="gray.500">
-                          {s.label}
-                        </Text>
-                      </Box>
-                    </Link>
-                  );
-                }
-
-                // single-icon case
-                const IconComp = s.icons[0];
-                return (
-                  <Link
-                    key={s.label}
-                    href={s.href || '#'}
-                    passHref
-                    style={{ display: 'contents' }}
-                  >
-                    <Box
-                      bg={cardBg}
-                      p={4}
-                      borderRadius="md"
-                      boxShadow="sm"
-                      _hover={{ boxShadow: 'md' }}
-                      w="100%"
-                    >
-                      <HStack mb={2} gap={2}>
-                        <IconComp size={24} weight="bold" />
-                        <Text fontSize="xl" fontWeight="bold" color={textSub}>
-                          {s.value}
-                        </Text>
-                      </HStack>
-                      <Text fontSize="xl" color="gray.500">
-                        {s.label}
+        </Heading>
+        <Text fontSize={"md"}>
+          {project.description}
+        </Text>
+        <Text position="absolute" left={"50%"} transform="translateX(-50%)" textAlign={"center"}>
+          {formatDate(project.start_date)} - {formatDate(project.end_date)}
+        </Text>
+        <Text position="absolute" right="0" fontSize="sm">
+          Last Updated: {formatDate(project.last_updated)}
+        </Text>
+      </Flex>
+      
+      <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} mb={4} pr={2} maxW={{base: "full", md: "breakpoint-xl"}} whiteSpace={"nowrap"}>
+        {stats.map(s => {
+          const color = TYPE_COLORS[s.label] ?? text;
+          if (Array.isArray(s.icons) && s.icons.length === 2) {
+            const [UpIcon, DownIcon] = s.icons;
+            return (
+              <Link
+                key={s.label}
+                href={s.href || '#'}
+                passHref
+                style={{ display: 'contents' }}
+              >
+                <Box
+                  key={s.label}
+                  flex="1"
+                  borderLeft="4px solid"
+                  borderColor={color}
+                  bg={cardBg}
+                  position="relative"
+                  overflow="hidden"
+                  p={{base: "2", md: "4"}}
+                  borderRadius="md"
+                  boxShadow="sm"
+                  cursor="pointer"
+                  transition="transform 0.2s ease, box-shadow 0.2s ease, border-left-width 0.2s ease"
+                  _hover={{ transform: "translateY(-2px)", boxShadow: "lg", borderLeftWidth: "8px" }}
+                >
+                  <HStack align="center">
+                    <HStack>
+                      <UpIcon size={24} weight="bold" color="green" />
+                      <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={textSub}>
+                        {s.activeCount}
                       </Text>
-                    </Box>
-                  </Link>
-                );
-              })}
-            </VStack>
-          ))}
-        </HStack>
-      </Box>
+                    </HStack>
+                    <HStack>
+                      <DownIcon size={24} weight="bold" color="red" />
+                      <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={textSub}>
+                        {s.inactiveCount}
+                      </Text>
+                    </HStack>
+                    <Text ml="auto" fontSize="xl" color="gray.500">
+                      {s.label}
+                    </Text>
+                  </HStack>
+                  <Box
+                    as="div"
+                    position="absolute"
+                    bottom="0"
+                    left="0"
+                    width="100%"
+                    height="20px"
+                    opacity={0.1}
+                    color={color}
+                    pointerEvents="none"
+                  >
+                    <svg
+                      viewBox="0 0 200 20"
+                      preserveAspectRatio="none"
+                      width="100%"
+                      height="100%"
+                    >
+                      <path d="M0,0 C50,20 150,0 200,20 L200,20 L0,20 Z" fill="currentColor"/>
+                    </svg>
+                  </Box>
+                </Box>
+              </Link>
+            );
+          }
+
+          // single-icon case
+          const IconComp = s.icons[0];
+          return (
+            <Link
+              key={s.label}
+              href={s.href || '#'}
+              passHref
+              style={{ display: 'contents' }}
+            >
+              <Box
+                  key={s.label}
+                  flex="1"
+                  borderLeft="4px solid"
+                  borderColor={color}
+                  bg={cardBg}
+                  position="relative"
+                  overflow="hidden"
+                  p={{base: "2", md: "4"}}
+                  borderRadius="md"
+                  boxShadow="sm"
+                  cursor="pointer"
+                  transition="transform 0.2s ease, box-shadow 0.2s ease, border-left-width 0.2s ease"
+                  _hover={{ transform: "translateY(-2px)", boxShadow: "lg", borderLeftWidth: "8px" }}
+              >
+                <HStack mb={2} gap={2}>
+                  <IconComp size={24} weight="bold" />
+                  <Text fontSize="xl" fontWeight="bold" color={textSub}>
+                    {s.value}
+                  </Text>
+                  <Text ml="auto" fontSize="xl" color="gray.500">
+                    {s.label}
+                  </Text>
+                </HStack>
+                <Box
+                  as="div"
+                  position="absolute"
+                  bottom="0"
+                  left="0"
+                  width="100%"
+                  height="20px"
+                  opacity={0.1}
+                  color={color}
+                  pointerEvents="none"
+                >
+                  <svg
+                    viewBox="0 0 200 20"
+                    preserveAspectRatio="none"
+                    width="100%"
+                    height="100%"
+                  >
+                    <path d="M0,0 C50,20 150,0 200,20 L200,20 L0,20 Z" fill="currentColor"/>
+                  </svg>
+                </Box>
+              </Box>
+            </Link>
+          );
+        })}
+      </SimpleGrid>
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
           variant={activeTab === 'locations' ? 'solid' : 'ghost'}
           onClick={() => setActiveTab('locations')}
           borderWidth={"2px"}
-          borderColor={"black"}
+          borderColor={"blue.600"}
+          bg={activeTab === 'locations' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
+          color={"black"}
           _dark={{borderColor: "white"}}
           w="25%"
         >
@@ -362,7 +368,9 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
           variant={activeTab === 'sources' ? 'solid' : 'ghost'}
           onClick={() => setActiveTab('sources')}
           borderWidth={"2px"}
-          borderColor={"black"}
+          borderColor={"purple.600"}
+          bg={activeTab === 'sources' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
+          color={"black"}
           _dark={{borderColor: "white"}}
           w="25%"
         >
@@ -372,245 +380,32 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
           variant={activeTab === 'sensors' ? 'solid' : 'ghost'}
           onClick={() => setActiveTab('sensors')}
           borderWidth={"2px"}
-          borderColor={"black"}
+          borderColor={"green.600"}
+          bg={activeTab === 'sensors' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
+          color={"black"}
           _dark={{borderColor: "white"}}
           w="25%"
         >
           Sensors
         </Button>
       </HStack>
-      <Flex mb={4} align="center" position="relative" w="100%">
-        <Box position="absolute" left="50%" transform="translateX(-50%)" width={{ base: "100%", sm: "400px" }} px={4}>
-          <SearchInput value={search} onChange={setSearch}
-            placeholder={
-              activeTab === 'locations'
-                ? 'Search locations…'
-                : activeTab === 'sources'
-                ? 'Search sources…'
-                : 'Search sensors…'
-            }
-          />
-        </Box>
-        <Flex ml="auto" align="center" gap={4}>
-          <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
-          {activeTab === 'locations' && (
-          <Button onClick={handleNewLocation} borderRadius="md" boxShadow="sm" bg={"orange"} color={text}>
-            + Add New Location
-          </Button>
-          )}
-          {activeTab === 'sources' && (
-          <Button onClick={handleNewSource} borderRadius="md" boxShadow="sm" bg={"orange"} color={text}>
-            + Add New Source
-          </Button>
-          )}
-          {activeTab === 'sensors' && (
-          <Button onClick={handleNewSensor} borderRadius="md" boxShadow="sm" bg={"orange"} color={text}>
-            + Add New Sensor
-          </Button>
-          )}
-        </Flex>
-      </Flex>
+
       {/* ←––––– CONTENT PANELS –––––→ */}
       {activeTab === 'locations' && (
-        <DataTable columns={locationColumns} data={displayed as Location[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
-          renderRow={(l: Location) => (
-            <>
-              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/locations/${l.loc_name}`} passHref>{l.loc_name}</Link></Table.Cell>
-              <Table.Cell textAlign="center" textTransform="capitalize">{l.loc_number||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{l.details?.project_name ?? l.project_id}</Table.Cell>
-              <Table.Cell textAlign="center">{l.lat}</Table.Cell>
-              <Table.Cell textAlign="center">{l.lon}</Table.Cell>
-              <Table.Cell textAlign="center">{l.created_at?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{l.last_updated?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{l.last_inspected?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box display="inline-block" boxSize="10px" borderRadius="full" bg={l.active ? 'green.400' : 'red.400'} />
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box display={"inline-block"}>
-                  <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
-                    <Popover.Trigger asChild>
-                      <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="48px" width={"32px"}
-                        onClick={(e) => e.stopPropagation()}
-                        _hover={{
-                          backgroundColor: 'blackAlpha.300',
-                        }}
-                        _dark={{
-                          color: "white",
-                          _hover: {backgroundColor: "whiteAlpha.200"}
-                        }}
-                      >
-                        <DotsThreeVertical weight="bold"/>
-                      </IconButton>
-                    </Popover.Trigger>
-                    <Popover.Positioner>
-                      <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
-                        <Popover.Arrow>
-                          <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
-                        </Popover.Arrow>
-                        <Popover.Body height="100px" p={0}>
-                          <VStack gap={0} justifyContent={"center"} height="inherit">
-                            <Button variant="ghost" size="md" onClick={() => handleEditLocation(l)}>
-                              <PencilSimple />
-                            </Button>
-                            <Button variant="ghost" size="md" onClick={() => handleDeleteLocation(l)}>
-                              <Trash />
-                            </Button>
-                          </VStack>
-                        </Popover.Body>
-                      </Popover.Content>
-                    </Popover.Positioner>
-                  </Popover.Root>
-                </Box>
-              </Table.Cell>
-            </>
-          )}
-        />
+        <DataTable columns={locationColumns} color={"blue.600"} data={initialLocations} onCreate={handleNewLocation} onEdit={handleEditLocation} onDelete={handleDeleteLocation} name={activeTab} />
       )}
 
       {activeTab === 'sources' && (
-        <DataTable columns={sourcesColumns} data={displayed as Source[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
-          renderRow={(s: Source) => (
-            <>
-              <Table.Cell textAlign="center" textDecor={"underline"}><Link href={`/sources/${s.source_name}`}>{s.source_name}</Link></Table.Cell>
-              <Table.Cell textAlign="center">{s.details?.loc_name}</Table.Cell>
-              <Table.Cell textAlign="center">{s.folder_path}</Table.Cell>
-              <Table.Cell textAlign="center">{s.file_keyword}</Table.Cell>
-              <Table.Cell textAlign="center">{s.file_type}</Table.Cell>
-              <Table.Cell textAlign="center">{s.source_type}</Table.Cell>
-              <Table.Cell textAlign="center">{s.config}</Table.Cell>
-              <Table.Cell textAlign="center">{s.last_updated?.split("T")[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box boxSize="10px" borderRadius="full" bg={s.active? "green.400":"red.400"} display="inline-block" />
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box display={"inline-block"}>
-                  <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
-                    <Popover.Trigger asChild>
-                      <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="48px" width={"32px"}
-                        onClick={(e) => e.stopPropagation()}
-                        _hover={{
-                          backgroundColor: 'blackAlpha.300',
-                        }}
-                        _dark={{
-                          color: "white",
-                          _hover: {backgroundColor: "whiteAlpha.200"}
-                        }}
-                      >
-                        <DotsThreeVertical weight="bold"/>
-                      </IconButton>
-                    </Popover.Trigger>
-                    <Popover.Positioner>
-                      <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
-                        <Popover.Arrow>
-                          <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
-                        </Popover.Arrow>
-                        <Popover.Body height="100px" p={0}>
-                          <VStack gap={0} justifyContent={"center"} height="inherit">
-                            <Button variant="ghost" size="md" onClick={() => handleEditSource(s)}>
-                              <PencilSimple />
-                            </Button>
-                            <Button variant="ghost" size="md" onClick={() => handleDeleteSource(s)}>
-                              <Trash />
-                            </Button>
-                          </VStack>
-                        </Popover.Body>
-                      </Popover.Content>
-                    </Popover.Positioner>
-                  </Popover.Root>
-                </Box>
-              </Table.Cell>
-            </>
-          )}
-        />
+        <DataTable columns={sourcesColumns} color={"purple.600"} data={initialSources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} name={activeTab} />
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} data={displayed as MonitoringSensor[]} sortConfig={sortConfig} onSort={requestSort} page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} count={displayed.length} total={sorted.length} name={activeTab}
-          renderRow={(s: MonitoringSensor) => (
-            <>
-              <Table.Cell textAlign="center" textTransform="capitalize" textDecor={"underline"}><Link href={`/sensors/${s.sensor_name}`} passHref>{s.sensor_name}</Link></Table.Cell>
-              <Table.Cell textAlign="center" textTransform="capitalize">{s.sensor_type}</Table.Cell>
-              <Table.Cell textAlign="center">{s.details?.mon_source_name ?? s.mon_source_id}</Table.Cell>
-              <Table.Cell textAlign="center">{s.sensor_group_id ?? "None"}</Table.Cell>
-              <Table.Cell textAlign="center">{s.created_at?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">{s.last_updated?.split('T')[0]||"-"}</Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box>
-                  {readings && readings.length > 0 ? (
-                    <Line
-                      data={{
-                        labels: readings.map((_, i) => `${i + 1}`),
-                        datasets: [
-                          {
-                            data: readings,
-                            borderColor: accent,
-                            tension: 0.4,
-                            pointRadius: 0,
-                          },
-                        ],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: { x: { display: false }, y: { display: false } },
-                      }}
-                    />
-                  ) : (
-                    <Flex align="center" justify="center" h="100%">
-                      <Text>No Data Found</Text>
-                    </Flex>
-                  )}
-                </Box>
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box display="inline-block" boxSize="10px" borderRadius="full" bg={s.active ? 'green.400' : 'red.400'} />
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Box display={"inline-block"}>
-                  <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
-                    <Popover.Trigger asChild>
-                      <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="48px" width={"32px"}
-                        onClick={(e) => e.stopPropagation()}
-                        _hover={{
-                          backgroundColor: 'blackAlpha.300',
-                        }}
-                        _dark={{
-                          color: "white",
-                          _hover: {backgroundColor: "whiteAlpha.200"}
-                        }}
-                      >
-                        <DotsThreeVertical weight="bold"/>
-                      </IconButton>
-                    </Popover.Trigger>
-      
-                    <Popover.Positioner>
-                      <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
-                        <Popover.Arrow>
-                          <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1}  _dark={{borderColor: "whiteAlpha.600"}}/>
-                        </Popover.Arrow>
-                        <Popover.Body height="100px" p={0}>
-                          <VStack gap={0} justifyContent={"center"} height="inherit">
-                            <Button variant="ghost" size="md" onClick={() => handleEditSensor(s)}>
-                              <PencilSimple />
-                            </Button>
-                            <Button variant="ghost" size="md" onClick={() => handleDeleteSensor(s)}>
-                              <Trash />
-                            </Button>
-                          </VStack>
-                        </Popover.Body>
-                      </Popover.Content>
-                    </Popover.Positioner>
-                  </Popover.Root>
-                </Box>
-              </Table.Cell>
-            </>
-          )}
-        />
+        <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={activeTab} />
       )}
 
       {/* Wizards */}
       <ProjectEditModal isOpen={isProjEditOpen} project={project} onClose={() => { setProjEditOpen(false); }} />
+      <ProjectDeleteModal isOpen={isProjDelOpen} project={project} onClose={() => {setProjDelOpen(false); }} />
       <LocationCreateModal isOpen={isLocCreateOpen} projectId={project.id} onClose={() => { setSelectedLocation(undefined); setLocCreateOpen(false);}} />
       <LocationEditModal isOpen={isLocEditOpen} location={selectedLocation} onClose={() => { setSelectedLocation(undefined); setLocEditOpen(false); }} />
       <LocationDeleteModal isOpen={isLocDelOpen} onClose={() => { setLocToDelete(undefined); setLocDelOpen(false); }} location={locToDelete} />

@@ -2,7 +2,16 @@
 @import "./colors.css";
 
 body {
-  background-color: inherit;
+  font-family: var(--font-inter), var(--font-geist-sans), system-ui, sans-serif;
+  background: #d4d4d8;
+}
+
+html[style*="color-scheme: dark"] body {
+  background: #111111;
+}
+code, pre, kbd, samp {
+  /* monospace bits should use Geist Mono: */
+  font-family: var(--font-geist-mono), Menlo, monospace;
 }
 
 .shadow-md {
@@ -105,4 +114,25 @@ html[style*="color-scheme: dark"] .breadcrumb:hover {
   width: 10px;
   height: 10px;
   border-color: #A6A6A6;
+}
+
+.button-hover {
+  cursor: pointer;
+  padding: 4px;
+}
+
+.button-hover:hover {
+  background: var(--chakra-colors-gray-200);
+}
+
+html[style*="color-scheme: dark"] .button-hover:hover {
+  background: var(--chakra-colors-gray-600);
+}
+
+.dropdown-color {
+  background: white;
+}
+
+html[style*="color-scheme: dark"] .dropdown-color {
+  background: var(--chakra-colors-gray-800);
 }

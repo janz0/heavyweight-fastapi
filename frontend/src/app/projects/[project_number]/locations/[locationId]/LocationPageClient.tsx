@@ -10,7 +10,6 @@ import { FiMapPin } from 'react-icons/fi';
 import { Breadcrumb } from '@/app/components/Breadcrumb';
 import { LocationMap } from '@/app/components/LocationMap';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { SensorsList } from '@/app/components/SensorsList';
 import type { Location } from '@/types/location';
 import type { Data } from 'plotly.js';
 
@@ -345,7 +344,6 @@ export default function LocationPageClient({ projectName, location }: Props) {
                 </Box>
               </Flex>
             </Box>
-            <SensorsList locationId={location.id} />
           </TabPanel>
 
           <TabPanel p={4}>

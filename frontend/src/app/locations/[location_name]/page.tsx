@@ -6,6 +6,7 @@ import LocationPageClient from "./LocationPageClient";
 import { listSources } from "@/services/sources";
 import { listSensors } from "@/services/sensors";
 import { listMonitoringGroups } from "@/services/monitoringGroups";
+import { Location } from "@/types/location";
 
 interface PageProps {
   params: Promise<{ location_name: string }>;
@@ -13,7 +14,7 @@ interface PageProps {
 
 export default async function LocationPage({ params }: PageProps) {
   const { location_name } = await params;
-  const location = await getLocationByName(location_name);
+  const location : Location = await getLocationByName(location_name);
   const [initialSources, initialSensors, initialGroups] = await Promise.all([
     listSources(undefined, location.id),
     listSensors(undefined, location.id),

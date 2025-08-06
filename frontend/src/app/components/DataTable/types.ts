@@ -1,6 +1,4 @@
 // components/DataTable/types.ts
-import { ReactNode } from "react";
-
 export interface ColumnDef {
   key: string;
   label: string;
@@ -12,18 +10,21 @@ export interface SortConfig {
   direction: "asc" | "desc";
 }
 
-export interface DataTableProps<T> {
-  columns: ColumnDef[];
-  data: T[];
-  sortConfig: SortConfig | null;
-  onSort: (key: string) => void;
-  renderRow: (item: T) => ReactNode;
-
-  page?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
-
-  count?: number;
-  total?: number;
+export interface DataTableProps<T extends { id: string; }> {
   name?: string;
+  color?: string;
+
+  data: T[];
+  columns: ColumnDef[];
+  
+  onCreate: () => void;
+  onEdit: (item: T) => void;
+  onDelete: (item: T) => void;
+
+  selection?: {
+    selectedIds: Set<string>;
+    toggleSelection: (id: string) => void;
+    toggleAll: () => void;
+    allSelected: boolean;
+  };
 }
