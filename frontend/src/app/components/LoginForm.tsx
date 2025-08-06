@@ -1,11 +1,12 @@
 // File: app/components/LoginForm.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
 import { Box, Button, Container, Flex, Heading, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
+import { PasswordInput, PasswordStrengthMeter } from "@/components/ui/password-input";
 import Link from "next/link";
 import bgImg from '@/app/styles/main-screen.png'
-import { Eye, EyeSlash } from "phosphor-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook, FaTwitter, FaGithub } from "react-icons/fa";
 import { ColorModeButton } from "@/app/src/components/ui/color-mode";
@@ -17,52 +18,40 @@ import { createUser } from "@/services/auth";
 
 const ALLOWED_DOMAINS = ["rwhengineering.ca"];
 
+type FormValues = {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+};
+
 export function LoginForm() {
   const { signIn } = useAuth();
   const [mode, setMode] = useState<"login"|"register">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName,  setLastName]  = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // Colors
-  const sectionBg   = useColorModeValue("gray.100","gray.800");
-  const panelBg     = useColorModeValue("white","gray.700");
-  const inputBg     = useColorModeValue("white","gray.600");
-  const labelBg     = useColorModeValue("white","gray.700");
-  const labelColor  = useColorModeValue("gray.500","gray.300");
-  const textColor   = useColorModeValue("gray.800","gray.100");
-  const focusColor  = useColorModeValue("blue.500","blue.300");
-  const buttonLight = useColorModeValue(
-    "linear-gradient(to right, #4D4855, #000000, #4D4855)",
-    "linear-gradient(to right, #a399b3ff, #ffffffff, #a399b3ff)"  // whatever your dark‐mode gradient is
-  );
-  const buttonDark = useColorModeValue(
-    "linear-gradient(to right, #000000, #4D4855, #000000)",
-    "linear-gradient(to right, #ffffffff, #a399b3ff, #ffffffff)"  // whatever your dark‐mode gradient is
-  );
-  const invertedTextColor   = useColorModeValue("gray.100", "gray.800");
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formIsValid) {
-      setShowErrors(true)
-      return;
-    }
-    setShowErrors(false)
-    if (!ALLOWED_DOMAINS.some(d => email.toLowerCase().endsWith(`@${d}`))) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    defaultValues: { email: "", password: "" },
+  });
+  const onSubmit: SubmitHandler<FormValues> = async (data) => {
+    // 1) Domain check
+    const email = data.email.toLowerCase();
+    if (!ALLOWED_DOMAINS.some(d => email.endsWith(`@${d}`))) {
       toaster.create({
-        description: `Email must be one of: ${ALLOWED_DOMAINS.map(d=>`@${d}`).join(", ")}`,
+        description: `Email must end with ${ALLOWED_DOMAINS.map(d => `@${d}`).join(" or ")}`,
         type: "error",
         duration: 5000,
       });
       return;
     }
-    setLoading(true);
+
     try {
       if (mode === "login") {
-        const { access_token } = await loginUser(email, password);
+        // — LOGIN FLOW —
+        const { access_token } = await loginUser(email, data.password);
         signIn(access_token);
         toaster.create({
           description: "Logged in successfully",
@@ -70,13 +59,21 @@ export function LoginForm() {
           duration: 3000,
         });
       } else {
-        await createUser({ email, password, first_name: firstName, last_name: lastName });
+        // — REGISTER FLOW —
+        await createUser({
+          email,
+          password: data.password,
+          first_name: data.firstName!,
+          last_name: data.lastName!,
+        });
         toaster.create({
           description: "Account created successfully",
           type: "success",
           duration: 3000,
         });
-        const { access_token } = await loginUser(email, password);
+
+        // auto-login
+        const { access_token } = await loginUser(email, data.password);
         signIn(access_token);
         toaster.create({
           description: "Logged in as new user",
@@ -86,55 +83,49 @@ export function LoginForm() {
       }
     } catch (err) {
       const message =
-          err instanceof Error
-            ? err.message
-            : typeof err === "string"
-            ? err
-            : "An unexpected error occurred";
-
-        console.error(err);
-        toaster.create({
-          description:
-            mode === "login"
-              ? `Login failed: ${message}`
-              : `Registration failed: ${message}`,
-          type: "error",
-          duration: 5000,
-        });
-      } finally {
-        setLoading(false);
-      }
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      toaster.create({
+        description:
+          mode === "login"
+            ? `Login failed: ${message}`
+            : `Registration failed: ${message}`,
+        type: "error",
+        duration: 5000,
+      });
+    }
   };
+  // Colors
+  const sectionBg   = useColorModeValue("gray.100","gray.800");
+  const panelBg     = useColorModeValue("white","gray.700");
+  const inputBg     = useColorModeValue("white","gray.700");
+  const labelBg     = useColorModeValue("white","gray.700");
+  const labelColor  = useColorModeValue("gray.500","gray.300");
+  const textColor   = useColorModeValue("gray.800","gray.100");
+  const focusColor  = useColorModeValue("blue.500","blue.300");
+  const buttonLight = useColorModeValue(
+    "linear-gradient(to right, #4D4855, #000000, #4D4855)",
+    "linear-gradient(to right, #dfdde2ff, #ffffffff, #dfdde2ff)"
+  );
+  const buttonDark = useColorModeValue(
+    "linear-gradient(to right, #000000, #4D4855, #000000)",
+    "linear-gradient(to right, #ffffffff, #dfdde2ff, #ffffffff)"
+  );
+  const invertedTextColor   = useColorModeValue("gray.100", "gray.800");
+
+  const email = watch("email", "");
+  const password = watch("password", "");
+  const firstName = watch("firstName", "");
+  const lastName = watch("lastName", "");
+
   const [isPwdFocused, setIsPwdFocused] = useState(false);
   const [isUsrFocused, setIsUsrFocused] = useState(false);
   const [isFNFocused, setIsFNFocused] = useState(false);
   const [isLNFocused, setIsLNFocused] = useState(false);
+
   const floatingPwd = isPwdFocused || Boolean(password);
   const floatingUsr = isUsrFocused || Boolean(email);
   const floatingFN = isFNFocused || Boolean(firstName);
   const floatingLN = isLNFocused || Boolean(lastName);
-  const [showErrors,   setShowErrors]   = useState(false)   
-
-  // --- validation rules
-  const emailIsValid    = useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
-  const pwdIsValid      = useMemo(() => password.length >= 8,       [password]);
-  const firstIsValid    = useMemo(() => firstName.trim().length > 0, [firstName]);
-  const lastIsValid     = useMemo(() => lastName.trim().length > 0,  [lastName]);
-  const formIsValid     = mode === "login"
-    ? emailIsValid && pwdIsValid
-    : emailIsValid && pwdIsValid && firstIsValid && lastIsValid;
-
-  useEffect(() => {
-    setEmail("")
-    setPassword("")
-    setFirstName("")
-    setLastName("")
-    // if you want to clear focus flags too:
-    setIsUsrFocused(false)
-    setIsPwdFocused(false)
-    setIsFNFocused(false)
-    setIsLNFocused(false)
-  }, [mode])
 
   return (
     <Box as="section" bg={sectionBg}>
@@ -159,16 +150,14 @@ export function LoginForm() {
                 </Heading>
               </Box>
               <VStack gap={[2,4,6]} align="stretch">
-                <Box as="form" onSubmit={handleSubmit}>
+                <Box as="form" onSubmit={handleSubmit(onSubmit)}>
                   <VStack gap={4} align="stretch" position="relative">
                     {mode === "register" && (
                       <Flex gap={4} flexDir={"row"}>
                         <Box position="relative" flex="1">
-                          <Input
-                            onChange={e => {setFirstName(e.target.value); setShowErrors(false)}}
+                          <Input {...register("firstName", { required: "First Name Required"})}
                             onFocus={() => setIsFNFocused(true)}
                             onBlur={() => setIsFNFocused(false)}
-                            bg={inputBg}
                             _autofill={{
                               boxShadow: `0 0 0px 1000px ${inputBg} inset`,
                               WebkitTextFillColor: floatingFN ? `currentColor` : 'transparent',
@@ -176,8 +165,6 @@ export function LoginForm() {
                             _focus={{
                               borderColor: focusColor,
                             }}
-                            borderColor={showErrors && !firstIsValid ? "red.500" : undefined}
-                            required
                           />
                           <Text
                             as="label"
@@ -186,7 +173,6 @@ export function LoginForm() {
                             truncate
                             text-overflow="ellipsis"
                             left="0.75rem"
-                            w="calc(100% - 1rem)"
                             top={floatingFN ? "-25%" : "50%"}
                             transform={floatingFN ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
                             transformOrigin="left top"
@@ -198,18 +184,11 @@ export function LoginForm() {
                           >
                             First name
                           </Text>
-                          {showErrors && !firstIsValid && (
-                            <Text color="red.500" fontSize="sm" mt="1">
-                              Please enter your first name
-                            </Text>
-                          )}
                         </Box>
                         <Box position="relative" flex="1">
-                          <Input
-                            onChange={e => {setLastName(e.target.value); setShowErrors(false)}}
+                          <Input {...register("lastName", { required: "Last name required"})}
                             onFocus={() => setIsLNFocused(true)}
                             onBlur={() => setIsLNFocused(false)}
-                            bg={inputBg}
                             _autofill={{
                               boxShadow: `0 0 0px 1000px ${inputBg} inset`,
                               WebkitTextFillColor: floatingLN ? `currentColor` : 'transparent',
@@ -217,15 +196,12 @@ export function LoginForm() {
                             _focus={{
                               borderColor: focusColor,
                             }}
-                            borderColor={showErrors && !lastIsValid ? "red.500" : undefined}
-                            required
                           />
                           <Text
                             as="label"
                             htmlContent="lastName"
                             position="absolute"
                             truncate
-                            w="calc(100% - 1rem)"
                             left="0.75rem"
                             top={floatingLN ? "-25%" : "50%"}
                             transform={floatingLN ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
@@ -238,24 +214,23 @@ export function LoginForm() {
                           >
                             Last name
                           </Text>
-                          {showErrors && !lastIsValid && (
-                            <Text color="red.500" fontSize="sm" mt="1">
-                              Please enter your last name
-                            </Text>
-                          )}
                         </Box>
                       </Flex>
                     )}
+
                     {/** Email Label + Input */}
                     <Box position="relative">
                       <Input
                         type="email"
-                        value={email}
-                        pattern="^[a-zA-Z0-9._%+-]+@rwhengineering\.ca$"
-                        onChange={(e) => {setEmail(e.target.value); setShowErrors(false)}}
+                        {...register("email", {
+                          required: "Email required",
+                          pattern: {
+                            value: /\S+@\S+\.\S+/,
+                            message: "Invalid email"
+                          }
+                        })}
                         onFocus={() => setIsUsrFocused(true)}
                         onBlur={() => setIsUsrFocused(false)}
-                        bg={inputBg}
                         _autofill={{
                           boxShadow: `0 0 0px 1000px ${inputBg} inset`,
                           WebkitTextFillColor: floatingUsr ? `currentColor` : 'transparent',
@@ -263,8 +238,6 @@ export function LoginForm() {
                         _focus={{
                           borderColor: focusColor,
                         }}
-                        borderColor={showErrors && !emailIsValid ? "red.500" : undefined}
-                        required
                       />
                       <Text
                         as="label"
@@ -282,19 +255,12 @@ export function LoginForm() {
                       >
                         Email
                       </Text>
-                      {showErrors && !emailIsValid && (
-                        <Text color="red.500" fontSize="sm" mt="1">
-                          Enter a valid email address
-                        </Text>
-                      )}
                     </Box>
 
                     {/** Password Label + Input + toggle */}
                     <Box position="relative" mb={[-3, -5]}>
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => {setPassword(e.target.value); setShowErrors(false)}}
+                      <PasswordInput
+                        {...register("password", {required: "Password required", minLength: { value: 8, message: "Min 8 chars" } })}
                         onFocus={() => setIsPwdFocused(true)}
                         onBlur={() => setIsPwdFocused(false)}
                         _autofill={{
@@ -302,13 +268,10 @@ export function LoginForm() {
                           WebkitTextFillColor: floatingPwd ? `currentColor` : 'transparent',
                         }}
                         _focus={{
-                          bg: inputBg,
-                          borderColor: focusColor,
+                          borderColor: errors.password ? "Red" : focusColor,
                         }}
-                        borderColor={showErrors && !pwdIsValid ? "red.500" : undefined}
-                        required
-                        pr="3rem"
                       />
+                      {mode === 'register' && <PasswordStrengthMeter value={password.length} />}
                       <Text
                         as="label"
                         htmlContent="password"
@@ -325,38 +288,20 @@ export function LoginForm() {
                       >
                         Password
                       </Text>
-                      <IconButton
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
-                        onClick={() => setShowPassword((v) => !v)}
-                        position="absolute"
-                        right="0.5rem"
-                        top="50%"
-                        transform="translateY(-50%)"
-                        size={["sm","md"]}
-                        variant="ghost"
-                      >{showPassword ? <EyeSlash /> : <Eye />}</IconButton>
                     </Box>
-                    {showErrors && !pwdIsValid && (
-                      <Text color="red.500" fontSize="sm" mt="1">
-                        Password must be at least 8 characters
-                      </Text>
-                    )}
                     {/** Submit */}
                     <VStack mb={[2, 4]} mt={[2, 4]}>
                       <Button
                         type="submit"
-                        loading={loading}
+                        loading={isSubmitting}
                         loadingText={mode==="login"?"Logging in…":"creating..."}
                         w="full"
                         size={["sm","md"]}
                         h={["2rem"]}
-                        bgGradient={buttonLight}//"linear-gradient(to right, #ee7724, #d8363a, #dd3675, #b44593)"
+                        bgGradient={buttonLight}
                         boxShadow="0px 3px 6px #888888"
                         _hover={{
                           bgGradient: buttonDark
-                            //"linear-gradient(to right, #b44593, #dd3675, #d8363a, #ee7724)",
                         }}
                       >
                         {mode==="login" ? "Log in" : "Create Account"}
@@ -415,7 +360,7 @@ export function LoginForm() {
                     borderWidth={"2px"}
                     onClick={e => {e.preventDefault(); setMode(m => m==="login"?"register":"login");}}
                     _hover={
-                      {backgroundColor: "gray.200"/*"red.50"*/}
+                      {backgroundColor: "gray.200"}
                     }
                   >
                     Sign Up
@@ -431,7 +376,7 @@ export function LoginForm() {
                     borderWidth={"2px"}
                     onClick={e => {e.preventDefault(); setMode(m => m==="login"?"register":"login");}}
                     _hover={
-                      {backgroundColor: "gray.200"/*"red.50"*/}
+                      {backgroundColor: "gray.200"}
                     }
                   >
                     Sign in
@@ -441,19 +386,18 @@ export function LoginForm() {
                 </VStack>
               </Flex>
             </Box>
-
-            {/** Right (marketing) */}
+            {/** Right */}
             <Box
               flex="1"
               minW={["100%","50%"]}
-              bgGradient={buttonLight}//"linear-gradient(to right, #ee7724, #d8363a, #dd3675, #b44593)"
+              bgGradient={buttonLight}
               p={[4,6,10]}
               display={{base: "none", md: "flex"}}
               position="relative"
               alignItems="center"
               justifyContent="center"
             >
-              <ColorModeButton position="absolute" top="1rem" right="1rem" color="white" _dark={{color: "black"}}/>
+              <ColorModeButton position="absolute" top="1rem" right="1rem" color="white" _hover={{background: "gray.600"}} _dark={{color: "black", _hover: {background: "gray.300"}}}/>
               <VStack gap={4} textAlign="center" maxW="sm">
                 <Heading size="md" color={invertedTextColor}>Monitoring Application</Heading>
                 <Text fontSize="sm" color={invertedTextColor}>
