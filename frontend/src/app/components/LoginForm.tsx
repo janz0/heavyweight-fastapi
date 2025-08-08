@@ -97,7 +97,7 @@ export function LoginForm() {
   // Colors
   const sectionBg   = useColorModeValue("gray.100","gray.800");
   const panelBg     = useColorModeValue("white","gray.700");
-  const inputBg     = useColorModeValue("white","gray.700");
+  const inputBg     = useColorModeValue("white", "#3f3f46");
   const labelBg     = useColorModeValue("white","gray.700");
   const labelColor  = useColorModeValue("gray.500","gray.300");
   const textColor   = useColorModeValue("gray.800","gray.100");

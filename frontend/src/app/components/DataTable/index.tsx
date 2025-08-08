@@ -117,8 +117,8 @@ export default function DataTable<T extends { id: string; }>({
   const showAssignGroups = data.length > 0 && hasKey(data[0], "sensor_name");
 
   return (
-    <Box width="full" borderRadius={"md"} borderStyle={"initial"} borderWidth={"2px"} bg="whiteAlpha.50" _dark={{background: "gray.800"}} mb="2" p={4} boxShadow={"md"}>
-      <Flex mb={4} align="center" position="relative" w="100%">
+    <Box width="full">
+      <Flex mb={4} align="center" position="relative" w="100%" className="bg-card">
         <Heading fontSize="3xl" color={color}>  
           <Text as="span">
             {name.charAt(0).toUpperCase()}
@@ -144,26 +144,14 @@ export default function DataTable<T extends { id: string; }>({
             <MonitoringGroupAssignModal isOpen={isGrpAssignOpen} onClose={() => setGrpAssign(false)} />
           </>
           }
-          <Box minW="20ch" display={{base: "none", sm: "block"}}>
+          <Box display={{base: "none", sm: "block"}}>
             <SearchInput value={search} onChange={setSearch} placeholder={`Search ${name}...`} />
           </Box>
           <IconButton
-            display={{base: "block", sm: "none"}}
             aria-label="Search"
+            className="search-button"
             as={MagnifyingGlass}
-            variant="outline"
-            borderRadius="full"
-            borderColor={colorMode==="dark" ? "gray.700" : "gray.300"}
-            borderWidth="2px"
-            p={2}
-            h="fit-content"
-            size="md"
-            _hover={{ bg: "gray.100" }}
-            _active={{ bg: "gray.200" }}
-            _dark={{
-              _hover: { bg: "whiteAlpha.100" },
-              _active: { bg: "whiteAlpha.200" },
-            }}
+            
           />
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
           <Button onClick={onCreate} borderRadius="md" boxShadow="sm" bg="orange" color={text} size={{base: "xs", md:"sm"}}>
@@ -171,7 +159,7 @@ export default function DataTable<T extends { id: string; }>({
           </Button>
         </Flex>
       </Flex>
-      <Box maxH="60vh" overflowY="auto" overflowX="auto">
+      <Box maxH="60vh" overflowY="auto" overflowX="auto" className="bg-card">
         <Table.Root
           size="sm"
           interactive

@@ -618,7 +618,7 @@ export function MonitoringGroupAssignModal({
                           <Table.Row
                             key={o.id}
                             cursor="pointer"
-                            bg={selectedIds.has(o.id) ? "gray.100" : "undefined"}
+                            bg={selectedIds.has(o.id) ? "gray.50" : "undefined"}
                             _dark={{bg: selectedIds.has(o.id) ? "gray.900" : "undefined"}}
                             onClick={() => toggle(o.id)}
                           >
@@ -659,7 +659,7 @@ export function MonitoringGroupAssignModal({
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} color="red.600" fontWeight={"bold"}>Not Assigned</Box>
+                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"}>Not Assigned</Box>
                         {middleItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (
@@ -695,7 +695,7 @@ export function MonitoringGroupAssignModal({
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} color="green.600" fontWeight={"bold"}>Assigned</Text>
+                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"}>Assigned</Text>
                         {rightItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (

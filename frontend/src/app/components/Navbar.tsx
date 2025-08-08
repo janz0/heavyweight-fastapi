@@ -48,7 +48,7 @@ export default function Navbar() {
     {
       label: "Profile",
       href: "#",
-      onClick: () => setProfileOpen(open => !open),
+      onClick: () => {if (!isProfileOpen) setProfileOpen(true)},
       icon: User,
     },
   ];
@@ -113,7 +113,7 @@ export default function Navbar() {
               ))}
             </HStack>
             {isProfileOpen && 
-            <Box ref={profileRef} className={"dropdown-color"} position="absolute" top="100%" right="6" width="25vw" borderRadius="lg" boxShadow={"lg"} height="50vh">
+            <Box ref={profileRef} className={"dropdown-color"} position="absolute" top="100%" right="6" width="25vw" borderRadius="lg" boxShadow={"lg"} height="fit-content" pb={2}>
               <Text fontSize={12} p={4}>RWH Engineering</Text>
               <Separator />
               <HStack>
