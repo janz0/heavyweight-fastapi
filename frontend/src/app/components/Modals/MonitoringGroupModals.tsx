@@ -41,6 +41,7 @@ import { Source } from "@/types/source";
 import { listSensors } from "@/services/sensors";
 import { listSources } from "@/services/sources";
 import { Plus } from "phosphor-react";
+import { updateSensor } from "@/services/sensors";
 
 // ==============================
 // Shared Form Component
@@ -390,7 +391,7 @@ export function MonitoringGroupAssignModal({
   sensors?: MonitoringSensor[];
   sources?: Source[];
 }) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [autoComplete, setAutoComplete] = useState(false);
   const [isCreateGroupOpen, setCreateGrp] = useState(false);
@@ -398,7 +399,46 @@ export function MonitoringGroupAssignModal({
   const [localGroups, setLocalGroups] = useState<MonitoringGroup[]>(groups ?? []);
   const [localSensors, setLocalSensors] = useState<MonitoringSensor[]>(sensors ?? []);
   const [localSources, setLocalSources] = useState<Source[]>(sources ?? []);
-  
+
+  const router = useRouter();
+
+const handleApply = async () => {
+    if (!selectedId) {
+      toaster.create({ type: "warning", description: "Select a group first." });
+      return;
+    }
+
+    try {
+      // what was assigned to this group when modal opened / last compute
+      const before = new Set(sensorsInAllGroups.map((s) => s.id));
+      // what user wants assigned now (the right column)
+      const after = new Set(rightItems.map((s) => s.id));
+
+      const toAdd = rightItems.filter((s) => !before.has(s.id));
+      const toRemove = sensorsInAllGroups.filter((s) => !after.has(s.id));
+
+      await Promise.all([
+        // assign selected group
+        ...toAdd.map((s) =>
+          updateSensor(s.id, { sensor_group_id: selectedId })
+        ),
+        // unassign from this group
+        ...toRemove.map((s) =>
+          updateSensor(s.id, { sensor_group_id: null })
+        ),
+      ]);
+
+      toaster.create({ type: "success", description: "Sensor Group Updated" });
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+      toaster.create({
+        type: "error",
+        description: "Failed to update sensor assignments.",
+      });
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -453,35 +493,23 @@ export function MonitoringGroupAssignModal({
   );
 
   const autocompleteFilter = useMemo(
-    () => 
-      filtered ? filtered.filter((f) => !selectedIds.has(f.label)) : options,
-    [filtered, options, selectedIds]
-  )
+    () => filtered.filter(f => f.id !== selectedId),
+    [filtered, selectedId]
+  );
 
-  const selectedGroupIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
   const sensorsInAllGroups = useMemo(() => {
-    if (selectedGroupIds.length === 0) return [];
-
-    return localSensors.filter((s) => {
-      if (Array.isArray((s).sensor_group_id)) {
-        // every selected group must be in the sensor's group_ids
-        return selectedGroupIds.every((gid) => (s).sensor_group_id === gid);
-      } else {
-        // fallback: single group membership; only include when exactly one group is selected and it matches
-        return selectedGroupIds.length === 1 && s.sensor_group_id === selectedGroupIds[0];
-      }
+    if (!selectedId) return [];
+    return localSensors.filter(s => {
+      const gid = s.sensor_group_id as unknown;
+      return Array.isArray(gid) ? gid.includes(selectedId) : gid === selectedId;
     });
-  }, [localSensors, selectedGroupIds]);
+  }, [localSensors, selectedId]);
 
-  // Locations of selected groups
   const selectedLocs = useMemo(() => {
-    if (selectedGroupIds.length === 0) return [];
-    const locs = localGroups
-      .filter((g) => selectedIds.has(g.id))
-      .map((g) => g.mon_loc_id);
-    const unique = Array.from(new Set(locs));
-    return unique.length === 1 ? unique : [];
-  }, [localGroups, selectedIds, selectedGroupIds.length]);
+    if (!selectedId) return [];
+    const g = localGroups.find(grp => grp.id === selectedId);
+    return g ? [g.mon_loc_id] : [];
+  }, [localGroups, selectedId]);
 
   // Source IDs of selected locations
   const selectedSourceIds = useMemo(
@@ -496,14 +524,7 @@ export function MonitoringGroupAssignModal({
     return localSensors.filter((s) => selectedSourceIds.includes(s.mon_source_id));
   }, [localSensors, selectedSourceIds]);
 
-  const toggle = (id: string) => {
-    setSelectedIds(prev => {
-      const copy = new Set(prev);
-      if (copy.has(id)) copy.delete(id);
-      else copy.add(id);
-      return copy;
-    });
-  };
+  const selectGroup = (id: string) => setSelectedId(id);
   
   const [rightItems, setRightItems] = useState<MonitoringSensor[]>([]);
   const [middleItems, setMiddleItems] = useState<MonitoringSensor[]>([]);
@@ -566,27 +587,28 @@ export function MonitoringGroupAssignModal({
                     <Box position="relative">
                     <Box border="1px solid" px={2} py={1} mb={2} maxW="100%" overflowX="auto" overflowY="visible" whiteSpace="nowrap" bg="white" _dark={{ bg: "black" }}>
                       <Flex wrap="nowrap" align="center" gap={1}>
-                        {[...selectedIds].map(id => {
-                          const opt = options.find(o => o.id === id);
+                        {selectedId && (() => {
+                          const opt = options.find(o => o.id === selectedId);
                           return opt ? (
                             <Box
-                              key={id}
+                              key={selectedId}
                               pl={2}
                               py={1}
                               borderWidth={1}
                               display="flex"
                               alignItems="center"
                               width="fit-content"
+                              gap={1}
                             >
                               {opt.label}
-                              <CloseButton size="2xs" p={0} m={0} onClick={() => toggle(id)} />
+                              <CloseButton size="2xs" p={0} m={0} mr={"1px"} _hover={{}} onClick={() => setSelectedId(null)} />
                             </Box>
                           ) : null;
-                        })}
+                        })()}
                         <Input
                           variant="flushed"
                           borderBottomWidth={0}
-                          placeholder={selectedIds.size === 0 && !query ? "Search..." : ""}
+                          placeholder={!selectedId && !query ? "Search..." : ""}
                           value={query}
                           onChange={e => setQuery(e.target.value)}
                           flexGrow={1}
@@ -600,7 +622,7 @@ export function MonitoringGroupAssignModal({
                     <Table.Root size="sm" interactive position="absolute" top={"100%"} zIndex={2000} borderWidth={1} borderColor={"black"} left={0} pl={2} py={1} bg="white" _dark={{ bg: "black", borderColor: "white" }}>
                       <Table.Body>
                       {query.length > 0 && autoComplete && autocompleteFilter.map(o => (
-                        <Table.Row key={o.id} onClick={() => toggle(o.id)}>
+                        <Table.Row key={o.id} cursor="pointer" onMouseDown={(e) => {e.preventDefault(); selectGroup(o.id); setQuery("");}}>
                           <Table.Cell borderBottom={"black"}>
                             {o.label}
                           </Table.Cell>
@@ -618,15 +640,15 @@ export function MonitoringGroupAssignModal({
                           <Table.Row
                             key={o.id}
                             cursor="pointer"
-                            bg={selectedIds.has(o.id) ? "gray.50" : "undefined"}
-                            _dark={{bg: selectedIds.has(o.id) ? "gray.900" : "undefined"}}
-                            onClick={() => toggle(o.id)}
+                            bg={selectedId === o.id ? "gray.50" : undefined}
+                            _dark={{bg: selectedId === o.id ? "gray.900" : undefined}}
+                            onClick={() => selectGroup(o.id)}
                           >
                             <Table.Cell h="full">
                               <Flex>
                                 <Checkbox.Root
                                   size="sm"
-                                  checked={selectedIds.has(o.id)}
+                                  checked={selectedId === o.id}
                                   colorPalette="blue"
                                   mr={"10px"}
                                 >
@@ -722,7 +744,7 @@ export function MonitoringGroupAssignModal({
             </Dialog.Body>
 
             <Dialog.Footer>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleApply}>
                 Apply
               </Button>
               <Button variant="outline" onClick={onClose}>

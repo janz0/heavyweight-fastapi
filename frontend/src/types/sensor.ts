@@ -3,7 +3,7 @@ export interface MonitoringSensor {
   id: string;
   mon_source_id: string;
   source_name?: string;
-  sensor_group_id?: string;
+  sensor_group_id?: string | null;
   sensor_name: string;
   sensor_type: string;
   active: number;
@@ -17,7 +17,7 @@ export interface MonitoringSensor {
 
 export interface MonitoringSensorPayload {
   mon_source_id?: string;
-  sensor_group_id?: string;
+  sensor_group_id?: string | null;
   sensor_name?: string;
   sensor_type?: string;
   active?: number;
