@@ -19,6 +19,8 @@ import {
   Box,
   Table,
   Checkbox,
+  Icon,
+  HStack,
 } from "@chakra-ui/react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { X } from "lucide-react";
@@ -42,6 +44,7 @@ import { listSensors } from "@/services/sensors";
 import { listSources } from "@/services/sources";
 import { Plus } from "phosphor-react";
 import { updateSensor } from "@/services/sensors";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 // ==============================
 // Shared Form Component
@@ -564,15 +567,24 @@ const handleApply = async () => {
     );
     setRightItems(sensorsInAllGroups);
   }, [sensorsInAllGroups, eligibleByLocation]);
+  const moveMiddleToRight = (sensor: MonitoringSensor) => {
+    setMiddleItems(prev => prev.filter(s => s.id !== sensor.id));
+    setRightItems(prev => (prev.some(s => s.id === sensor.id) ? prev : [...prev, sensor]));
+  };
+
+  const moveRightToMiddle = (sensor: MonitoringSensor) => {
+    setRightItems(prev => prev.filter(s => s.id !== sensor.id));
+    setMiddleItems(prev => (prev.some(s => s.id === sensor.id) ? prev : [...prev, sensor]));
+  };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()} size="cover">
+    <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()} size="cover" >
       <Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner background={"whiteAlpha.400"}>
-          <Dialog.Content >
+        <Dialog.Positioner background={"blackAlpha.300"} _dark={{bg: "whiteAlpha.300"}}>
+          <Dialog.Content bg={"whiteAlpha.800"} _dark={{bg: "blackAlpha.800"}} w="70%" h="100%">
             <Dialog.Header justifyContent="center">
-              <Dialog.Title color="blue.500">Monitoring Groups</Dialog.Title>
+              <Dialog.Title color="blue.500"><Box className="bg-card" h="fit-content" p={2}>Monitoring Groups</Box></Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" onClick={onClose} />
               </Dialog.CloseTrigger>
@@ -580,7 +592,7 @@ const handleApply = async () => {
 
             <Dialog.Body>
               <DragDropContext onDragEnd={handleDragEnd}>
-                <Flex gap={4} justify="center" mx="auto" width="80%">
+                <Flex gap={4} justify="center" mx="auto">
                   {/* Left: searchable table for selection */
                   <Box position="relative" w="30%" p={2} bg="gray.100" border={"visible"} borderWidth={1} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
                     {/* Left: searchable table for selection with tags inside search */}
@@ -685,7 +697,7 @@ const handleApply = async () => {
                         {middleItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (
-                              <Box
+                              <HStack
                                 ref={prov.innerRef}
                                 {...prov.draggableProps}
                                 {...prov.dragHandleProps}
@@ -693,9 +705,11 @@ const handleApply = async () => {
                                 bg="white"
                                 _dark={{bg: "black"}}
                                 border="1px solid gray"
+                                alignItems={"center"}
                               >
                                 {sensor.sensor_name}
-                              </Box>
+                                <Icon as={LuChevronRight} ml="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveMiddleToRight(sensor); }}/>
+                              </HStack>
                             )}
                           </Draggable>
                         ))}
@@ -721,7 +735,7 @@ const handleApply = async () => {
                         {rightItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (
-                              <Box
+                              <HStack
                                 ref={prov.innerRef}
                                 {...prov.draggableProps}
                                 {...prov.dragHandleProps}
@@ -729,9 +743,11 @@ const handleApply = async () => {
                                 bg="white"
                                 _dark={{bg: "black"}}
                                 border="1px solid gray"
+                                alignItems={"center"}
                               >
+                                <Icon as={LuChevronLeft} mr="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveRightToMiddle(sensor); }}/>
                                 {sensor.sensor_name}
-                              </Box>
+                              </HStack>
                             )}
                           </Draggable>
                         ))}
@@ -743,7 +759,7 @@ const handleApply = async () => {
               </DragDropContext>
             </Dialog.Body>
 
-            <Dialog.Footer>
+            <Dialog.Footer pt={0}>
               <Button variant="outline" onClick={handleApply}>
                 Apply
               </Button>

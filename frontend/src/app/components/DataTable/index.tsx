@@ -173,7 +173,7 @@ export default function DataTable<T extends { id: string; }>({
           overflow="hidden"
           boxShadow="lg"
           maxH="600px"
-          minW={{ md: "container.md", lg: "container.lg" }}  
+          minW={{ md: "container.md", lg: "container.lg" }}
           p={4}
         >
           <Table.Header>
