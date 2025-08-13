@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex } from '@chakra-ui/react';
+import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection } from '@chakra-ui/react';
 import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
 import type { Source } from '@/types/source';
 import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
@@ -35,6 +35,44 @@ interface Props {
   initialSensors: MonitoringSensor[];
 }
 
+const chart = createListCollection({
+  items: [
+    { label: "Latitude", value: "latitude" },
+    { label: "Longitude", value: "longitude" },
+  ],
+})
+
+type NumericField = 'latitude' | 'longitude';
+
+function seedFromString(s: string) {
+  // FNV-1a style hash to a 32-bit int
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function mulberry32(a: number) {
+  return function () {
+    let t = (a += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function colorFromSeed(seed: string, mode: 'light' | 'dark') {
+  const h = seedFromString(seed) % 360;
+  const s = 65;
+  const l = mode === 'light' ? 45 : 60;
+  return `hsl(${h} ${s}% ${l}%)`;
+}
+
+type SeriesPerSensor = Record<
+  string,
+  { latitude: number[]; longitude: number[] }
+>;
+
 // Utility to format ISO date strings to "Month day, year"
 function formatDate(dateString?: string | null) {
   if (!dateString) return '—';
@@ -61,32 +99,65 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
   const [isSrcDelOpen, setSrcDelOpen] = useState(false);
   const handleEditSource = () => { setSrcEditOpen(true); setPopoverOpen(false) };
   const handleDeleteSource = () => { setSrcDelOpen(true); setPopoverOpen(false) };
+  const [selectedField, setSelectedField] = useState<NumericField>('latitude');
 
   const [isPopoverOpen, setPopoverOpen] = useState(false);
   // scrollbar colors
   const trackBg = useColorModeValue('gray.200', 'gray.700');
-  const thumbBg = useColorModeValue('purple.600', 'purple.300');
+  const thumbBg = useColorModeValue('gray.600', 'gray.400');
   const thumbBorder = useColorModeValue('gray.100', 'gray.800');
+  const { labels, perSensor } = useMemo(() => {
+    const points = 30;
+    const stepMinutes = 2;
+    const startTime = new Date(Date.now() - 60 * 60 * 1000);
 
-  const sampleData = useMemo(() => {
-    const labels = Array.from({ length: 12 }, (_, i) => `T-${11 - i}`);
-    const values = labels.map((_, i) => Math.sin(i * 0.5) * 10 + 50); // just example fluctuation
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Sample Metric',
-          data: values,
-          fill: false,
-          tension: 0.3,
-          borderColor: "black",
-          pointRadius: 3,
-          pointHoverRadius: 5,
-        },
-      ],
-    };
-  }, []);
+    // 1) common x-axis
+    const labels = Array.from({ length: points }, (_, i) =>
+      new Date(startTime.getTime() + i * stepMinutes * 60 * 1000).toLocaleTimeString(
+        [],
+        { hour: '2-digit', minute: '2-digit' }
+      )
+    );
 
+    // 2) per-sensor series (seeded random walk around Toronto-ish)
+    const baseLat = 43.6532;
+    const baseLon = -79.3832;
+    const perSensor: SeriesPerSensor = {};
+
+    initialSensors.forEach((s, idx) => {
+      const key = String(s.id ?? s.sensor_name ?? idx);
+      const rand = mulberry32(seedFromString(key));
+      let lat = baseLat + (rand() - 0.5) * 0.1; // up to ~±0.05°
+      let lon = baseLon + (rand() - 0.5) * 0.1;
+
+      const latArr: number[] = [];
+      const lonArr: number[] = [];
+      for (let i = 0; i < points; i++) {
+        lat += (rand() - 0.5) * 0.001;
+        lon += (rand() - 0.5) * 0.001;
+        latArr.push(Number(lat.toFixed(6)));
+        lonArr.push(Number(lon.toFixed(6)));
+      }
+      perSensor[key] = { latitude: latArr, longitude: lonArr };
+    });
+
+    return { labels, perSensor };
+  }, [initialSensors]);
+const datasets = useMemo(
+  () =>
+    initialSensors.map((s, idx) => {
+      const key = String(s.id ?? s.sensor_name ?? idx);
+      const series = perSensor[key];
+      return {
+        label: s.sensor_name,
+        data: series ? series[selectedField] : [],
+        borderColor: colorFromSeed(key, colorMode), // stable color per sensor
+        backgroundColor: 'transparent',
+        tension: 0.35,
+      };
+    }),
+  [initialSensors, perSensor, selectedField, colorMode]
+);
   const chartOptions: ChartOptions<'line'> = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -96,7 +167,7 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
         grid:  { display: false },
       },
       y: {
-        title:      { display: true, text: 'Value' },
+        title: { display: true, text: selectedField === 'latitude' ? 'Latitude (°)' : 'Longitude (°)' },
         beginAtZero: false,
       },
     },
@@ -104,7 +175,7 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
       legend:  { position: 'top' },
       tooltip: { enabled: true },
     },
-  }), []);
+  }), [selectedField]);
 
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
@@ -181,25 +252,24 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
         </Box>
       </Flex>
       <HStack>
-        <Box minW="25vw" h="50vh" borderRadius={"sm"} border={"initial"} borderColor="purple.600" borderWidth={"2px"} bg="whiteAlpha.50" mb="2" p={4} boxShadow={"md"}>
+        <Box minW="25vw" h="60vh" className="bg-card">
           {/* Chart placeholder */}
           <Table.ScrollArea borderWidth={1} borderRadius={"sm"} height="100%" bg="blackAlpha.200" css={{
             /* WebKit (Chrome/Safari) */
             '&::-webkit-scrollbar': {
-              width: '10px',
-              height: '10px',
+              width: '8px',
               color: trackBg,
               background: trackBg,
-              borderRadius: "md",
+              borderRadius: "xl",
             },
             '&::-webkit-scrollbar-track': {
               background: trackBg,
-              borderRadius: '8px',
+              borderRadius: '2px',
             },
             '&::-webkit-scrollbar-thumb': {
               backgroundColor: thumbBg,
-              borderRadius: '8px',
-              border: '2px solid',
+              borderRadius: 'xl',
+              border: '1px solid',
               borderColor: thumbBorder,
             },
             /* Firefox */
@@ -207,8 +277,8 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
           }}>
             <Table.Root showColumnBorder variant="line" stickyHeader interactive>
               <Table.Header>
-                <Table.Row bg="gray.100" fontSize={16}>
-                  <Table.ColumnHeader textAlign={"center"} color="green.600">
+                <Table.Row bg="gray.100" _dark={{bg: "gray.700"}} fontSize={16}>
+                  <Table.ColumnHeader textAlign={"center"}>
                     Sensor
                   </Table.ColumnHeader>
                   <Table.ColumnHeader textAlign={"center"}>
@@ -231,10 +301,42 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
             </Table.Root>
           </Table.ScrollArea>
         </Box>
-        <Box width="full" h="50vh" borderRadius={"md"} borderStyle={"initial"} borderColor="purple.600" borderWidth={"2px"} bg="whiteAlpha.50" mb="2" p={4} boxShadow={"md"}>
-          <Line data={sampleData} options={chartOptions} />
+        <Box width="full" h="60vh" className="bg-card">
+          <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={14} borderWidth={2}>
+            <Box className="bg-card" bg="gray.200" position="absolute" right={"2%"} top={3} p={1} m={0}>
+              <Select.Root collection={chart} w="150px" value={[selectedField]} 
+                onValueChange={(e) => {
+                  const next = e.value[0] as NumericField; // <- first selected value
+                  if (next) setSelectedField(next);
+                }}>
+                <Select.HiddenSelect />
+                <Select.Control>
+                  <Select.Trigger h="25px" minH={0}>
+                    <Select.ValueText fontSize={12}/>
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Portal>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {chart.items.map((c) => (
+                        <Select.Item item={c} key={c.value}>
+                          {c.label}
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+            </Box>
+            <Line data={{ labels, datasets }} options={chartOptions} />
+          </Box>
         </Box>
       </HStack>
+      <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"Sensors"}/>
       <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />
       <SourceDeleteModal isOpen={isSrcDelOpen} source={source} onClose={() => { setSrcDelOpen(false); }} />

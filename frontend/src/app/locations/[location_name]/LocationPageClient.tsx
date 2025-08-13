@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 
 import React, { useState, useEffect } from 'react';
-import { Box, HStack, Heading, Text, VStack, Button, Tabs, Popover, Flex, IconButton, Separator, Table } from '@chakra-ui/react';
+import { Box, HStack, Heading, Text, VStack, Button, Popover, Flex, IconButton, Separator } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
@@ -194,46 +194,23 @@ export default function LocationPageClient({ location, initialSources, initialSe
         </Box>
       </Flex>
       <HStack mb={3} h="50vh" align="stretch">
-        {/* Map View */}
-        <Tabs.Root defaultValue="map" orientation="horizontal" h="full" w="full" >
-          <Box border="inset" borderRadius="xl" overflow="hidden" h="full" w="full">
-            <Tabs.List>
-              <Tabs.Trigger value="map">Map</Tabs.Trigger>
-              <Tabs.Trigger value="chart">Chart</Tabs.Trigger>
-              <Tabs.Trigger value="alerts">Alerts</Tabs.Trigger>
-              <Tabs.Indicator />
-            </Tabs.List>
-            <Tabs.Content value="map" h="calc(100% - 40px)" p="0">
-              <MapContainer
-                center={[location.lat, location.lon]}
-                zoom={13}
-                scrollWheelZoom={false}
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <Marker position={[location.lat, location.lon]} />
-              </MapContainer>
-            </Tabs.Content>
-            <Tabs.Content value="chart">
-              <Box h="full">
-                {/* Chart placeholder */}
-                <Table.Root>
-                </Table.Root>
-              </Box>
-            </Tabs.Content>
-            <Tabs.Content value="alerts">
-              <Box h="full">
-                {/* Alerts placeholder */}
-                <Text>🚨 Alerts view coming soon</Text>
-              </Box>
-            </Tabs.Content>
-          </Box>
-        </Tabs.Root>
+        <Box className="bg-card" w="50%">
+          <MapContainer
+            center={[location.lat, location.lon]}
+            zoom={13}
+            scrollWheelZoom={false}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Marker position={[location.lat, location.lon]} />
+          </MapContainer>
+        </Box>
+        <Box className='bg-card' w="full"></Box>
       </HStack>
-      <Separator variant="solid" size="lg" marginY="12" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
+      <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
           variant={activeTab === 'sources' ? 'solid' : 'ghost'}

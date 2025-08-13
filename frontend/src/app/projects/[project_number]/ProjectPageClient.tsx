@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Button, Flex, Heading, IconButton, Popover, Text, VStack, HStack, SimpleGrid } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, IconButton, Popover, Text, VStack, HStack, SimpleGrid, Separator } from '@chakra-ui/react';
 import type { Project } from '@/types/project';
 import Link from 'next/link';
 import { Bell, ArrowCircleUp, ArrowCircleDown } from "phosphor-react";
@@ -71,7 +71,6 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
   const [activeTab, setActiveTab] = useState<'locations'|'sources'|'sensors'>('locations');
 
   // derive theme tokens
-  const cardBg  = colorMode === 'light' ? 'gray.200' : '#2c2c2c';
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const textSub = colorMode === 'light' ? 'gray.600' : 'gray.400';
 
@@ -223,12 +222,70 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
           Last Updated: {formatDate(project.last_updated)}
         </Text>
       </Flex>
-      
-      <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} mb={4} pr={2} maxW={{base: "full", md: "breakpoint-xl"}} whiteSpace={"nowrap"}>
-        {stats.map(s => {
-          const color = TYPE_COLORS[s.label] ?? text;
-          if (Array.isArray(s.icons) && s.icons.length === 2) {
-            const [UpIcon, DownIcon] = s.icons;
+      <HStack mb={3} align="stretch">
+        <SimpleGrid columns={{ base: 1, md: 2}} gap={{base: "2", md:"4"}} whiteSpace={"nowrap"} w="35%" className="bg-card">
+          {stats.map(s => {
+            const color = TYPE_COLORS[s.label] ?? text;
+            if (Array.isArray(s.icons) && s.icons.length === 2) {
+              const [UpIcon, DownIcon] = s.icons;
+              return (
+                <Link
+                  key={s.label}
+                  href={s.href || '#'}
+                  passHref
+                  style={{ display: 'contents' }}
+                >
+                  <Box
+                    key={s.label}
+                    borderLeftColor={color}
+                    className="d-card"
+                  >
+                    <HStack align="center" justifyContent={"space-between"}>
+                      <HStack mr="auto" justifyContent={"space-between"}>
+                        <HStack >
+                          <UpIcon size={24} weight="bold" color="green" />
+                          <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={textSub}>
+                            {s.activeCount}
+                          </Text>
+                        </HStack>
+                        <HStack>
+                          <DownIcon size={24} weight="bold" color="red" />
+                          <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={textSub}>
+                            {s.inactiveCount}
+                          </Text>
+                        </HStack>
+                      </HStack>
+                      <Text display="inline-flex" fontSize="clamp(0.75rem, 2.5vw, 1rem)" className="text-color" flexShrink={1} truncate alignItems={"center"} justifyContent="center">
+                        {s.label}
+                      </Text>
+                    </HStack>
+                    <Box
+                      as="div"
+                      position="absolute"
+                      bottom="0"
+                      left="0"
+                      width="100%"
+                      height="20px"
+                      opacity={0.3}
+                      color={color}
+                      pointerEvents="none"
+                    >
+                      <svg
+                        viewBox="0 0 200 20"
+                        preserveAspectRatio="none"
+                        width="100%"
+                        height="100%"
+                      >
+                        <path d="M0,0 C50,20 150,0 200,20 L200,20 L0,20 Z" fill="currentColor"/>
+                      </svg>
+                    </Box>
+                  </Box>
+                </Link>
+              );
+            }
+
+            // single-icon case
+            const IconComp = s.icons[0];
             return (
               <Link
                 key={s.label}
@@ -237,34 +294,19 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
                 style={{ display: 'contents' }}
               >
                 <Box
-                  key={s.label}
-                  flex="1"
-                  borderLeft="4px solid"
-                  borderColor={color}
-                  bg={cardBg}
-                  position="relative"
-                  overflow="hidden"
-                  p={{base: "2", md: "4"}}
-                  borderRadius="md"
-                  boxShadow="sm"
-                  cursor="pointer"
-                  transition="transform 0.2s ease, box-shadow 0.2s ease, border-left-width 0.2s ease"
-                  _hover={{ transform: "translateY(-2px)", boxShadow: "lg", borderLeftWidth: "8px" }}
+                    key={s.label}
+                    flex="1"
+                    borderLeftColor={color}
+                    className="d-card"
                 >
-                  <HStack align="center">
+                  <HStack align="center" justifyContent={"space-between"}>
                     <HStack>
-                      <UpIcon size={24} weight="bold" color="green" />
-                      <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={textSub}>
-                        {s.activeCount}
+                      <IconComp size={24} weight="bold" />
+                      <Text fontSize="xl" fontWeight="bold" color={textSub}>
+                        {s.value}
                       </Text>
                     </HStack>
-                    <HStack>
-                      <DownIcon size={24} weight="bold" color="red" />
-                      <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold" color={textSub}>
-                        {s.inactiveCount}
-                      </Text>
-                    </HStack>
-                    <Text ml="auto" fontSize="xl" color="gray.500">
+                    <Text display="inline-flex" fontSize="clamp(0.75rem, 2.5vw, 1rem)" className="text-color" flexShrink={1} truncate alignItems={"center"} justifyContent="center">
                       {s.label}
                     </Text>
                   </HStack>
@@ -275,7 +317,7 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
                     left="0"
                     width="100%"
                     height="20px"
-                    opacity={0.1}
+                    opacity={0.3}
                     color={color}
                     pointerEvents="none"
                   >
@@ -291,76 +333,21 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
                 </Box>
               </Link>
             );
-          }
-
-          // single-icon case
-          const IconComp = s.icons[0];
-          return (
-            <Link
-              key={s.label}
-              href={s.href || '#'}
-              passHref
-              style={{ display: 'contents' }}
-            >
-              <Box
-                  key={s.label}
-                  flex="1"
-                  borderLeft="4px solid"
-                  borderColor={color}
-                  bg={cardBg}
-                  position="relative"
-                  overflow="hidden"
-                  p={{base: "2", md: "4"}}
-                  borderRadius="md"
-                  boxShadow="sm"
-                  cursor="pointer"
-                  transition="transform 0.2s ease, box-shadow 0.2s ease, border-left-width 0.2s ease"
-                  _hover={{ transform: "translateY(-2px)", boxShadow: "lg", borderLeftWidth: "8px" }}
-              >
-                <HStack mb={2} gap={2}>
-                  <IconComp size={24} weight="bold" />
-                  <Text fontSize="xl" fontWeight="bold" color={textSub}>
-                    {s.value}
-                  </Text>
-                  <Text ml="auto" fontSize="xl" color="gray.500">
-                    {s.label}
-                  </Text>
-                </HStack>
-                <Box
-                  as="div"
-                  position="absolute"
-                  bottom="0"
-                  left="0"
-                  width="100%"
-                  height="20px"
-                  opacity={0.1}
-                  color={color}
-                  pointerEvents="none"
-                >
-                  <svg
-                    viewBox="0 0 200 20"
-                    preserveAspectRatio="none"
-                    width="100%"
-                    height="100%"
-                  >
-                    <path d="M0,0 C50,20 150,0 200,20 L200,20 L0,20 Z" fill="currentColor"/>
-                  </svg>
-                </Box>
-              </Box>
-            </Link>
-          );
-        })}
-      </SimpleGrid>
+          })}
+        </SimpleGrid>
+        <Box w="50%" className="bg-card"></Box>
+      </HStack>
+      <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
           variant={activeTab === 'locations' ? 'solid' : 'ghost'}
           onClick={() => setActiveTab('locations')}
-          borderWidth={"2px"}
           borderColor={"blue.600"}
-          bg={activeTab === 'locations' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
+          bg={activeTab === 'locations' ? 'blackAlpha.200' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "gray.200", bg: `${activeTab === 'locations' ? 'whiteAlpha.300' : 'undefined'}`}}
           w="25%"
+          className="bg-card"
         >
           Locations
         </Button>
@@ -369,9 +356,9 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
           onClick={() => setActiveTab('sources')}
           borderWidth={"2px"}
           borderColor={"purple.600"}
-          bg={activeTab === 'sources' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
+          bg={activeTab === 'sources' ? 'blackAlpha.200' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "gray.200", bg: `${activeTab === 'sources' ? 'whiteAlpha.300' : 'undefined'}`}}
           w="25%"
         >
           Sources
@@ -381,9 +368,9 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
           onClick={() => setActiveTab('sensors')}
           borderWidth={"2px"}
           borderColor={"green.600"}
-          bg={activeTab === 'sensors' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
+          bg={activeTab === 'sensors' ? 'blackAlpha.200' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "gray.200", bg: `${activeTab === 'sensors' ? 'whiteAlpha.300' : 'undefined'}`}}
           w="25%"
         >
           Sensors

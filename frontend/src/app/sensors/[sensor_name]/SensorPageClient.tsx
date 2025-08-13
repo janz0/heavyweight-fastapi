@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Box, Button, createListCollection, HStack, Heading, IconButton, Select, Tabs, Text, VStack, Flex, Popover } from '@chakra-ui/react';
-import { useColorMode } from '@/app/src/components/ui/color-mode';
+import React, { useState } from 'react';
+import { Box, Button, HStack, Heading, IconButton, Text, VStack, Flex, Popover, Table, Select, Portal, createListCollection } from '@chakra-ui/react';
+import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
 import type { MonitoringSensor } from '@/types/sensor';
 import { Chart as ChartJS, registerables } from 'chart.js';
 ChartJS.register(...registerables);
@@ -13,6 +13,13 @@ import { SensorEditModal, SensorDeleteModal } from '../../components/Modals/Sens
 interface SensorPageClientProps {
   sensor: MonitoringSensor;
 }
+
+const chart = createListCollection({
+  items: [
+    { label: "Latitude", value: "latitude" },
+    { label: "Longitude", value: "longitude" },
+  ],
+})
 
 // Utility to format ISO date strings to "Month day, year"
 function formatDate(dateString?: string | null) {
@@ -34,29 +41,46 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
   const handleEditSensor = () => { setSenEditOpen(true); setPopoverOpen(false)};
   const handleDeleteSensor = () => { setSenDelOpen(true); setPopoverOpen(false)};
 
-  const sampleData = [
-    { lat: 10, lon: 100 },
-    { lat: 12, lon: 105 },
-    { lat: 15, lon: 110 },
-    { lat: 14, lon: 108 },
-    { lat: 13, lon: 107 },
-    { lat: 16, lon: 112 },
-  ];
+  type SampleRow = {
+    timestamp: string;      // ISO string
+    latitude: number;
+    longitude: number;
+  };
 
-    // build the Radix collection
-  const fieldCollection = useMemo(
-    () =>
-      createListCollection({
-        items: [
-          { label: 'Latitude', value: 'lat' },
-          { label: 'Longitude', value: 'lon' },
-        ],
-      }),
-    []
-  );
+  type NumericField = 'latitude' | 'longitude';
 
-  // state to pick which field to show
-  const [selectedField, setSelectedField] = useState<'lat' | 'lon'>('lat');
+  // Simple random-walk around a starting coordinate
+  function makeSampleData(
+    startTime = new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+    points = 30,
+    stepMinutes = 2,
+    startLat = 43.6532,   // Toronto-ish
+    startLon = -79.3832
+  ): SampleRow[] {
+    const out: SampleRow[] = [];
+    let lat = startLat;
+    let lon = startLon;
+
+    for (let i = 0; i < points; i++) {
+      // tiny jitter so it looks plausible but stable
+      lat += (Math.random() - 0.5) * 0.001;
+      lon += (Math.random() - 0.5) * 0.001;
+
+      const t = new Date(startTime.getTime() + i * stepMinutes * 60 * 1000);
+      out.push({
+        timestamp: t.toISOString(),
+        latitude: Number(lat.toFixed(6)),
+        longitude: Number(lon.toFixed(6)),
+      });
+    }
+    return out;
+  }
+  // scrollbar colors
+  const trackBg = useColorModeValue('gray.200', 'gray.700');
+  const thumbBg = useColorModeValue('gray.600', 'gray.400');
+  const thumbBorder = useColorModeValue('gray.100', 'gray.800');
+  const [sampleData] = useState<SampleRow[]>(() => makeSampleData());
+  const [selectedField, setSelectedField] = useState<NumericField>('latitude');
   const [isPopoverOpen, setPopoverOpen] = useState(false);
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
@@ -123,99 +147,129 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
         </Text>
       </Flex>
       <HStack mb={3} h="50vh" align="stretch">
-        <Tabs.Root defaultValue="graph" orientation="horizontal" h="full" w="full" >
-          <Box border="inset" borderRadius="xl" overflow="hidden" h="full" w="full">
-            <Tabs.List>
-              <Tabs.Trigger value="graph">Graph</Tabs.Trigger>
-              <Tabs.Trigger value="chart">Chart</Tabs.Trigger>
-              <Tabs.Trigger value="alerts">Alerts</Tabs.Trigger>
-              <Tabs.Indicator />
-            </Tabs.List>
-            <Tabs.Content value="graph" h="calc(100% - 60px)" p="0">
-              <HStack mb={2} mt={4} px={4} border={"none"} outline={"none"}>
-                <Select.Root
-                  collection={fieldCollection}
-                  value={[selectedField]}
-                  borderColor={"black"}
-                  borderWidth={2}
-                  borderRadius={"2xl"}
-                  onValueChange={(e) =>
-                    setSelectedField(e.value[0] as 'lat' | 'lon')
-                  }
-                >
-                  <Select.HiddenSelect />
-
-                  <Select.Control>
-                    <Select.Trigger display="inline-flex" justifyContent={"center"} border={"none"} outline={"none"}>
-                      <Select.ValueText placeholder="Field…" />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                      <Select.Indicator />
-                    </Select.IndicatorGroup>
-                  </Select.Control>
-
+        <Box className="bg-card" w="fit-content">
+          <Table.ScrollArea borderWidth={1} borderRadius={"sm"} height="100%" bg="blackAlpha.200" overflowX={"hidden"} css={{
+            /* WebKit (Chrome/Safari) */
+            '&::-webkit-scrollbar': {
+              width: '8px',
+              color: trackBg,
+              background: trackBg,
+              borderRadius: "xl",
+            },
+            '&::-webkit-scrollbar-track': {
+              background: trackBg,
+              borderRadius: '2px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: thumbBg,
+              borderRadius: 'xl',
+              border: '1px solid',
+              borderColor: thumbBorder,
+            },
+            /* Firefox */
+            scrollbarColor: `${thumbBg} ${trackBg}`,
+          }}>
+          <Table.Root showColumnBorder variant="line" stickyHeader interactive>
+            <Table.Header>
+              <Table.Row bg="gray.100" _dark={{bg: "gray.700"}} fontSize={16}>
+                <Table.ColumnHeader textAlign={"center"}>
+                  Timestamp
+                </Table.ColumnHeader>
+                <Table.ColumnHeader textAlign={"center"}>
+                  Latitude
+                </Table.ColumnHeader>
+                <Table.ColumnHeader textAlign={"center"}>
+                  Longitude
+                </Table.ColumnHeader>
+              </Table.Row>   
+            </Table.Header>
+            <Table.Body>
+              {sampleData.map((row, i) => (
+                <Table.Row key={i}>
+                  <Table.Cell p={3}>
+                    {new Date(row.timestamp).toLocaleString()}
+                  </Table.Cell>
+                  <Table.Cell textAlign="right" p={3}>
+                    {row.latitude.toFixed(6)}
+                  </Table.Cell>
+                  <Table.Cell textAlign={"right"} p={3}>
+                    {row.longitude.toFixed(6)}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+              </Table.Body>
+            </Table.Root>
+          </Table.ScrollArea>
+        </Box>
+        <Box className="bg-card" minW={0} flex={"1 1 0%"}>
+          {/* --------------- */}
+          {/* the actual line chart */}
+          <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={8} borderWidth={2}>
+            <Box className="bg-card" bg="gray.200" position="absolute" right={"2%"} top={3} p={1} m={0}>
+              <Select.Root collection={chart} w="150px" value={[selectedField]} 
+                onValueChange={(e) => {
+                  const next = e.value[0] as NumericField;
+                  if (next) setSelectedField(next);
+                }}>
+                <Select.HiddenSelect />
+                <Select.Control>
+                  <Select.Trigger h="25px" minH={0}>
+                    <Select.ValueText fontSize={12}/>
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Portal>
                   <Select.Positioner>
                     <Select.Content>
-                      {fieldCollection.items.map((item) => (
-                        <Select.Item justifyContent={"center"} key={item.value} item={item}>
-                          {item.label}
+                      {chart.items.map((c) => (
+                        <Select.Item item={c} key={c.value}>
+                          {c.label}
+                          <Select.ItemIndicator />
                         </Select.Item>
                       ))}
                     </Select.Content>
                   </Select.Positioner>
-                </Select.Root>
-              </HStack>
-
-              {/* --------------- */}
-              {/* the actual line chart */}
-              <Box flex="1" h="calc(100% - 48px)">
-                <Line
-                  data={{
-                    labels: sampleData.map((_, i) => `#${i + 1}`),
-                    datasets: [
-                      {
-                        label:
-                          selectedField === 'lat' ? 'Latitude' : 'Longitude',
-                        data: sampleData.map((pt) => pt[selectedField]),
-                        fill: false,
-                        tension: 0.4,
-                        borderColor: accent,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                      x: { title: { display: true, text: 'Sample Point' } },
-                      y: {
-                        title: {
-                          display: true,
-                          text:
-                            selectedField === 'lat'
-                              ? 'Latitude Value'
-                              : 'Longitude Value',
-                        },
-                      },
+                </Portal>
+              </Select.Root>
+            </Box>
+            <Line
+              data={{
+                labels: sampleData.map(d =>
+                  new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                ),
+                datasets: [
+                  {
+                    label: `${sensor.sensor_name} — ${selectedField}`,
+                    data: sampleData.map((pt) => pt[selectedField]),
+                    fill: false,
+                    tension: 0.4,
+                    borderColor: accent,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  x: { title: { display: true, text: 'Time' },
+                      grid: {display: false}, },
+                  y: {
+                    title: {
+                      display: true,
+                      text: selectedField === 'latitude' ? 'Latitude (°)' : 'Longitude (°)',
                     },
-                  }}
-                />
-              </Box>
-            </Tabs.Content>
-            <Tabs.Content value="chart">
-              <Box h="full">
-                {/* Chart placeholder */}
-                <Text>📈 Chart view coming soon</Text>
-              </Box>
-            </Tabs.Content>
-            <Tabs.Content value="alerts">
-              <Box h="full">
-                {/* Alerts placeholder */}
-                <Text>🚨 Alerts view coming soon</Text>
-              </Box>
-            </Tabs.Content>
+                  },
+                },
+                plugins: {
+                  legend: {position: 'top'},
+                  tooltip: {enabled: true},
+                }
+              }}
+            />
           </Box>
-        </Tabs.Root>
+        </Box>
       </HStack>
       <SensorEditModal isOpen={isSenEditOpen} sensor={sensor} onClose={() => { setSenEditOpen(false); }} />
       <SensorDeleteModal isOpen={isSenDelOpen} sensor={sensor} onClose={() => { setSenDelOpen(false); }} />
