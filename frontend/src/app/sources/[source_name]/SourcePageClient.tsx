@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
-import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection } from '@chakra-ui/react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection, Checkbox } from '@chakra-ui/react';
 import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
 import type { Source } from '@/types/source';
 import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
@@ -158,6 +158,7 @@ const datasets = useMemo(
     }),
   [initialSensors, perSensor, selectedField, colorMode]
 );
+  const chartRef = useRef<ChartJS<"line">>(null);
   const chartOptions: ChartOptions<'line'> = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -172,11 +173,37 @@ const datasets = useMemo(
       },
     },
     plugins: {
-      legend:  { position: 'top' },
+      legend:  { display: false },
       tooltip: { enabled: true },
     },
   }), [selectedField]);
+const [visible, setVisible] = useState<boolean[]>(() =>
+  datasets.map(() => true) // start all checked
+);
 
+const toggleDataset = (idx: number) => {
+  setVisible((prev) => {
+    const next = [...prev];
+    next[idx] = !next[idx];
+    const ci = chartRef.current;
+    if (ci) {
+      ci.getDatasetMeta(idx).hidden = !next[idx];
+      ci.update();
+    }
+    return next;
+  });
+};
+
+const toggleAll = (check: boolean) => {
+  setVisible(datasets.map(() => check));
+  const ci = chartRef.current;
+  if (ci) {
+    datasets.forEach((_, idx) => {
+      ci.getDatasetMeta(idx).hidden = !check;
+    });
+    ci.update();
+  }
+};
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
@@ -252,8 +279,44 @@ const datasets = useMemo(
         </Box>
       </Flex>
       <HStack>
-        <Box minW="25vw" h="60vh" className="bg-card">
+        <Box width="full" h="60vh" className="bg-card">
+          <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={14} borderWidth={2}>
+            <Box className="bg-card" bg="gray.200" position="absolute" right={"2%"} top={3} p={1} m={0}>
+              <Select.Root collection={chart} w="150px" value={[selectedField]} 
+                onValueChange={(e) => {
+                  const next = e.value[0] as NumericField; // <- first selected value
+                  if (next) setSelectedField(next);
+                }}>
+                <Select.HiddenSelect />
+                <Select.Control>
+                  <Select.Trigger h="25px" minH={0}>
+                    <Select.ValueText fontSize={12}/>
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Portal>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {chart.items.map((c) => (
+                        <Select.Item item={c} key={c.value}>
+                          {c.label}
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+            </Box>
+            <Line ref={chartRef} data={{ labels, datasets }} options={chartOptions} />
+          </Box>
+
+        </Box>
+        <Box minW="15vw" h="60vh" className="bg-card">
           {/* Chart placeholder */}
+          {false &&
           <Table.ScrollArea borderWidth={1} borderRadius={"sm"} height="100%" bg="blackAlpha.200" css={{
             /* WebKit (Chrome/Safari) */
             '&::-webkit-scrollbar': {
@@ -300,39 +363,50 @@ const datasets = useMemo(
               </Table.Body>
             </Table.Root>
           </Table.ScrollArea>
-        </Box>
-        <Box width="full" h="60vh" className="bg-card">
-          <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={14} borderWidth={2}>
-            <Box className="bg-card" bg="gray.200" position="absolute" right={"2%"} top={3} p={1} m={0}>
-              <Select.Root collection={chart} w="150px" value={[selectedField]} 
-                onValueChange={(e) => {
-                  const next = e.value[0] as NumericField; // <- first selected value
-                  if (next) setSelectedField(next);
-                }}>
-                <Select.HiddenSelect />
-                <Select.Control>
-                  <Select.Trigger h="25px" minH={0}>
-                    <Select.ValueText fontSize={12}/>
-                  </Select.Trigger>
-                  <Select.IndicatorGroup>
-                    <Select.Indicator />
-                  </Select.IndicatorGroup>
-                </Select.Control>
-                <Portal>
-                  <Select.Positioner>
-                    <Select.Content>
-                      {chart.items.map((c) => (
-                        <Select.Item item={c} key={c.value}>
-                          {c.label}
-                          <Select.ItemIndicator />
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Positioner>
-                </Portal>
-              </Select.Root>
-            </Box>
-            <Line data={{ labels, datasets }} options={chartOptions} />
+          }
+          <Box h="full" overflowY="auto" bg="bg.subtle" borderWidth={1} borderRadius="md" p={2}>
+            <Heading size="sm" mb={2}>Sensors</Heading>
+            <VStack align="start" gap={1}>
+              {/* Select All */}
+              <HStack gap={2}>
+                <Checkbox.Root
+                  size="sm"
+                  checked={
+                    visible.every(Boolean)
+                      ? true
+                      : visible.every((v) => !v)
+                      ? false
+                      : "indeterminate"
+                  }
+                  onCheckedChange={(e) => toggleAll(e.checked === true)}
+                  colorPalette="blue"
+                >
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control cursor="pointer" />
+                </Checkbox.Root>
+                <Text fontSize="sm">Select All</Text>
+              </HStack>
+
+              {/* Individual sensors */}
+              {datasets.map((d, idx) => (
+                <HStack key={d.label} gap={2}>
+                  <Checkbox.Root
+                    size="sm"
+                    checked={visible[idx]}
+                    onCheckedChange={() => toggleDataset(idx)}
+                    colorPalette="blue"
+                  >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control
+                      cursor="pointer"
+                      borderColor={d.borderColor} // line color as border
+                      _checked={{ bg: d.borderColor, borderColor: d.borderColor }}
+                    />
+                  </Checkbox.Root>
+                  <Text fontSize="sm">{d.label}</Text>
+                </HStack>
+              ))}
+            </VStack>
           </Box>
         </Box>
       </HStack>

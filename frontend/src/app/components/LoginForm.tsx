@@ -7,6 +7,7 @@ import { Box, Button, Container, Flex, Heading, HStack, IconButton, Input, Text,
 import { PasswordInput, PasswordStrengthMeter } from "@/components/ui/password-input";
 import Link from "next/link";
 import bgImg from '@/app/styles/main-screen.png'
+import logoImg from '@/app/logoRWH.png'
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook, FaTwitter, FaGithub } from "react-icons/fa";
 import { ColorModeButton } from "@/app/src/components/ui/color-mode";
@@ -399,6 +400,13 @@ export function LoginForm() {
             >
               <ColorModeButton position="absolute" top="1rem" right="1rem" color="white" _hover={{background: "gray.600"}} _dark={{color: "black", _hover: {background: "gray.300"}}}/>
               <VStack gap={4} textAlign="center" maxW="sm">
+                <Box
+                  h="50px"
+                  w="150px"
+                  bgImage={`url(${logoImg.src})`}
+                  bgSize="cover"
+                  bgRepeat="no-repeat"
+                />
                 <Heading size="md" color={invertedTextColor}>Monitoring Application</Heading>
                 <Text fontSize="sm" color={invertedTextColor}>
                   Real-time insights & alerts at a glance

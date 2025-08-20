@@ -27,7 +27,7 @@ export default function Sidebar() {
   );
   const isHomeActive = pathname === "/", isProjectsActive = pathname === "/projects", isLocationsActive = pathname === "/locations", isSensorsActive = pathname === "/sensors", isSourcesActive = pathname === "/sources";
   return (
-    <Box as="nav" overflow="visible" zIndex={10} borderTopLeftRadius={"lg"} bg="gray.200" _dark={{background: "gray.800"}} position="relative" _hover={isOpen ? undefined : {backgroundColor: hoverBg}} w={sidebarWidth} transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
+    <Box as="nav" display={{base: "none", md: "initial"}} overflow="visible" zIndex={10} borderTopLeftRadius={"lg"} bg="gray.200" _dark={{background: "gray.800"}} position="relative" _hover={isOpen ? undefined : {backgroundColor: hoverBg}} w={sidebarWidth} transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
       onMouseLeave={() => {setIsBoxHovered(false); setShrinkHome(false)}}
         _after={{
           content: '""',

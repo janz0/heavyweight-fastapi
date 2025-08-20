@@ -47,7 +47,6 @@ export default function Navbar() {
     },
     {
       label: "Profile",
-      href: "#",
       onClick: () => {if (!isProfileOpen) setProfileOpen(true)},
       icon: User,
     },
@@ -92,41 +91,49 @@ export default function Navbar() {
           <Flex justify="flex-end">
             <HStack gap={2} align="right" margin={1} display={{ base: "none", md: "flex" }}>
               {authToken &&
-              links.map((item) => (
-                <>
-                  <Tooltip key={item.label} content={item.label} showArrow openDelay={100} closeDelay={0}>
-                    <Link
-                      as={NextLink}
-                      key={item.label}
-                      href={item.href}
-                      _hover={{ textDecoration: "none", color: "orange.400" }}
-                    >
-                      <IconButton
+                links.map((item) => {
+                  const button = (
+                    <IconButton
                         aria-label={item.label}
                         variant="ghost"
                         onClick={item.onClick ?? undefined}
                         color={item.active ? "orange.400" : undefined}
                       >{<Icon as={item.icon} />}</IconButton>
-                    </Link>
-                  </Tooltip>
-                </>
-              ))}
+                  );
+
+                  return (
+                    <Tooltip key={item.label} content={item.label} showArrow openDelay={100} closeDelay={0}>
+                      {item.href ? (
+                        <Link
+                          as={NextLink}
+                          href={item.href}
+                          _hover={{ textDecoration: "none", color: "orange.400" }}
+                        >
+                          {button}
+                        </Link>
+                      ) : (
+                        button
+                      )}
+                    </Tooltip>
+                  );
+                })}
+              
             </HStack>
             {isProfileOpen && 
-            <Box ref={profileRef} className={"dropdown-color"} position="absolute" top="100%" right="6" width="25vw" borderRadius="lg" boxShadow={"lg"} height="fit-content" pb={2}>
+            <Box ref={profileRef} className={"dropdown-color"} position="absolute" top="100%" right="6" width="20vw" borderWidth="1px" borderColor="border.muted" borderRadius="lg" boxShadow={"lg"} height="fit-content" pb={2}>
               <Text fontSize={12} p={4}>RWH Engineering</Text>
-              <Separator />
-              <HStack>
-                <Box p={2} w="50%">
+              <Separator borderColor={"fg.muted"}/>
+              <HStack gap={1}>
+                <Box p={2} pr={0} w="50%">
                   <Text fontSize={"xs"} color="gray" py={2} px={4}>Account</Text>
                   <VStack align={"left"} gap={0} fontSize={"sm"}>
-                    <HStack className="button-hover" px={2}><Circle><User /></Circle>My profile</HStack>
-                    <HStack className="button-hover" px={2}><Circle><User /></Circle>Organization</HStack>
-                    <HStack className="button-hover" px={2}><Circle><BsPeopleFill /></Circle>Teams</HStack>
-                    <HStack className="button-hover" px={2} onClick={signOut}><Circle><FiLogOut /></Circle>Log out</HStack>
+                    <HStack className="button-hover" pl={2}><Circle><User /></Circle>My profile</HStack>
+                    <HStack className="button-hover" pl={2}><Circle><User /></Circle>Organization</HStack>
+                    <HStack className="button-hover" pl={2}><Circle><BsPeopleFill /></Circle>Teams</HStack>
+                    <HStack className="button-hover" pl={2} onClick={signOut}><Circle><FiLogOut /></Circle>Log out</HStack>
                   </VStack>
                 </Box>
-                <Box p={2} w="50%">
+                <Box p={2} pl={0} w="50%">
                   <Text fontSize={"xs"} color="gray" py={2} px={4}>More</Text>
                   <VStack align={"left"} gap={0} fontSize={"sm"}>
                     <HStack className="button-hover" px={2}><Circle><BsPeopleFill /></Circle>Invite Members</HStack>
@@ -150,7 +157,7 @@ export default function Navbar() {
         </Flex>
       </Box>
       {/* ——————————————————————— MOBILE DRAWER ——————————————————————— */}
-      <Drawer.Root open={navOpen} onOpenChange={() => openNav}>
+      <Drawer.Root open={navOpen} onOpenChange={() => openNav} onInteractOutside={closeNav}>
         <Portal>
           <Drawer.Backdrop />
           <Drawer.Positioner>

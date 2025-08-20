@@ -120,11 +120,22 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
       year:  'numeric',
     }).format(date);
   }
+
+  function formatShortDate(dateString?: string | null) {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+  });
+}
+
   // Project Variables
   const [isProjEditOpen, setProjEditOpen] = useState(false);
   const [isProjDelOpen, setProjDelOpen] = useState(false);
-  const handleEditProject = () => { setProjEditOpen(true); setPopoverOpen(false)};
-  const handleDeleteProject = () => { setProjDelOpen(true); setPopoverOpen(false)};
+  const handleEditProject = () => { setProjEditOpen(true);};
+  const handleDeleteProject = () => { setProjDelOpen(true);};
 
   // Location Variables
   const [isLocCreateOpen, setLocCreateOpen] = useState(false);
@@ -155,31 +166,29 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
   const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
   const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
-  
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
-        <Heading fontSize="3xl">  
-          <Text as="span" color="orange.600">
+        <Heading fontSize="3xl">
+          <Text as="span" fontSize={{base:"md",md:"2xl"}} color="orange.600">
             {project.project_name.charAt(0)}
           </Text>
-          <Text as="span" fontSize="lg" fontWeight="bold" color="orange.600">
+          <Text as="span" fontSize={{base:"xs",md:"md",lg:"lg"}} fontWeight="bold" color="orange.600">
             {project.project_name.slice(1)}
           </Text>
-          <Text as="span" ml={2} fontSize="md" fontWeight={"extralight"}>
+          <Text as="span" ml={2} fontSize={{base:"xs",md:"sm",lg:"md"}} fontWeight={"extralight"}>
             {project.project_number}
           </Text>
           <Box
             display="inline-block"
-            boxSize="14px"
+            boxSize={{base: "6px", md:"12px"}}
             borderRadius="full"
             ml="2"
             bg={project.active ? "green.400" : "red.400"}
           />
           <Box display={"inline-block"}>
-            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
                   onClick={(e) => e.stopPropagation()}
@@ -212,18 +221,27 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
             </Popover.Root>
           </Box>
         </Heading>
-        <Text fontSize={"md"}>
+        <Text fontSize={{base:"sm", md: "md"}}>
           {project.description}
         </Text>
-        <Text position="absolute" left={"50%"} transform="translateX(-50%)" textAlign={"center"}>
+        <Text position="absolute" left="50%" transform="translateX(-50%)" textAlign={"center"} display={{base: "none", lg:"initial"}}>
           {formatDate(project.start_date)} - {formatDate(project.end_date)}
         </Text>
-        <Text position="absolute" right="0" fontSize="sm">
-          Last Updated: {formatDate(project.last_updated)}
-        </Text>
+        <VStack position="absolute" right="0" align="flex-end" fontSize={{base:"xs", md:"sm"}} gap="0">
+          <Text display={{base: "block", sm:"none"}}>
+            {formatShortDate(project.start_date)} - {formatShortDate(project.end_date)}
+          </Text>
+          <Text display={{base: "none", sm: "block", lg:"none"}}>
+            {formatDate(project.start_date)} - {formatDate(project.end_date)}
+          </Text>
+          <Text fontSize={{base:"xs", md:"md"}}>
+            Last Updated: {formatShortDate(project.last_updated)}
+          </Text>
+        </VStack>
+
       </Flex>
-      <HStack mb={3} align="stretch">
-        <SimpleGrid columns={{ base: 1, md: 2}} gap={{base: "2", md:"4"}} whiteSpace={"nowrap"} w="35%" className="bg-card">
+      <Flex mb={3} align="stretch" direction={{base: "column", md: "row"}} gap={2}>
+        <SimpleGrid columns={{ base: 1, md: 2}} gap={{base: "2", md:"4"}} alignSelf={"center"} whiteSpace={"nowrap"} w={{base: "full", md: "55%"}} className="bg-card">
           {stats.map(s => {
             const color = TYPE_COLORS[s.label] ?? text;
             if (Array.isArray(s.icons) && s.icons.length === 2) {
@@ -335,8 +353,8 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
             );
           })}
         </SimpleGrid>
-        <Box w="50%" className="bg-card"></Box>
-      </HStack>
+        <Box w="full" className="bg-card" alignSelf={"stretch"}></Box>
+      </Flex>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button

@@ -244,9 +244,5 @@ html[style*="color-scheme: dark"] .button-hover:hover {
 }
 
 .dropdown-color {
-  background: white;
-}
-
-html[style*="color-scheme: dark"] .dropdown-color {
-  background: var(--chakra-colors-gray-800);
+  background: var(--chakra-colors-bg-muted);
 }

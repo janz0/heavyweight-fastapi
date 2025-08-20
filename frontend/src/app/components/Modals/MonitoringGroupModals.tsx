@@ -3,6 +3,7 @@
 
 import React, { FormEvent, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import SearchInput from "../SearchInput";
 import {
   Button,
   CloseButton,
@@ -396,7 +397,6 @@ export function MonitoringGroupAssignModal({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [autoComplete, setAutoComplete] = useState(false);
   const [isCreateGroupOpen, setCreateGrp] = useState(false);
 
   const [localGroups, setLocalGroups] = useState<MonitoringGroup[]>(groups ?? []);
@@ -487,18 +487,26 @@ const handleApply = async () => {
     [localGroups]
   );
 
-  const filtered = useMemo(
-    () =>
-      options.filter((o) =>
-        o.label.toLowerCase().includes(query.toLowerCase())
-      ),
-    [options, query]
-  );
+  const filtered = useMemo(() => {
+    // Apply search filter first
+    let base = options.filter((o) =>
+      o.label.toLowerCase().includes(query.toLowerCase())
+    );
 
-  const autocompleteFilter = useMemo(
-    () => filtered.filter(f => f.id !== selectedId),
-    [filtered, selectedId]
-  );
+    // If no search query, sort with selected group(s) on top
+    if (!query) {
+      base = base.sort((a, b) => {
+        const aSelected = a.id === selectedId;
+        const bSelected = b.id === selectedId;
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.label.localeCompare(b.label);
+      });
+    }
+
+    return base;
+  }, [options, query, selectedId]);
+
 
   const sensorsInAllGroups = useMemo(() => {
     if (!selectedId) return [];
@@ -578,13 +586,13 @@ const handleApply = async () => {
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()} size="cover" >
+    <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()} size="cover">
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner background={"blackAlpha.300"} _dark={{bg: "whiteAlpha.300"}}>
-          <Dialog.Content bg={"whiteAlpha.800"} _dark={{bg: "blackAlpha.800"}} w="70%" h="100%">
+          <Dialog.Content bg={"bg.muted"} w="70%" h="100%" borderRadius={"md"}>
             <Dialog.Header justifyContent="center">
-              <Dialog.Title color="blue.500"><Box className="bg-card" h="fit-content" p={2}>Monitoring Groups</Box></Dialog.Title>
+              <Dialog.Title color="blue.500" p={4}>Monitoring Groups</Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" onClick={onClose} />
               </Dialog.CloseTrigger>
@@ -594,59 +602,15 @@ const handleApply = async () => {
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Flex gap={4} justify="center" mx="auto">
                   {/* Left: searchable table for selection */
-                  <Box position="relative" w="30%" p={2} bg="gray.100" border={"visible"} borderWidth={1} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
+                  <Box position="relative" w="30%" p={2} bg="gray.100" borderRadius={"md"} border={"visible"} borderWidth={1} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
                     {/* Left: searchable table for selection with tags inside search */}
                     <Box position="relative">
-                    <Box border="1px solid" px={2} py={1} mb={2} maxW="100%" overflowX="auto" overflowY="visible" whiteSpace="nowrap" bg="white" _dark={{ bg: "black" }}>
-                      <Flex wrap="nowrap" align="center" gap={1}>
-                        {selectedId && (() => {
-                          const opt = options.find(o => o.id === selectedId);
-                          return opt ? (
-                            <Box
-                              key={selectedId}
-                              pl={2}
-                              py={1}
-                              borderWidth={1}
-                              display="flex"
-                              alignItems="center"
-                              width="fit-content"
-                              gap={1}
-                            >
-                              {opt.label}
-                              <CloseButton size="2xs" p={0} m={0} mr={"1px"} _hover={{}} onClick={() => setSelectedId(null)} />
-                            </Box>
-                          ) : null;
-                        })()}
-                        <Input
-                          variant="flushed"
-                          borderBottomWidth={0}
-                          placeholder={!selectedId && !query ? "Search..." : ""}
-                          value={query}
-                          onChange={e => setQuery(e.target.value)}
-                          flexGrow={1}
-                          position="relative"
-                          onFocus={() => setAutoComplete(true)}
-                          onBlur={() => setAutoComplete(false)}
-                          _placeholder={{color: "gray.400"}}
-                        />
+                    
+                      <Flex wrap="nowrap" align="center" pb={2}>
+                        <SearchInput value={query} onChange={setQuery} placeholder={`Search ${name}...`} />
                       </Flex>
                     </Box>
-                    <Table.Root size="sm" interactive position="absolute" top={"100%"} zIndex={2000} borderWidth={1} borderColor={"black"} left={0} pl={2} py={1} bg="white" _dark={{ bg: "black", borderColor: "white" }}>
-                      <Table.Body>
-                      {query.length > 0 && autoComplete && autocompleteFilter.map(o => (
-                        <Table.Row key={o.id} cursor="pointer" onMouseDown={(e) => {e.preventDefault(); selectGroup(o.id); setQuery("");}}>
-                          <Table.Cell borderBottom={"black"}>
-                            {o.label}
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                      </Table.Body>
-                    </Table.Root>
-                    </Box>
                     <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white" _dark={{ bg: "black" }}>
-                      <Table.Header>
-                        <Table.ColumnHeader textAlign={"center"} bg="white" color="blue.500" fontWeight={"bold"} _dark={{ bg: "black" }}>Sensor Groups</Table.ColumnHeader>
-                      </Table.Header>
                       <Table.Body>
                         {filtered.map(o => (
                           <Table.Row
@@ -688,12 +652,13 @@ const handleApply = async () => {
                         overflowY="auto"
                         w="30%"
                         borderWidth={1}
+                        borderRadius={"md"}
                         p={2}
                         bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"}>Not Assigned</Box>
+                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"}>Not Assigned</Box>
                         {middleItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (
@@ -726,12 +691,13 @@ const handleApply = async () => {
                         overflowY="auto"
                         w="30%"
                         borderWidth={1}
+                        borderRadius={"md"}
                         p={2}
                         bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"}>Assigned</Text>
+                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"}>Assigned</Text>
                         {rightItems.map((sensor, index) => (
                           <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
                             {prov => (

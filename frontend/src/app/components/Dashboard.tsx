@@ -1,9 +1,9 @@
 // File: app/components/Dashboard.tsx
 "use client";
 
-import { Heading, Box, Flex, Text, VStack, SimpleGrid, Spinner, HStack, useBreakpointValue } from "@chakra-ui/react";
+import { Heading, Box, Flex, Text, SimpleGrid, Spinner, HStack, useBreakpointValue, Separator, Tabs } from "@chakra-ui/react";
 import { Line } from "react-chartjs-2";
-import { Info, Folder, MapPin, Gauge, Database } from "phosphor-react";
+import { Info, Folder, MapPin, Gauge, Database, WarningCircle, CalendarCheck } from "phosphor-react";
 import Link from "next/link";
 import { Tooltip } from "@/app/src/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
@@ -66,11 +66,10 @@ export default function Dashboard({
 
   return (
     <Box px={4} py={{base: "2", md: "2"}} className="text-color">
-      <VStack align="start" gap={1} mb={{base: "2", md: "4"}} alignItems={{base: "center", md: "normal"}}>
-        <Heading size={{base: "sm", md: "md"}}>Welcome <Text as="span" color="blue.600" _dark={{ color: "blue.300" }}>{firstName}</Text>!</Heading>
-      </VStack>
+      <Heading size={{base: "sm", md: "md"}} fontWeight={"light"} fontSize={14}>Welcome <Text as="span" /*color="blue.600" _dark={{ color: "blue.300" }}*/>{firstName}</Text>!</Heading>
       {/* Metrics */}
-      <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} mb={4} pr={2} maxW={{base: "full", md: "breakpoint-xl"}} whiteSpace={"nowrap"}>
+      <Separator variant="solid" size="lg" marginY="2" borderColor={'gray.200'} _dark={{borderColor: 'gray.600'}}/>
+      <SimpleGrid columns={{ base: 2, md: 4}} gap={{base: "2", md:"4"}} my={4} pr={2} maxW={{base: "full", md: "breakpoint-xl"}} whiteSpace={"nowrap"} mx="auto" justifyContent={"center"}>
         {stats.map(s => {
           const IconComp = s.icon;
           const color = TYPE_COLORS[s.label];
@@ -85,10 +84,10 @@ export default function Dashboard({
                 <HStack align="center" justify="space-between">
                   <HStack color={"fg.info"}>
                     <IconComp size={size} weight="bold"/>
-                    <Text fontSize={{base: "md", md: "xl"}} flexShrink={0} fontWeight="bold">{s.value}</Text>
+                    <Text fontSize={{base: "md", lg: "xl"}} flexShrink={0} fontWeight="bold">{s.value}</Text>
                   </HStack>
                   <HStack>
-                    <Text display="inline-flex" fontSize="clamp(0.75rem, 2.5vw, 1rem)" className="text-color" flexShrink={1} truncate alignItems={"center"} justifyContent="center">
+                    <Text display="inline-flex" fontSize={{base: "clamp(0.75rem, 2.5vw, 1rem)", md: "75%", lg: "md"}} className="text-color" flexShrink={1} truncate alignItems={"center"} justifyContent="center">
                       {label}
                       {s.label === 'Active Projects' && (
                         <Box ml={1}>
@@ -117,7 +116,7 @@ export default function Dashboard({
                   pointerEvents="none"
                 >
                   <svg
-                    viewBox="0 0 200 20"
+                    viewBox="0 0 200 15"
                     preserveAspectRatio="none"
                     width="100%"
                     height="100%"
@@ -132,34 +131,30 @@ export default function Dashboard({
       </SimpleGrid>
 
       {/* Main Chart & Side Panels */}
-      <Flex direction={['column', 'column', 'row']} gap={6}>
+      <Flex direction={['column', 'column', 'row']} gap={4}>
         {/* Chart */}
-        <Box className="bg-card" w="55%" h="fit-content">
+        <Box className="bg-card" minW={{base: "full", md: "4/6"}}>
           <Text fontSize="lg" mb={4}>Requests Per Second</Text>
           <Line data={chartData} options={{ maintainAspectRatio: true } } />
         </Box>
 
         {/* Alerts & Maintenance */}
-        <Flex direction="column" gap={6}>
-          <Box className="bg-card">
-            <Text fontSize="lg" mb={2}>Recent Alerts</Text>
-            <VStack align="start" gap={1} className="subtext-color">
-              <Text>• Server CPU usage is high</Text>
-              <Text>• Database response time is slow</Text>
-              <Text>• New user registered</Text>
-              <Text>• Low disk space on Server-2</Text>
-            </VStack>
-          </Box>
-
-          <Box className="bg-card">
-            <Text fontSize="lg" mb={2}>Upcoming Maintenance</Text>
-            <VStack align="start" gap={1} className="subtext-color">
-              <Text>• Configure alerts</Text>
-              <Text>• Connect data source</Text>
-              <Text>• View tutorial</Text>
-            </VStack>
-          </Box>
-        </Flex>
+        <Tabs.Root key={"outline"} defaultValue="alerts" variant={"outline"} className="bg-card" h="fit-content">
+          <Tabs.List>
+            <Tabs.Trigger value="alerts">
+              <WarningCircle />
+              Alerts
+            </Tabs.Trigger>
+            <Tabs.Trigger value="schedule">
+              <CalendarCheck />
+              Schedule
+            </Tabs.Trigger>
+          </Tabs.List>
+          <Tabs.Content value="alerts">
+          </Tabs.Content>
+          <Tabs.Content value="schedule">
+          </Tabs.Content>
+        </Tabs.Root>
       </Flex>
     </Box>
   );

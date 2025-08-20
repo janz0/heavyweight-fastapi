@@ -1,6 +1,6 @@
 // components/DataTable/index.tsx
-import React, { useMemo, useState } from "react";
-import { Table, Checkbox, Icon, Text, Flex, Button, Box, IconButton, Heading, Popover, VStack, Pagination, ButtonGroup } from "@chakra-ui/react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Table, Checkbox, Icon, Text, Flex, Button, Box, IconButton, Heading, Popover, VStack, Pagination, ButtonGroup, useToken } from "@chakra-ui/react";
 import { useColorMode, useColorModeValue } from "@/app/src/components/ui/color-mode";
 import type { DataTableProps } from "./types";
 import { CaretUp, CaretDown, MagnifyingGlass, Plus, DotsThreeVertical, PencilSimple, Trash } from "phosphor-react";
@@ -10,7 +10,6 @@ import PageSizeSelect from "../PageSizeSelect";
 import Link from "next/link";
 import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
-
 
 function getNestedValue<T>(obj: T, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, part) => {
@@ -43,6 +42,63 @@ export default function DataTable<T extends { id: string; }>({
   const [pageSize, setPageSize] = useState(10);
   const [selectAll, setSelectAll] = useState(false);
   const [isGrpAssignOpen, setGrpAssign] = useState(false);
+  const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
+
+  // ...inside your component:
+  const MIN_COL_PX = 80;
+
+  // Optional: if your column type supports an initial width, we'll use it.
+  // Otherwise default to 160px for each data column.
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`${name}-colWidths`);
+      if (saved) return JSON.parse(saved);
+    }
+    return Object.fromEntries(columns.map(c => [c.key, (c as { key: string; initialWidth?: number }).initialWidth ?? 160]));
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`${name}-colWidths`, JSON.stringify(colWidths));
+    }
+  }, [name, colWidths]);
+  
+  const resizingRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
+
+  const startResize = useCallback((e: React.PointerEvent, key: string) => {
+    e.preventDefault();
+    e.stopPropagation(); // don't trigger sort
+
+    const startX = e.clientX;
+    const startWidth = colWidths[key] ?? 160;
+    resizingRef.current = { key, startX, startWidth };
+
+    // visual feedback
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    const onMove = (ev: PointerEvent) => {
+      const r = resizingRef.current;
+      if (!r) return;
+      const delta = ev.clientX - r.startX;
+      const next = Math.max(MIN_COL_PX, r.startWidth + delta);
+      setColWidths(prev => ({ ...prev, [r.key]: next }));
+    };
+
+    const end = () => {
+      resizingRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", end);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", end, { once: true });
+
+    // Optional: capture pointer for smoother drags
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+  }, [colWidths, setColWidths]);
 
   // Search
   const [search, setSearch] = useState("");
@@ -159,191 +215,232 @@ export default function DataTable<T extends { id: string; }>({
           </Button>
         </Flex>
       </Flex>
-      <Box maxH="60vh" overflowY="auto" overflowX="auto" className="bg-card">
-        <Table.Root
-          size="sm"
-          interactive
-          showColumnBorder
-          stickyHeader
-          tableLayout="auto"
-          bg="white"
-          _dark={{background: "black"}}
-          borderBottomLeftRadius={"xl"}
-          borderTopLeftRadius={"xl"}
-          overflow="hidden"
-          boxShadow="lg"
-          maxH="600px"
-          minW={{ md: "container.md", lg: "container.lg" }}
-          p={4}
-        >
-          <Table.Header>
-            <Table.Row color={textSub}>
-              <Table.ColumnHeader w="6px" bg={color} p={0} m={0} />
-              <Table.ColumnHeader w="48px" textAlign="center" p={1}>
-                <Checkbox.Root
-                  size="sm"
-                  checked={selectAll}
-                  onCheckedChange={() => toggleAll()}
-                  colorPalette="blue"
-                >
-                  <Checkbox.HiddenInput />
-                  <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
-                </Checkbox.Root>
-              </Table.ColumnHeader>
-              {columns.map((col) => (
-                <Table.ColumnHeader
-                  key={col.key}
-                  onClick={() => requestSort(col.key)}
-                  cursor="pointer"
-                  textAlign="center"
-                  whiteSpace="nowrap"
-                  _first={{ borderTopLeftRadius: "6px" }}
-                  m={0} p={1}
-                >
-                  {col.label}
-                  {sortConfig?.key === col.key && (
-                    <Icon
-                      as={sortConfig.direction === "asc" ? CaretUp : CaretDown}
-                      boxSize={4}
-                      ml={1}
-                    />
-                  )}
-                </Table.ColumnHeader>
-              ))}
-              <Table.ColumnHeader
-                textAlign="center"
-                whiteSpace="nowrap"
-                _last={{ borderTopRightRadius: "6px" }}
-              >
-                Actions
-              </Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-
-          <Table.Body>
-            {visibleItems.map((item, i) => (
-              <Table.Row
-                key={i}
-                _hover={{ bg: row_bg }}
-                position="relative"
-                overflow="visible"
-                bg="transparent"
-              >
-                {/* Fake Column Cell (aligned left, transparent, doesn't affect layout) */}
-                <Table.Cell
-                  p={0}
-                  m={0}
-                  w="6px"
-                  position="relative"
-                >
-                  <Box
-                    position="absolute"
-                    top={-1}
-                    bottom={0}
-                    left={0}
-                    right={0}
-                    bg={color}
-                  />
-                </Table.Cell>
-                <Table.Cell py={1}>
-                  <Flex align="center" justify="center" h="100%">
-                  <Checkbox.Root size="sm" key={item.id} checked={selectedIds.has(item.id)} colorPalette="blue">
-                    <Checkbox.HiddenInput onClick={() => toggleSelection(item.id)}/>
+      <Box className="bg-card">
+        <Table.ScrollArea borderWidth="1px" maxH="50vh" borderRadius={"md"}>
+          <Table.Root
+            size="sm"
+            interactive
+            showColumnBorder
+            stickyHeader
+            tableLayout="fixed"
+            borderCollapse="separate"
+            borderSpacing={0}
+            _dark={{background: "black"}}
+            boxShadow="lg"
+            maxH="600px"
+            minW={{ md: "container.md", lg: "container.lg" }}
+            bg="white"
+            css={{
+              "& [data-sticky-edge='right']::after": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                right: 0,
+                width: "0.06rem",
+                backgroundColor: `gray.200`,
+                _dark: {backgroundColor: 'gray.800'},
+                pointerEvents: "none",
+              },
+            }}
+          >
+            <Table.Header>
+              <Table.Row color={textSub} bg="white">
+                <Table.ColumnHeader bg='bg' minW="36px" w="36px" textAlign="center" data-sticky-edge="right" position="sticky" left={0} zIndex={1} borderRight={"none"}
+                  _before={{
+                    content: '""',
+                    position: "absolute",
+                    top: "-1px",
+                    bottom: "-1px",
+                    left: 0,
+                    width: "3px",
+                    backgroundColor: resolvedColor,
+                    pointerEvents: "none",
+                  }}>
+                  <Checkbox.Root
+                    size="sm"
+                    checked={selectAll}
+                    onCheckedChange={() => toggleAll()}
+                    colorPalette="blue"
+                  >
+                    <Checkbox.HiddenInput />
+                    
                     <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
                   </Checkbox.Root>
-                  </Flex>
-                </Table.Cell>
-                {columns.map((col) => {
-                  const value = getNestedValue(item, col.key) ?? "";
+                </Table.ColumnHeader>
+                {columns.map((col, i) => (
+                  <Table.ColumnHeader
+                    bg='bg'
+                    key={col.key}
+                    onClick={() => requestSort(col.key)}
+                    cursor="pointer"
+                    textAlign="center"
+                    w={colWidths[col.key] ?? 160}
+                    m={0}
+                    {...(i === 0 ? { "data-sticky-edge": "right", position: "sticky", insetInlineStart: "36px", top: 0, borderRight: "none", borderLeft: "none", zIndex: 9 } : {position: "relative"})}
 
-                  if (col.key === "project_name")
-                    return (
-                    <Table.Cell key={col.key} p={0} px={2} textAlign="left" textDecor="underline">
-                      <Link href={`/${name}/${getNestedValue(item, "project_number")}`}>{String(value)}</Link>
-                    </Table.Cell>
-                  )
-                  if (col.key === "loc_name" || col.key === "sensor_name" || col.key === "source_name") {
-                    return (
-                      <Table.Cell key={col.key} p={0} px={2} textAlign="left" textDecor="underline">
-                        <Link href={`/${name}/${value}`}>{String(value)}</Link>
-                      </Table.Cell>
-                    );
-                  }
+                  >
+                    {col.label}
+                    {sortConfig?.key === col.key && (
+                      <Icon
+                        as={sortConfig.direction === "asc" ? CaretUp : CaretDown}
+                        boxSize={4}
+                        ml={1}
+                      />
+                    )}
+                    <Box
+                      role="separator"
+                      aria-orientation="vertical"
+                      tabIndex={0}
+                      onPointerDown={(e) => startResize(e, col.key)}
+                      onKeyDown={(e) => {
+                        // Accessible keyboard resize: ← / → by 10px
+                        if (e.key === "ArrowRight") setColWidths(w => ({ ...w, [col.key]: Math.max(MIN_COL_PX, (w[col.key] ?? 160) + 10) }));
+                        if (e.key === "ArrowLeft")  setColWidths(w => ({ ...w, [col.key]: Math.max(MIN_COL_PX, (w[col.key] ?? 160) - 10) }));
+                      }}
+                      position="absolute"
+                      top={0}
+                      right={'-4px'}            // a little outside so it’s easy to grab; adjust if needed
+                      bottom={0}
+                      width="8px"
+                      cursor="col-resize"
+                      _hover={{ bg: "blackAlpha.200" }}
+                      _dark={{ _hover: { bg: "whiteAlpha.200" } }}
+                      // Make sure dragging the handle doesn't sort:
+                      onClick={(e) => e.stopPropagation()}
+                      zIndex={1}
+                    />
+                  </Table.ColumnHeader>
+                ))}
+                <Table.ColumnHeader
+                  bg='bg'
+                  textAlign="center"
+                  whiteSpace="nowrap"
+                  w="100px"
+                >
+                  Actions
+                </Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
 
-                  if (col.key === "active") {
-                    return (
-                      <Table.Cell key={col.key} p={0} textAlign="center">
-                        <Box
-                          display="inline-block"
-                          boxSize="10px"
-                          borderRadius="full"
-                          bg={value ? "green.400" : "red.400"}
-                        />
-                      </Table.Cell>
-                    );
-                  }
+            <Table.Body>
+              {visibleItems.map((item, i) => (
+                <Table.Row
+                  key={i}
+                  _hover={{ bg: row_bg }}
+                  position="relative"
+                  
+                >
+                  <Table.Cell bg='bg' _hover={{ bg: row_bg }} py={1} position={"sticky"} data-sticky-edge="right" left={0} borderRight={"none"}
+                    _before={{
+                      content: '""',
+                      position: "absolute",
+                      top: "-1px",
+                      bottom: "-1px",
+                      left: 0,
+                      width: "3px",
+                      backgroundColor: resolvedColor,
+                      pointerEvents: "none",
+                    }}>
+                    <Flex align="center" justify="center" h="100%">
+                      <Checkbox.Root size="sm" key={item.id} checked={selectedIds.has(item.id)} colorPalette="blue">
+                        <Checkbox.HiddenInput onClick={() => toggleSelection(item.id)}/>
+                        <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
+                      </Checkbox.Root>
+                    </Flex>
+                  </Table.Cell>
+                  {columns.map((col) => {
+                    const value = getNestedValue(item, col.key) ?? "";
 
-                  if (typeof value === "string" && (col.key.includes("date") || col.key.includes("created") || col.key.includes("last"))) {
-                    return (
-                      <Table.Cell key={col.key} p={0} px={2} textAlign="center">
-                        {value.includes("T") ? value.split("T")[0] : value}
-                      </Table.Cell>
-                    );
-                  }
-                  if (typeof value === "number") {
-                    return (
-                      <Table.Cell key={col.key} p={0} px={2} textAlign="right">
-                        {value}
+                    if (col.key === "project_name")
+                      return (
+                      <Table.Cell bg='bg' _hover={{ bg: row_bg }} borderRight={"none"} key={col.key} overflow="hidden" p={0} px={2} textAlign="left" textDecor="underline" position="sticky" data-sticky-edge="right" insetInlineStart="36px">
+                        <Link href={`/${name}/${getNestedValue(item, "project_number")}`}>{String(value)}</Link>
                       </Table.Cell>
                     )
-                  }
-                  return (
-                    <Table.Cell key={col.key} p={0} px={2} textAlign="left">
-                      {String(value)}
-                    </Table.Cell>
-                  );
-                })}
-                <Table.Cell p={1} textAlign="center">
-                  <Box display={"inline-block"}>
-                    <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
-                      <Popover.Trigger asChild>
-                        <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="full"
-                          onClick={(e) => e.stopPropagation()}
-                          _hover={{
-                            backgroundColor: 'blackAlpha.300',
-                          }}
-                          _dark={{
-                            color: "white",
-                            _hover: {backgroundColor: "whiteAlpha.200"}
-                          }}
-                        >
-                          <DotsThreeVertical weight="bold"/>
-                        </IconButton>
-                      </Popover.Trigger>
-                      <Popover.Positioner>
-                        <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
-                          <Popover.Arrow>
-                            <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
-                          </Popover.Arrow>
-                          <Popover.Body height="100px" p={0}>
-                            <VStack gap={0} justifyContent={"center"} height="inherit">
-                              <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
-                                <PencilSimple />
-                              </Button>
-                              <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
-                                <Trash />
-                              </Button>
-                            </VStack>
-                          </Popover.Body>
-                        </Popover.Content>
-                      </Popover.Positioner>
-                    </Popover.Root>
-                  </Box>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+                    if (col.key === "loc_name" || col.key === "sensor_name" || col.key === "source_name") {
+                      return (
+                        <Table.Cell bg='bg' _hover={{ bg: row_bg }} borderRight={"none"} key={col.key} overflow="hidden" p={0} px={2} textAlign="left" textDecor="underline" position="sticky" data-sticky-edge="right" insetInlineStart="36px">
+                          <Link href={`/${name}/${value}`}>{String(value)}</Link>
+                        </Table.Cell>
+                      );
+                    }
+
+                    if (col.key === "active") {
+                      return (
+                        <Table.Cell key={col.key} p={0} overflow="hidden" textAlign="center">
+                          <Box
+                            display="inline-block"
+                            boxSize="10px"
+                            borderRadius="full"
+                            bg={value ? "green.400" : "red.400"}
+                          />
+                        </Table.Cell>
+                      );
+                    }
+
+                    if (typeof value === "string" && (col.key.includes("date") || col.key.includes("created") || col.key.includes("last"))) {
+                      return (
+                        <Table.Cell key={col.key} overflow="hidden" p={0} px={2} textAlign="center">
+                          {value.includes("T") ? value.split("T")[0] : value}
+                        </Table.Cell>
+                      );
+                    }
+                    if (typeof value === "number") {
+                      return (
+                        <Table.Cell key={col.key} overflow="hidden" p={0} px={2} textAlign="right">
+                          {value}
+                        </Table.Cell>
+                      )
+                    }
+                    return (
+                      <Table.Cell key={col.key} overflow="hidden" p={0} px={2} textAlign="left">
+                        {String(value)}
+                      </Table.Cell>
+                    );
+                  })}
+                  <Table.Cell p={1} textAlign="center">
+                    <Box display={"inline-block"}>
+                      <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
+                        <Popover.Trigger asChild>
+                          <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="full"
+                            onClick={(e) => e.stopPropagation()}
+                            _hover={{
+                              backgroundColor: 'blackAlpha.300',
+                            }}
+                            _dark={{
+                              color: "white",
+                              _hover: {backgroundColor: "whiteAlpha.200"}
+                            }}
+                          >
+                            <DotsThreeVertical weight="bold"/>
+                          </IconButton>
+                        </Popover.Trigger>
+                        <Popover.Positioner>
+                          <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                            <Popover.Arrow>
+                              <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
+                            </Popover.Arrow>
+                            <Popover.Body height="100px" p={0}>
+                              <VStack gap={0} justifyContent={"center"} height="inherit">
+                                <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
+                                  <PencilSimple />
+                                </Button>
+                                <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
+                                  <Trash />
+                                </Button>
+                              </VStack>
+                            </Popover.Body>
+                          </Popover.Content>
+                        </Popover.Positioner>
+                      </Popover.Root>
+                    </Box>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
       </Box>
       <Flex w="100%" justify="center" position="relative">
         <Pagination.Root p={2} count={filtered.length} pageSize={pageSize} defaultPage={1} onPageChange={(e) => setPage(e.page)}>
