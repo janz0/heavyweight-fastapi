@@ -3,7 +3,7 @@
 
 import React, { FormEvent, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import SearchInput from "../SearchInput";
+import SearchInput from "../UI/SearchInput";
 import {
   Button,
   CloseButton,
@@ -494,7 +494,7 @@ const handleApply = async () => {
     );
 
     // If no search query, sort with selected group(s) on top
-    if (!query) {
+    /*if (!query) {
       base = base.sort((a, b) => {
         const aSelected = a.id === selectedId;
         const bSelected = b.id === selectedId;
@@ -502,7 +502,7 @@ const handleApply = async () => {
         if (!aSelected && bSelected) return 1;
         return a.label.localeCompare(b.label);
       });
-    }
+    }*/
 
     return base;
   }, [options, query, selectedId]);
@@ -590,56 +590,57 @@ const handleApply = async () => {
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner background={"blackAlpha.300"} _dark={{bg: "whiteAlpha.300"}}>
-          <Dialog.Content bg={"bg.muted"} w="70%" h="100%" borderRadius={"md"}>
+          <Dialog.Content bg={"bg.muted"} w={{base: "100%", md: "70%"}} h="100%" borderRadius={"md"}>
             <Dialog.Header justifyContent="center">
-              <Dialog.Title color="blue.500" p={4}>Monitoring Groups</Dialog.Title>
+              <Dialog.Title color="blue.500" p={{base: 1, md: 4}}>Monitoring Groups</Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" onClick={onClose} />
               </Dialog.CloseTrigger>
             </Dialog.Header>
 
-            <Dialog.Body>
+            <Dialog.Body pb={2}>
               <DragDropContext onDragEnd={handleDragEnd}>
-                <Flex gap={4} justify="center" mx="auto">
+                <Flex gap={{base: 2, md: 4}} direction={{base: "column", md: "row"}} justify="center" mx="auto" >
                   {/* Left: searchable table for selection */
-                  <Box position="relative" w="30%" p={2} bg="gray.100" borderRadius={"md"} border={"visible"} borderWidth={1} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
+                  <Box position="relative" w={{base: "100%", md: "30%"}} h={{base:"30vh", md: "70vh"}} p={2} bg="gray.100" borderRadius={"md"} border={"visible"} borderWidth={2} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
                     {/* Left: searchable table for selection with tags inside search */}
                     <Box position="relative">
-                    
-                      <Flex wrap="nowrap" align="center" pb={2}>
-                        <SearchInput value={query} onChange={setQuery} placeholder={`Search ${name}...`} />
+                      <Flex wrap="nowrap" align="center" pb={2} overflow="hidden">
+                        <SearchInput value={query} onChange={setQuery} placeholder={`Search Groups...`}/>
                       </Flex>
                     </Box>
-                    <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white" _dark={{ bg: "black" }}>
-                      <Table.Body>
-                        {filtered.map(o => (
-                          <Table.Row
-                            key={o.id}
-                            cursor="pointer"
-                            bg={selectedId === o.id ? "gray.50" : undefined}
-                            _dark={{bg: selectedId === o.id ? "gray.900" : undefined}}
-                            onClick={() => selectGroup(o.id)}
-                          >
-                            <Table.Cell h="full">
-                              <Flex>
-                                <Checkbox.Root
-                                  size="sm"
-                                  checked={selectedId === o.id}
-                                  colorPalette="blue"
-                                  mr={"10px"}
-                                >
-                                  <Checkbox.HiddenInput />
-                                  <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} _dark={{ _hover: {borderColor: "white"}}} />
-                                </Checkbox.Root>
-                                {o.label}
-                              </Flex>
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Root>
-                    <Box position="absolute" right="5" bottom="5">
-                      <Button onClick={() => setCreateGrp(true)} borderRadius="md" boxShadow="sm" bg="orange" size={{base: "xs", md:"sm"}}>
+                    <Box maxH="18vh" overflowY="auto">
+                      <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white" _dark={{ bg: "black" }} >
+                        <Table.Body>
+                          {filtered.map(o => (
+                            <Table.Row
+                              key={o.id}
+                              cursor="pointer"
+                              bg={selectedId === o.id ? "gray.50" : undefined}
+                              _dark={{bg: selectedId === o.id ? "gray.900" : undefined}}
+                              onClick={() => {if (selectedId != o.id) selectGroup(o.id); else selectGroup('');}}
+                            >
+                              <Table.Cell h="full">
+                                <Flex>
+                                  <Checkbox.Root
+                                    size="sm"
+                                    checked={selectedId === o.id}
+                                    colorPalette="blue"
+                                    mr={"10px"}
+                                  >
+                                    <Checkbox.HiddenInput />
+                                    <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} _dark={{ _hover: {borderColor: "white"}}} />
+                                  </Checkbox.Root>
+                                  {o.label}
+                                </Flex>
+                              </Table.Cell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table.Root>
+                    </Box>
+                    <Box justifySelf={"right"} py={2} pt={3}>
+                      <Button onClick={() => setCreateGrp(true)} borderRadius="md" boxShadow="sm" color="black" bg="orange" size={{base: "xs", md:"sm"}}>
                         <Plus/><Text display={{base: "none", md: "block"}}>Add New</Text>
                       </Button>
                     </Box>
@@ -648,37 +649,42 @@ const handleApply = async () => {
                   <Droppable droppableId="middle">
                     {provided => (
                       <Box
-                        h="65vh"
-                        overflowY="auto"
-                        w="30%"
-                        borderWidth={1}
+                        h={{base:"20vh", md: "70vh"}}
+                        w={{base: "100%", md: "30%"}}
+                        borderWidth={2}
                         borderRadius={"md"}
                         p={2}
                         bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
                       >
-                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"}>Not Assigned</Box>
-                        {middleItems.map((sensor, index) => (
-                          <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
-                            {prov => (
-                              <HStack
-                                ref={prov.innerRef}
-                                {...prov.draggableProps}
-                                {...prov.dragHandleProps}
-                                p={2}
-                                bg="white"
-                                _dark={{bg: "black"}}
-                                border="1px solid gray"
-                                alignItems={"center"}
-                              >
-                                {sensor.sensor_name}
-                                <Icon as={LuChevronRight} ml="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveMiddleToRight(sensor); }}/>
-                              </HStack>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
+                        <Box
+                          maxH="100%"
+                          overflowY="auto"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"} mb={2}>Not Assigned</Box>
+                          {middleItems.map((sensor, index) => (
+                            <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
+                              {prov => (
+                                <HStack
+                                  ref={prov.innerRef}
+                                  {...prov.draggableProps}
+                                  {...prov.dragHandleProps}
+                                  p={2}
+                                  mb={0.5}
+                                  bg="white"
+                                  _dark={{bg: "black"}}
+                                  border="1px solid gray"
+                                  alignItems={"center"}
+                                >
+                                  {sensor.sensor_name}
+                                  <Icon as={LuChevronRight} ml="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveMiddleToRight(sensor); }}/>
+                                </HStack>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </Box>
                       </Box>
                     )}
                   </Droppable>
@@ -687,37 +693,41 @@ const handleApply = async () => {
                   <Droppable droppableId="right">
                     {provided => (
                       <Box
-                        h="65vh"
-                        overflowY="auto"
-                        w="30%"
-                        borderWidth={1}
+                        h={{base:"20vh", md: "70vh"}}
+                        w={{base: "100%", md: "30%"}}
+                        borderWidth={2}
                         borderRadius={"md"}
                         p={2}
                         bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
                       >
-                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"}>Assigned</Text>
-                        {rightItems.map((sensor, index) => (
-                          <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
-                            {prov => (
-                              <HStack
-                                ref={prov.innerRef}
-                                {...prov.draggableProps}
-                                {...prov.dragHandleProps}
-                                p={2}
-                                bg="white"
-                                _dark={{bg: "black"}}
-                                border="1px solid gray"
-                                alignItems={"center"}
-                              >
-                                <Icon as={LuChevronLeft} mr="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveRightToMiddle(sensor); }}/>
-                                {sensor.sensor_name}
-                              </HStack>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
+                        <Box
+                          maxH="100%"
+                          overflowY="auto"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"} mb={2}>Assigned</Text>
+                          {rightItems.map((sensor, index) => (
+                            <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
+                              {prov => (
+                                <HStack
+                                  ref={prov.innerRef}
+                                  {...prov.draggableProps}
+                                  {...prov.dragHandleProps}
+                                  p={2}
+                                  bg="white"
+                                  _dark={{bg: "black"}}
+                                  border="1px solid gray"
+                                  alignItems={"center"}
+                                >
+                                  <Icon as={LuChevronLeft} mr="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveRightToMiddle(sensor); }}/>
+                                  {sensor.sensor_name}
+                                </HStack>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </Box>
                       </Box>
                     )}
                   </Droppable>

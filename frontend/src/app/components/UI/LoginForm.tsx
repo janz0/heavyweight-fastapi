@@ -13,7 +13,7 @@ import { FaFacebook, FaTwitter, FaGithub } from "react-icons/fa";
 import { ColorModeButton } from "@/app/src/components/ui/color-mode";
 import { useAuth } from "@/lib/auth";
 import { loginUser, } from "@/services/auth";
-import { useColorModeValue } from "../src/components/ui/color-mode";
+import { useColorModeValue } from "../../src/components/ui/color-mode";
 import { toaster } from "@/components/ui/toaster"
 import { createUser } from "@/services/auth";
 

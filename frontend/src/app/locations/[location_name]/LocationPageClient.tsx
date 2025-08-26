@@ -18,7 +18,9 @@ import { listMonitoringGroups } from '@/services/monitoringGroups';
 import type { MonitoringGroup } from '@/types/monitoringGroup';
 import { LocationEditModal, LocationDeleteModal } from '../../components/Modals/LocationModals';
 import ChecklistViewer from '@/app/components/CheckListViewer';
-import { LocationMap } from '@/app/components/LocationMap';
+import { LocationMap } from '@/app/components/UI/LocationMap';
+import { ChecklistCreateModal } from '@/app/components/Modals/ChecklistCreateModal';
+
 interface LocationPageClientProps {
   location: Location;
   initialSources: Source[];
@@ -103,6 +105,7 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
   const [isPopoverOpen, setPopoverOpen] = useState(false);
+  const [isChecklistModalOpen, setChecklistModalOpen] = useState(false);
 
   useEffect(() => {
     listMonitoringGroups(location.id)
@@ -200,7 +203,7 @@ export default function LocationPageClient({ location, initialSources, initialSe
         </Box>
       </Flex>
       <HStack mb={3} h="50vh" align="stretch">
-        <Box className="bg-card" w="50%" overflow={"hidden"}>
+        <Box className="bg-card" w="160vw" overflow={"hidden"}>
             <LocationMap
               lat={location.lat}
               lon={location.lon}
@@ -268,7 +271,12 @@ export default function LocationPageClient({ location, initialSources, initialSe
       {activeTab === 'groups' && (
         <DataTable columns={groupColumns} data={initialGroups} onCreate={handleNewGrp} onEdit={handleEditGroup} onDelete={handleDeleteGroup} name={activeTab} />
       )}
-
+      <Button
+        colorScheme="yellow"
+        onClick={() => setChecklistModalOpen(true)}
+      >
+        Add Checklist
+      </Button>
       <SourceCreateModal isOpen={isSrcCreateOpen} onClose={() => { setSrcCreateOpen(false); setSelectedSource(undefined);  } } />
       <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSrcEditOpen(false); setSelectedSource(undefined);  }} />
       <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcDelOpen(false); setSrcToDelete(undefined);  }} />
@@ -280,6 +288,11 @@ export default function LocationPageClient({ location, initialSources, initialSe
       <MonitoringGroupDeleteModal isOpen={isGrpDelOpen} group={grpToDelete} onClose={() => { setGrpDelOpen(false); setGrpToDelete(undefined); }}/>
       <LocationEditModal isOpen={isLocEditOpen} location={location} onClose={() => { setLocEditOpen(false); }} />
       <LocationDeleteModal isOpen={isLocDelOpen} location={location} onClose={() => { setLocDelOpen(false); }} />
+      <ChecklistCreateModal
+        isOpen={isChecklistModalOpen}
+        onClose={() => setChecklistModalOpen(false)}
+        locationId={location.id}
+      />
     </Box>
   );
 }

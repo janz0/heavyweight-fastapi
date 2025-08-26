@@ -5,12 +5,12 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@/app/styles/globals.css";
 import { Provider as ChakraProvider } from "@/app/src/components/ui/provider";
 import { Toaster } from "@/components/ui/toaster";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/UI/Navbar";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { ColorModeProvider } from "./src/components/ui/color-mode";
 import { NavigationProvider } from "./context/NavigationContext";
-import Sidebar from "./components/SideNav";
+import Sidebar from "./components/UI/SideNav";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 

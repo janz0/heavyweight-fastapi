@@ -18,6 +18,7 @@ import type { Source } from "@/types/source";
 import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
 import type { MonitoringGroup } from "@/types/monitoringGroup";
 import { listMonitoringGroups } from "@/services/monitoringGroups";
+
 // ==============================
 // Shared Form Component
 // ==============================
@@ -84,6 +85,7 @@ function SensorForm({
           type: "error",
         });
       });
+    console.log(src.mon_loc_id);
   }, [monSourceId, sources]);
 
   useEffect(() => {
@@ -121,6 +123,7 @@ function SensorForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    console.log(monSourceId)
     const payload: MonitoringSensorPayload = {
       mon_source_id: monSourceId,
       sensor_name: sensorName,

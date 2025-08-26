@@ -8,7 +8,7 @@ import { Box, Button, CloseButton, Flex, Icon, HStack, IconButton, Link, Text, P
 import { useColorModeValue, useColorMode } from "@/app/src/components/ui/color-mode";
 import { useAuth } from "@/lib/auth";
 import { User, Bell } from "phosphor-react";
-import { Tooltip } from "../src/components/ui/tooltip";
+import { Tooltip } from "../../src/components/ui/tooltip";
 import { GoHome } from 'react-icons/go';
 import { BsPeopleFill, BsPersonAdd, BsQuestionLg } from 'react-icons/bs';
 import { BackForward } from "./BackForward";

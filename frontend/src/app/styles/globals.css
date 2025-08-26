@@ -68,10 +68,8 @@ html[style*="color-scheme: dark"] .shadow-md {
 .search-button {
   display: block;
   border-radius: 0.375rem;
-  border-color: var(--chakra-colors-border-muted);
-  border-width: 2px;
-  padding: 8px;
-  height: fit-content;
+  height: 26;
+  color: var(--chakra-colors-fg-subtle);;
   background-color: transparent;
   transition: background-color 0.2s ease;
 }
@@ -122,7 +120,13 @@ html[style*="color-scheme: dark"] .shadow-md {
 }
 
 .table-cell {
-  
+  overflow: hidden;
+  padding: 0;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.table-cell:hover {
+  background: var(--chakra-colors-bg-subtle)
 }
 
 .card {

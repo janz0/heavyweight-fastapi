@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Box, VStack, Icon, Button } from "@chakra-ui/react";
 import Link from "next/link";
 import { House, CaretRight, Folder, MapPin, Gauge, Database } from "phosphor-react";
-import { useColorModeValue } from "../src/components/ui/color-mode";
+import { useColorModeValue } from "../../src/components/ui/color-mode";
 import { usePathname } from "next/navigation";
 
 export default function Sidebar() {

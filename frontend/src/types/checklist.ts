@@ -1,5 +1,6 @@
 export type UUID = string;
 
+// ─── CHECKLIST INSTANCE ───────────────────────────────────────────────
 export interface Checklist {
   id: UUID;
   location_id: UUID;
@@ -17,6 +18,15 @@ export interface ChecklistPayload {
   notes?: string | null;
 }
 
+// ─── CHECKLIST TEMPLATE ──────────────────────────────────────────────
+export interface ChecklistTemplate {
+  id: UUID;
+  project_id?: UUID | null;
+  name: string;
+  created_at: string;       // ISO timestamp
+}
+
+// ─── EXPANDED CHECKLIST (with template + responses) ───────────────────
 export type ChecklistExpanded = {
   id: UUID;
   template_id: UUID;

@@ -1,11 +1,17 @@
 // File: src/services/checklists.ts
-import type { Checklist, ChecklistPayload, ChecklistExpanded, UUID } from "@/types/checklist";
+import type { Checklist, ChecklistPayload, ChecklistExpanded, UUID, ChecklistTemplate } from "@/types/checklist";
 
 const API_ROOT = process.env.NEXT_PUBLIC_API_URL!;
 const BASE     = `${API_ROOT}checklists`;
 
 async function readBody(res: Response) {
   return res.text().then((t) => t || "");
+}
+
+export async function listChecklists(locationId: string): Promise<Checklist[]> {
+  const res = await fetch(`/api/checklists?location_id=${locationId}`);
+  if (!res.ok) throw new Error("Failed to fetch checklists");
+  return res.json();
 }
 
 export async function listChecklistsForLocation(locationId: UUID): Promise<Checklist[]> {
@@ -99,4 +105,10 @@ export async function deleteChecklistsForLocation(locationId: UUID): Promise<voi
   // fallback requires single-id DELETE to exist:
   const list = await listChecklistsForLocation(locationId);
   await Promise.all(list.map(cl => deleteChecklist(cl.id)));
+}
+
+export async function listChecklistTemplates(): Promise<ChecklistTemplate[]> {
+  const res = await fetch(`${BASE}/templates`);
+  if (!res.ok) throw new Error("Failed to fetch templates");
+  return res.json() as Promise<ChecklistTemplate[]>;
 }
