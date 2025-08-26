@@ -107,7 +107,7 @@ export default function DataTable<T extends { id: string; }>({
         const neighborWidth = prev[nextKey];
 
         // width based on distance from original column edge
-        let proposedCurrent = r.startWidth + (ev.clientX - r.startX);
+        const proposedCurrent = r.startWidth + (ev.clientX - r.startX);
         let newCurrent = Math.max(MIN_COL_PX, proposedCurrent);
         const appliedDelta = newCurrent - currentWidth;
         let newNeighbor = neighborWidth - appliedDelta;
@@ -139,7 +139,7 @@ export default function DataTable<T extends { id: string; }>({
 
     // Optional: capture pointer for smoother drags
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-  }, [colWidths]);
+  }, [columns]);
 
   // Sort/Filter Table
   const filtered = useMemo(() =>

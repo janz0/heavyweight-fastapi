@@ -489,7 +489,7 @@ const handleApply = async () => {
 
   const filtered = useMemo(() => {
     // Apply search filter first
-    let base = options.filter((o) =>
+    const base = options.filter((o) =>
       o.label.toLowerCase().includes(query.toLowerCase())
     );
 
@@ -505,7 +505,7 @@ const handleApply = async () => {
     }*/
 
     return base;
-  }, [options, query, selectedId]);
+  }, [options, query]);
 
 
   const sensorsInAllGroups = useMemo(() => {

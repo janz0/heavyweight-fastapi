@@ -1,7 +1,6 @@
 // components/PageSizeSelect/index.tsx
 import React, { useMemo } from "react";
 import { Select, createListCollection } from "@chakra-ui/react";
-import { useColorModeValue } from "../../src/components/ui/color-mode";
 
 export interface PageSizeSelectProps {
   value: number;
