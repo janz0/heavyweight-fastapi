@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
-from typing import Optional, Union
+from typing import Optional, Union, List, Literal
 
 from pydantic import BaseModel, Field
 
@@ -105,7 +105,32 @@ class ChecklistResponseCreate(ChecklistResponseBase):
 
 class ChecklistResponseRead(ChecklistResponseBase):
     id: UUID
+    checklist_id: UUID
+    template_item_id: UUID
+    value: bool
+    comment: Optional[str] = None
     created_at: datetime
 
     class Config:
         orm_mode = True
+
+class ChecklistItemRead(BaseModel):
+    id: UUID
+    prompt: str
+    response_type: Literal["yes_no", "text"]
+    sort_order: int
+
+class ChecklistCategoryRead(BaseModel):
+    id: UUID
+    title: str
+    sort_order: int
+    items: List[ChecklistItemRead]
+
+class ChecklistExpandedRead(BaseModel):
+    id: UUID
+    template_id: UUID
+    template_name: str
+    performed_at: datetime
+    notes: Optional[str] = None
+    categories: List[ChecklistCategoryRead]
+    responses: List[ChecklistResponseRead]

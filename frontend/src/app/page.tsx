@@ -17,8 +17,8 @@ import { useAuth } from "@/lib/auth";
 import { listProjects } from "@/services/projects";
 import { listSources } from "@/services/sources";
 import { listSensors } from "@/services/sensors";
-import { LoginForm as Loginform } from "./components/LoginForm";
-import Dashboard, { DashboardProps } from "./components/Dashboard";
+import { LoginForm as Loginform } from "./components/UI/LoginForm";
+import Dashboard, { DashboardProps } from "./components/UI/Dashboard";
 
 ChartJS.register(
   CategoryScale,
@@ -36,7 +36,7 @@ export default function Page() {
     activeProjects:  0,
     totalProjects:   0,
     totalLocations:  0,
-    onlineSensors:   0,
+    totalSensors:   0,
     totalSources:    0,
   });
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function Page() {
           totalProjects:   projects.length,
           totalLocations:  projects.reduce((sum, p) => sum + (p.locations_count||0), 0),
           totalSources:    sources.length,
-          onlineSensors:   sensors.filter(s => s.active === 1).length,
+          totalSensors:   sensors.length,
         });
       } catch (err) {
         console.error("Dashboard load error", err);

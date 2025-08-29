@@ -1,10 +1,10 @@
 // File: app/locations/page.tsx
 "use client";
 
-// React + Next Imports
+// React Imports
 import { useState, useEffect } from "react";
 
-// Chakra Imports + Icons
+// Chakra Imports
 import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { useColorMode } from "../src/components/ui/color-mode";
 

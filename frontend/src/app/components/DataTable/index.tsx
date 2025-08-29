@@ -1,15 +1,26 @@
-// components/DataTable/index.tsx
-import React, { useMemo, useState } from "react";
-import { Table, Checkbox, Icon, Text, Flex, Button, Box, IconButton, Heading, Popover, VStack } from "@chakra-ui/react";
-import { useColorMode, useColorModeValue } from "@/app/src/components/ui/color-mode";
-import type { DataTableProps } from "./types";
-import { CaretUp, CaretDown, MagnifyingGlass, Plus, DotsThreeVertical, PencilSimple, Trash } from "phosphor-react";
-import CountFooter from "../CountFooter";
-import SearchInput from "../SearchInput";
-import PageSizeSelect from "../PageSizeSelect";
+// File: app/components/DataTable/index.tsx
+
+// React + Next Imports
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+
+// Chakra Imports + Icons
+import { Box, Button, ButtonGroup, Checkbox, Flex, Heading, Icon, IconButton, Pagination, Popover, Table, Text, useToken, VStack } from "@chakra-ui/react";
+import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass, PencilSimple, Plus, Trash } from "phosphor-react";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
+
+// UI Components
+import CountFooter from "./CountFooter";
+import PageSizeSelect from "./PageSizeSelect";
+import SearchInput from "../UI/SearchInput";
+
+// Modals
 import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
 
+// Types
+import type { DataTableProps } from "./types";
+
+// Helper Function
 function getNestedValue<T>(obj: T, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, part) => {
     if (typeof acc === "object" && acc !== null && part in acc) {
@@ -28,26 +39,109 @@ export default function DataTable<T extends { id: string; }>({
   onEdit,
   onDelete,
 }: DataTableProps<T>) {
-  // Colours
-  const { colorMode } = useColorMode();
-  const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const textSub = colorMode === "light" ? "gray.600" : "gray.400";
-  const checkboxColor = colorMode === "light" ? "gray.400" : "gray.600";
-  const checkboxHoverColor = colorMode === "light" ? "black" : "gray.400";
-  const row_bg = useColorModeValue("gray.50", "gray.800");
-
+  // Page Size Select
   const [page, setPage] = useState(1);
   const pageSizeOptions = [10, 25, 50, 100];
   const [pageSize, setPageSize] = useState(10);
-  const [selectAll, setSelectAll] = useState(false);
-  const [isGrpAssignOpen, setGrpAssign] = useState(false);
 
   // Search
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc"|"desc" }|null>(null);
   const firstKey = columns[0]?.key
 
-  // Sorted
+  // Checkboxes
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Group Assign
+  const [isGrpAssignOpen, setGrpAssign] = useState(false);
+  const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
+
+  // Get Local Column Widths
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`${name}-colWidths`);
+      if (saved) return JSON.parse(saved);
+
+      // Initialize widths so they sum up to viewport width
+      const totalWidth = window.innerWidth; // current screen width
+      const reserved = 36 + 100 + 3; // checkbox col (36px) + actions col (100px)
+      const available = totalWidth - reserved;
+      const baseWidth = Math.max(MIN_COL_PX, Math.round(available / columns.length));
+
+      return Object.fromEntries(columns.map(c => [c.key, baseWidth]));
+    }
+    // SSR fallback
+    return Object.fromEntries(columns.map(c => [c.key, MIN_COL_PX]));
+  });
+
+  // Column Resizing
+  const MIN_COL_PX = 60;
+  const resizingRef = useRef<{ key: string; startX: number; startWidth: number;} | null>(null);
+  const startResize = useCallback((e: React.PointerEvent, key: string) => {
+    e.preventDefault();
+    e.stopPropagation(); // don't trigger sort
+
+    const startX = e.clientX;
+    const th = (e.currentTarget as HTMLElement).closest('th');
+    if (!th) return;
+    const rect = th.getBoundingClientRect();
+    const startWidth = rect.width;
+
+    resizingRef.current = { key, startX, startWidth };
+
+    // visual feedback
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    const onMove = (ev: PointerEvent) => {
+      const r = resizingRef.current;
+      if (!r) return;
+
+      setColWidths(prev => {
+        const colIndex = columns.findIndex(c => c.key === r.key);
+        if (colIndex === -1 || colIndex === columns.length - 1) return prev;
+
+        const nextKey = columns[colIndex + 1].key;
+        const currentWidth = prev[r.key];
+        const neighborWidth = prev[nextKey];
+
+        // width based on distance from original column edge
+        const proposedCurrent = r.startWidth + (ev.clientX - r.startX);
+        let newCurrent = Math.max(MIN_COL_PX, proposedCurrent);
+        const appliedDelta = newCurrent - currentWidth;
+        let newNeighbor = neighborWidth - appliedDelta;
+
+        if (newNeighbor < MIN_COL_PX) {
+          const rollback = MIN_COL_PX - newNeighbor;
+          newNeighbor = MIN_COL_PX;
+          newCurrent = newCurrent - rollback;
+        }
+
+        return {
+          ...prev,
+          [r.key]: newCurrent,
+          [nextKey]: newNeighbor,
+        };
+      });
+    };
+
+    const onEnd = () => {
+      resizingRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd, { once: true });
+
+    // Optional: capture pointer for smoother drags
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+  }, [columns]);
+
+  // Sort/Filter Table
   const filtered = useMemo(() =>
     data.filter(item => {
       const name = firstKey ? String((item as Record<string, unknown>)[firstKey]) : '';
@@ -55,7 +149,6 @@ export default function DataTable<T extends { id: string; }>({
     }),
     [search, data, firstKey]
   );
-  const totalPages = Math.ceil(filtered.length / pageSize);
 
   const sorted = useMemo(() => {
     if (!sortConfig) return filtered;
@@ -79,26 +172,17 @@ export default function DataTable<T extends { id: string; }>({
     );
   };
 
-  React.useEffect(() => {
+  // Page Handling
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  useEffect(() => {
     if (page > totalPages)
       setPage(1);
   }, [page, totalPages]);
+  const startRange = (page - 1) * pageSize;
+  const endRange = startRange + pageSize;
+  const visibleItems = sorted.slice(startRange, endRange);
 
-  const pageItems: (number | string)[] = React.useMemo(() => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const delta = 2;
-    const left = Math.max(2, page - delta);
-    const right = Math.min(totalPages - 1, page + delta);
-    const items: (number | string)[] = [1];
-    if (left > 2) items.push("…");
-    for (let p = left; p <= right; p++) items.push(p);
-    if (right < totalPages - 1) items.push("…");
-    items.push(totalPages);
-    return items;
-  }, [page, totalPages]);
-  data = sorted.slice((page - 1) * pageSize, page * pageSize)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
+  // Checkbox Selections
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -110,7 +194,6 @@ export default function DataTable<T extends { id: string; }>({
       return next;
     });
   };
-
   const toggleAll = () => {
     if (!selectAll){
       setSelectedIds(new Set(data.map((s) => s.id)));
@@ -120,291 +203,315 @@ export default function DataTable<T extends { id: string; }>({
     }
     setSelectAll(!selectAll);
   };
+
+  // Show sensors in group
   function hasKey<K extends PropertyKey>(obj: unknown, key: K): obj is Record<K, unknown> {
     return typeof obj === "object" && obj !== null && key in obj;
   }
   const showAssignGroups = data.length > 0 && hasKey(data[0], "sensor_name");
 
+  // Clamp width to page size
+  useEffect(() => {
+    const container = document.querySelector(".bg-card"); // or use a ref
+    const totalWidth = container?.clientWidth ?? window.innerWidth;
+
+    const reserved = 36 + 100 + 3;
+    const available = totalWidth - reserved;
+
+    const sum = Object.values(colWidths).reduce((a, b) => a + b, 0);
+
+    if (Math.abs(sum - available) > 1) {
+      const factor = available / sum;
+      const entries = Object.entries(colWidths).map(([k, w]) => [k, Math.round(w * factor)]);
+      
+      // ✅ Snap last column so totals match exactly
+      const currentSum = entries.reduce((a, [, w]) => a + (w as number), 0);
+      const diff = available - currentSum;
+      if (entries.length > 0) {
+        entries[entries.length - 1][1] = (entries[entries.length - 1][1] as number) + diff;
+      }
+
+      setColWidths(Object.fromEntries(entries));
+    }
+  }, [colWidths]);
+
+  // Update Local Column Widths
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`${name}-colWidths`, JSON.stringify(colWidths));
+    }
+  }, [colWidths, name]);
+
   return (
-    <Box width="full" borderRadius={"md"} borderStyle={"initial"} borderWidth={"2px"} bg="whiteAlpha.50" _dark={{background: "gray.800"}} mb="2" p={4} boxShadow={"md"}>
-      <Flex mb={4} align="center" position="relative" w="100%">
-        <Heading fontSize="3xl" color={color}>  
-          <Text as="span">
-            {name.charAt(0).toUpperCase()}
-          </Text>
-          <Text as="span" fontSize="md" fontWeight="bold" textTransform="uppercase">
-            {name.slice(1)}
-          </Text>
+    <Box width="full">
+      <Flex mb={2} align="center" w="100%" className="bg-card">
+        <Heading fontSize={{base:"xl", sm: "xl", md: "3xl"}} color={color}>  
+          <Text as="span">{name.charAt(0).toUpperCase()}</Text>
+          <Text as="span" fontSize={{base:"md", sm: "lg", md: "2xl"}}>{name.slice(1)}</Text>
         </Heading>
-        <Flex ml="auto" align="center" gap={4}>
-          {showAssignGroups && <>
+        <Flex ml="auto" align="center" gap={{base: 1, sm: 2, md: 3}}>
+          <Box display={{base: "none", md: "block"}}>
+            <SearchInput value={search} onChange={setSearch} placeholder={`Search ${name}...`} />
+          </Box>
+          <IconButton display={{md: "none"}} aria-label="Search" className="search-button" size={'2xs'} as={MagnifyingGlass} />
+          {showAssignGroups && 
+          <>
             <Button
-              variant={'solid'}
-              borderWidth={"2px"}
-              borderColor={"inherit"}
-              bg={'inherit'}
-              color={"black"}
-              _dark={{borderColor: "gray.700", color: "white"}}
-              w="25%"
+              variant={'surface'}
+              border='1px solid var(--chakra-colors-border-emphasized)'
+              backgroundColor='bg.subtle'
+              borderRadius='0.375rem'
+              boxShadow='md'
               onClick={() => setGrpAssign(true)}
+              fontSize={{base:"2xs", sm: "xs", lg: "sm"}}
+              _hover={{bg: 'gray.subtle'}}
+              p={2}
             >
               Assign Groups
             </Button>
             <MonitoringGroupAssignModal isOpen={isGrpAssignOpen} onClose={() => setGrpAssign(false)} />
           </>
           }
-          <Box minW="20ch" display={{base: "none", sm: "block"}}>
-            <SearchInput value={search} onChange={setSearch} placeholder={`Search ${name}...`} />
-          </Box>
-          <IconButton
-            display={{base: "block", sm: "none"}}
-            aria-label="Search"
-            as={MagnifyingGlass}
-            variant="outline"
-            borderRadius="full"
-            borderColor={colorMode==="dark" ? "gray.700" : "gray.300"}
-            borderWidth="2px"
-            p={2}
-            h="fit-content"
-            size="md"
-            _hover={{ bg: "gray.100" }}
-            _active={{ bg: "gray.200" }}
-            _dark={{
-              _hover: { bg: "whiteAlpha.100" },
-              _active: { bg: "whiteAlpha.200" },
-            }}
-          />
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
-          <Button onClick={onCreate} borderRadius="md" boxShadow="sm" bg="orange" color={text} size={{base: "xs", md:"sm"}}>
+          <Button onClick={onCreate} borderRadius='0.375rem' boxShadow="sm" bg="orange" color="black" size={{base: "xs", lg:"sm"}}>
             <Plus/><Text display={{base: "none", md: "block"}}>Add New</Text>
           </Button>
         </Flex>
       </Flex>
-      <Box maxH="60vh" overflowY="auto" overflowX="auto">
-        <Table.Root
-          size="sm"
-          interactive
-          showColumnBorder
-          stickyHeader
-          tableLayout="auto"
-          bg="white"
-          _dark={{background: "black"}}
-          borderBottomLeftRadius={"xl"}
-          borderTopLeftRadius={"xl"}
-          overflow="hidden"
-          boxShadow="lg"
-          maxH="600px"
-          minW={{ md: "container.md", lg: "container.lg" }}  
-          p={4}
-        >
-          <Table.Header>
-            <Table.Row color={textSub}>
-              <Table.ColumnHeader w="6px" bg={color} p={0} m={0} />
-              <Table.ColumnHeader w="48px" textAlign="center" p={1}>
-                <Checkbox.Root
-                  size="sm"
-                  checked={selectAll}
-                  onCheckedChange={() => toggleAll()}
-                  colorPalette="blue"
-                >
-                  <Checkbox.HiddenInput />
-                  <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
-                </Checkbox.Root>
-              </Table.ColumnHeader>
-              {columns.map((col) => (
-                <Table.ColumnHeader
-                  key={col.key}
-                  onClick={() => requestSort(col.key)}
-                  cursor="pointer"
-                  textAlign="center"
-                  whiteSpace="nowrap"
-                  _first={{ borderTopLeftRadius: "6px" }}
-                  m={0} p={1}
-                >
-                  {col.label}
-                  {sortConfig?.key === col.key && (
-                    <Icon
-                      as={sortConfig.direction === "asc" ? CaretUp : CaretDown}
-                      boxSize={4}
-                      ml={1}
-                    />
-                  )}
-                </Table.ColumnHeader>
-              ))}
-              <Table.ColumnHeader
-                textAlign="center"
-                whiteSpace="nowrap"
-                _last={{ borderTopRightRadius: "6px" }}
-              >
-                Actions
-              </Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-
-          <Table.Body>
-            {data.map((item, i) => (
-              <Table.Row
-                key={i}
-                _hover={{ bg: row_bg }}
-                position="relative"
-                overflow="visible"
-                bg="transparent"
-              >
-                {/* Fake Column Cell (aligned left, transparent, doesn't affect layout) */}
-                <Table.Cell
-                  p={0}
-                  m={0}
-                  w="6px"
-                  position="relative"
-                >
-                  <Box
-                    position="absolute"
-                    top={-1}
-                    bottom={0}
-                    left={0}
-                    right={0}
-                    bg={color}
-                  />
-                </Table.Cell>
-                <Table.Cell py={1}>
-                  <Flex align="center" justify="center" h="100%">
-                  <Checkbox.Root size="sm" key={item.id} checked={selectedIds.has(item.id)} colorPalette="blue">
-                    <Checkbox.HiddenInput onClick={() => toggleSelection(item.id)}/>
-                    <Checkbox.Control cursor="pointer" _hover={{borderColor: checkboxHoverColor}} borderColor={checkboxColor}/>
+      <Box className="bg-card">
+        <Table.ScrollArea border='1px solid var(--chakra-colors-border-emphasized)' maxH="70vh" borderRadius='0.375rem' overflowX="auto">
+          <Table.Root
+            size="sm"
+            interactive
+            showColumnBorder
+            stickyHeader
+            tableLayout="fixed"
+            borderCollapse="separate"
+            borderSpacing={0}
+            boxShadow="lg"
+            width="100%"
+            minW="100%"
+            maxW="100%"
+            css={{
+              "& [data-sticky-edge='right']::after": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                right: 0,
+                width: "0.06rem",
+                backgroundColor: `gray.200`,
+                _dark: {backgroundColor: 'gray.800'},
+                pointerEvents: "none",
+              },
+            }}
+          >
+            <Table.Header>
+              <Table.Row color="fg.muted" bg="white">
+                <Table.ColumnHeader bg='bg' w="36px" textAlign="center" data-sticky-edge="right" position="sticky" left={0} zIndex={1} borderRight={"none"}
+                  _before={{
+                    content: '""',
+                    position: "absolute",
+                    top: "-1px",
+                    bottom: "-1px",
+                    left: 0,
+                    width: "3px",
+                    backgroundColor: resolvedColor,
+                    pointerEvents: "none",
+                  }}>
+                  <Checkbox.Root
+                    size="sm"
+                    checked={selectAll}
+                    onCheckedChange={() => toggleAll()}
+                    colorPalette="blue"
+                  >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control cursor="pointer" _hover={{borderColor: "bg.inverted"}} borderColor="fg.subtle"/>
                   </Checkbox.Root>
-                  </Flex>
-                </Table.Cell>
-                {columns.map((col) => {
-                  const value = getNestedValue(item, col.key) ?? "";
+                </Table.ColumnHeader>
+                {columns.map((col, i) => (
+                  <Table.ColumnHeader
+                    bg='bg'
+                    key={col.key}
+                    onClick={() => requestSort(col.key)}
+                    cursor="pointer"
+                    textAlign="center"
+                    w={`${colWidths[col.key]}px`}
+                    minW={`${MIN_COL_PX}px`}
+                    m={0}
+                    {...(i === 0 ? { "data-sticky-edge": "right", position: "sticky", insetInlineStart: "36px", top: 0, borderLeft: "none", zIndex: 9 } : {position: "relative"})}
+                  >
+                    {col.label}
+                    {sortConfig?.key === col.key && (
+                      <Icon
+                        as={sortConfig.direction === "asc" ? CaretUp : CaretDown}
+                        ml={"2"}
+                      />
+                    )}
+                    <Box
+                      role="separator"
+                      aria-orientation="vertical"
+                      tabIndex={0}
+                      onPointerDown={(e) => startResize(e, col.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowRight") setColWidths(w => ({ ...w, [col.key]: Math.max(MIN_COL_PX, (w[col.key] ?? 80) + 10) }));
+                        if (e.key === "ArrowLeft")  setColWidths(w => ({ ...w, [col.key]: Math.max(MIN_COL_PX, (w[col.key] ?? 80) - 10) }));
+                      }}
+                      position="absolute"
+                      top={0}
+                      right={'-4px'}            // a little outside so it’s easy to grab; adjust if needed
+                      bottom={0}
+                      width="8px"
+                      cursor="col-resize"
+                      // Make sure dragging the handle doesn't sort:
+                      onClick={(e) => e.stopPropagation()}
+                      zIndex={1}
+                    />
+                  </Table.ColumnHeader>
+                ))}
+                <Table.ColumnHeader
+                  bg='bg'
+                  textAlign="center"
+                  w="100px"
+                >
+                  Actions
+                </Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
 
-                  if (col.key === "project_name")
-                    return (
-                    <Table.Cell key={col.key} p={0} px={2} textAlign="left" textDecor="underline">
-                      <Link href={`/${name}/${getNestedValue(item, "project_number")}`}>{String(value)}</Link>
-                    </Table.Cell>
-                  )
-                  if (col.key === "loc_name" || col.key === "sensor_name" || col.key === "source_name") {
-                    return (
-                      <Table.Cell key={col.key} p={0} px={2} textAlign="left" textDecor="underline">
-                        <Link href={`/${name}/${value}`}>{String(value)}</Link>
-                      </Table.Cell>
-                    );
-                  }
+            <Table.Body>
+              {visibleItems.map((item, i) => (
+                <Table.Row
+                  key={i}
+                  _hover={{ bg: "bg.subtle" }}
+                >
+                  <Table.Cell bg='bg' _hover={{ bg: "bg.subtle" }} py={1} position={"sticky"} data-sticky-edge="right" left={0} borderRight={"none"}
+                    _before={{
+                      content: '""',
+                      position: "absolute",
+                      top: "-1px",
+                      bottom: "-1px",
+                      left: 0,
+                      width: "3px",
+                      backgroundColor: resolvedColor,
+                      pointerEvents: "none",
+                    }}>
+                    <Flex align="center" justify="center" h="100%">
+                      <Checkbox.Root size="sm" key={item.id} checked={selectedIds.has(item.id)} colorPalette="blue">
+                        <Checkbox.HiddenInput onClick={() => toggleSelection(item.id)}/>
+                        <Checkbox.Control cursor="pointer" _hover={{borderColor: "bg.inverted"}} borderColor="fg.subtle"/>
+                      </Checkbox.Root>
+                    </Flex>
+                  </Table.Cell>
+                  {columns.map((col) => {
+                    const value = getNestedValue(item, col.key) ?? "";
 
-                  if (col.key === "active") {
-                    return (
-                      <Table.Cell key={col.key} p={0} textAlign="center">
-                        <Box
-                          display="inline-block"
-                          boxSize="10px"
-                          borderRadius="full"
-                          bg={value ? "green.400" : "red.400"}
-                        />
-                      </Table.Cell>
-                    );
-                  }
-
-                  if (typeof value === "string" && (col.key.includes("date") || col.key.includes("created") || col.key.includes("last"))) {
-                    return (
-                      <Table.Cell key={col.key} p={0} px={2} textAlign="center">
-                        {value.includes("T") ? value.split("T")[0] : value}
-                      </Table.Cell>
-                    );
-                  }
-                  if (typeof value === "number") {
-                    return (
-                      <Table.Cell key={col.key} p={0} px={2} textAlign="right">
-                        {value}
+                    if (col.key === "project_name")
+                      return (
+                      <Table.Cell key={col.key} bg="inherit" className="table-cell" textAlign="left" textDecor="underline" position="sticky" data-sticky-edge="right" insetInlineStart="36px">
+                        <Link href={`/${name}/${getNestedValue(item, "project_number")}`}>{String(value)}</Link>
                       </Table.Cell>
                     )
-                  }
-                  return (
-                    <Table.Cell key={col.key} p={0} px={2} textAlign="left">
-                      {String(value)}
-                    </Table.Cell>
-                  );
-                })}
-                <Table.Cell p={1} textAlign="center">
-                  <Box display={"inline-block"}>
-                    <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
-                      <Popover.Trigger asChild>
-                        <IconButton aria-label="More actions" variant="ghost" size="xs" color="black" borderRadius="full"
-                          onClick={(e) => e.stopPropagation()}
-                          _hover={{
-                            backgroundColor: 'blackAlpha.300',
-                          }}
-                          _dark={{
-                            color: "white",
-                            _hover: {backgroundColor: "whiteAlpha.200"}
-                          }}
-                        >
-                          <DotsThreeVertical weight="bold"/>
-                        </IconButton>
-                      </Popover.Trigger>
-                      <Popover.Positioner>
-                        <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
-                          <Popover.Arrow>
-                            <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
-                          </Popover.Arrow>
-                          <Popover.Body height="100px" p={0}>
-                            <VStack gap={0} justifyContent={"center"} height="inherit">
-                              <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
-                                <PencilSimple />
-                              </Button>
-                              <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
-                                <Trash />
-                              </Button>
-                            </VStack>
-                          </Popover.Body>
-                        </Popover.Content>
-                      </Popover.Positioner>
-                    </Popover.Root>
-                  </Box>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+                    if (col.key === "loc_name" || col.key === "sensor_name" || col.key === "source_name") {
+                      return (
+                        <Table.Cell key={col.key} bg="inherit" className="table-cell" textAlign="left" textDecor="underline" position="sticky" data-sticky-edge="right" insetInlineStart="36px">
+                          <Link href={`/${name}/${value}`}>{String(value)}</Link>
+                        </Table.Cell>
+                      );
+                    }
+
+                    if (col.key === "active") {
+                      return (
+                        <Table.Cell key={col.key} className="table-cell" textAlign="center">
+                          <Box
+                            display="inline-block"
+                            boxSize="10px"
+                            borderRadius='full'
+                            bg={value ? "green.400" : "red.400"}
+                          />
+                        </Table.Cell>
+                      );
+                    }
+
+                    if (typeof value === "string" && (col.key.includes("date") || col.key.includes("created") || col.key.includes("last"))) {
+                      return (
+                        <Table.Cell key={col.key} className="table-cell" textAlign="center">
+                          {value.includes("T") ? value.split("T")[0] : value}
+                        </Table.Cell>
+                      );
+                    }
+                    if (typeof value === "number") {
+                      return (
+                        <Table.Cell key={col.key} className="table-cell" textAlign="right">
+                          {value}
+                        </Table.Cell>
+                      )
+                    }
+                    return (
+                      <Table.Cell key={col.key} className="table-cell" textAlign="left">
+                        {String(value)}
+                      </Table.Cell>
+                    );
+                  })}
+                  <Table.Cell p={0} textAlign="center">
+                    <Box display={"inline-block"}>
+                      <Popover.Root positioning={{ placement: 'left', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
+                        <Popover.Trigger asChild>
+                          <IconButton aria-label="More actions" variant="ghost" size="xs" borderRadius='full' _hover={{backgroundColor: 'bg.emphasized'}}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DotsThreeVertical weight="bold"/>
+                          </IconButton>
+                        </Popover.Trigger>
+                        <Popover.Positioner>
+                          <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                            <Popover.Arrow>
+                              <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
+                            </Popover.Arrow>
+                            <Popover.Body height="100px" p={0}>
+                              <VStack gap={0} justifyContent={"center"} height="inherit">
+                                <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
+                                  <PencilSimple />
+                                </Button>
+                                <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
+                                  <Trash />
+                                </Button>
+                              </VStack>
+                            </Popover.Body>
+                          </Popover.Content>
+                        </Popover.Positioner>
+                      </Popover.Root>
+                    </Box>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
       </Box>
-      <Flex w="100%" align="center" position="relative">
-        
-        {totalPages >= 0 && (
-          <Flex w="100%" align="center" justify="center" mt={4} gap={2}>
-            <Button
-              size="sm"
-              onClick={() => setPage(page - 1)}
-              disabled={page <= 1}
-            >
-              Prev
-            </Button>
-
-            {pageItems.map((item, idx) =>
-              typeof item === "string" ? (
-                <Box key={`dots-${idx}`} px={2}>
-                  {item}
-                </Box>
-              ) : (
-                <Button
-                  key={item}
-                  size="sm"
-                  variant={item === page ? "solid" : "outline"}
-                  onClick={() => setPage(item)}
-                >
-                  {item}
-                </Button>
-              )
-            )}
-
-            <Button
-              size="sm"
-              onClick={() => setPage(page + 1)}
-              disabled={page >= totalPages}
-            >
-              Next
-            </Button>
-          </Flex>
-        )}
-        <Box position="absolute" right={6}><CountFooter count={data.length} total={filtered.length} name={name} color={textSub} /></Box>
+      <Flex w="100%" justify="center" position="relative">
+        <Pagination.Root p={2} count={filtered.length} pageSize={pageSize} defaultPage={1} onPageChange={(e) => setPage(e.page)}>
+          <ButtonGroup variant="ghost" size="sm">
+            <Pagination.PrevTrigger asChild>
+              <IconButton>
+                <LuChevronLeft />
+              </IconButton>
+            </Pagination.PrevTrigger>
+            <Pagination.Items
+              render={(page) => (
+                <IconButton variant={{ base: "ghost", _selected: "outline" }}>
+                  {page.value}
+                </IconButton>
+              )}
+            />
+            <Pagination.NextTrigger asChild>
+              <IconButton>
+                <LuChevronRight />
+              </IconButton>
+            </Pagination.NextTrigger>
+          </ButtonGroup>
+        </Pagination.Root>
+        <Box position="absolute" py={1} right={6}><CountFooter count={data.length} total={filtered.length} name={name} color="fg.muted" /></Box>
       </Flex>
     </Box>
   );

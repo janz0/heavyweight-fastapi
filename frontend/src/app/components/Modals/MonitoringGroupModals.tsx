@@ -3,6 +3,7 @@
 
 import React, { FormEvent, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import SearchInput from "../UI/SearchInput";
 import {
   Button,
   CloseButton,
@@ -19,6 +20,8 @@ import {
   Box,
   Table,
   Checkbox,
+  Icon,
+  HStack,
 } from "@chakra-ui/react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { X } from "lucide-react";
@@ -41,6 +44,8 @@ import { Source } from "@/types/source";
 import { listSensors } from "@/services/sensors";
 import { listSources } from "@/services/sources";
 import { Plus } from "phosphor-react";
+import { updateSensor } from "@/services/sensors";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 // ==============================
 // Shared Form Component
@@ -390,15 +395,53 @@ export function MonitoringGroupAssignModal({
   sensors?: MonitoringSensor[];
   sources?: Source[];
 }) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [autoComplete, setAutoComplete] = useState(false);
   const [isCreateGroupOpen, setCreateGrp] = useState(false);
 
   const [localGroups, setLocalGroups] = useState<MonitoringGroup[]>(groups ?? []);
   const [localSensors, setLocalSensors] = useState<MonitoringSensor[]>(sensors ?? []);
   const [localSources, setLocalSources] = useState<Source[]>(sources ?? []);
-  
+
+  const router = useRouter();
+
+const handleApply = async () => {
+    if (!selectedId) {
+      toaster.create({ type: "warning", description: "Select a group first." });
+      return;
+    }
+
+    try {
+      // what was assigned to this group when modal opened / last compute
+      const before = new Set(sensorsInAllGroups.map((s) => s.id));
+      // what user wants assigned now (the right column)
+      const after = new Set(rightItems.map((s) => s.id));
+
+      const toAdd = rightItems.filter((s) => !before.has(s.id));
+      const toRemove = sensorsInAllGroups.filter((s) => !after.has(s.id));
+
+      await Promise.all([
+        // assign selected group
+        ...toAdd.map((s) =>
+          updateSensor(s.id, { sensor_group_id: selectedId })
+        ),
+        // unassign from this group
+        ...toRemove.map((s) =>
+          updateSensor(s.id, { sensor_group_id: null })
+        ),
+      ]);
+
+      toaster.create({ type: "success", description: "Sensor Group Updated" });
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+      toaster.create({
+        type: "error",
+        description: "Failed to update sensor assignments.",
+      });
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -444,44 +487,40 @@ export function MonitoringGroupAssignModal({
     [localGroups]
   );
 
-  const filtered = useMemo(
-    () =>
-      options.filter((o) =>
-        o.label.toLowerCase().includes(query.toLowerCase())
-      ),
-    [options, query]
-  );
+  const filtered = useMemo(() => {
+    // Apply search filter first
+    const base = options.filter((o) =>
+      o.label.toLowerCase().includes(query.toLowerCase())
+    );
 
-  const autocompleteFilter = useMemo(
-    () => 
-      filtered ? filtered.filter((f) => !selectedIds.has(f.label)) : options,
-    [filtered, options, selectedIds]
-  )
+    // If no search query, sort with selected group(s) on top
+    /*if (!query) {
+      base = base.sort((a, b) => {
+        const aSelected = a.id === selectedId;
+        const bSelected = b.id === selectedId;
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.label.localeCompare(b.label);
+      });
+    }*/
 
-  const selectedGroupIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+    return base;
+  }, [options, query]);
+
+
   const sensorsInAllGroups = useMemo(() => {
-    if (selectedGroupIds.length === 0) return [];
-
-    return localSensors.filter((s) => {
-      if (Array.isArray((s).sensor_group_id)) {
-        // every selected group must be in the sensor's group_ids
-        return selectedGroupIds.every((gid) => (s).sensor_group_id === gid);
-      } else {
-        // fallback: single group membership; only include when exactly one group is selected and it matches
-        return selectedGroupIds.length === 1 && s.sensor_group_id === selectedGroupIds[0];
-      }
+    if (!selectedId) return [];
+    return localSensors.filter(s => {
+      const gid = s.sensor_group_id as unknown;
+      return Array.isArray(gid) ? gid.includes(selectedId) : gid === selectedId;
     });
-  }, [localSensors, selectedGroupIds]);
+  }, [localSensors, selectedId]);
 
-  // Locations of selected groups
   const selectedLocs = useMemo(() => {
-    if (selectedGroupIds.length === 0) return [];
-    const locs = localGroups
-      .filter((g) => selectedIds.has(g.id))
-      .map((g) => g.mon_loc_id);
-    const unique = Array.from(new Set(locs));
-    return unique.length === 1 ? unique : [];
-  }, [localGroups, selectedIds, selectedGroupIds.length]);
+    if (!selectedId) return [];
+    const g = localGroups.find(grp => grp.id === selectedId);
+    return g ? [g.mon_loc_id] : [];
+  }, [localGroups, selectedId]);
 
   // Source IDs of selected locations
   const selectedSourceIds = useMemo(
@@ -496,14 +535,7 @@ export function MonitoringGroupAssignModal({
     return localSensors.filter((s) => selectedSourceIds.includes(s.mon_source_id));
   }, [localSensors, selectedSourceIds]);
 
-  const toggle = (id: string) => {
-    setSelectedIds(prev => {
-      const copy = new Set(prev);
-      if (copy.has(id)) copy.delete(id);
-      else copy.add(id);
-      return copy;
-    });
-  };
+  const selectGroup = (id: string) => setSelectedId(id);
   
   const [rightItems, setRightItems] = useState<MonitoringSensor[]>([]);
   const [middleItems, setMiddleItems] = useState<MonitoringSensor[]>([]);
@@ -543,105 +575,72 @@ export function MonitoringGroupAssignModal({
     );
     setRightItems(sensorsInAllGroups);
   }, [sensorsInAllGroups, eligibleByLocation]);
+  const moveMiddleToRight = (sensor: MonitoringSensor) => {
+    setMiddleItems(prev => prev.filter(s => s.id !== sensor.id));
+    setRightItems(prev => (prev.some(s => s.id === sensor.id) ? prev : [...prev, sensor]));
+  };
+
+  const moveRightToMiddle = (sensor: MonitoringSensor) => {
+    setRightItems(prev => prev.filter(s => s.id !== sensor.id));
+    setMiddleItems(prev => (prev.some(s => s.id === sensor.id) ? prev : [...prev, sensor]));
+  };
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()} size="cover">
       <Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner background={"whiteAlpha.400"}>
-          <Dialog.Content >
+        <Dialog.Positioner background={"blackAlpha.300"} _dark={{bg: "whiteAlpha.300"}}>
+          <Dialog.Content bg={"bg.muted"} w={{base: "100%", md: "70%"}} h="100%" borderRadius={"md"}>
             <Dialog.Header justifyContent="center">
-              <Dialog.Title color="blue.500">Monitoring Groups</Dialog.Title>
+              <Dialog.Title color="blue.500" p={{base: 1, md: 4}}>Monitoring Groups</Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" onClick={onClose} />
               </Dialog.CloseTrigger>
             </Dialog.Header>
 
-            <Dialog.Body>
+            <Dialog.Body pb={2}>
               <DragDropContext onDragEnd={handleDragEnd}>
-                <Flex gap={4} justify="center" mx="auto" width="80%">
+                <Flex gap={{base: 2, md: 4}} direction={{base: "column", md: "row"}} justify="center" mx="auto" >
                   {/* Left: searchable table for selection */
-                  <Box position="relative" w="30%" p={2} bg="gray.100" border={"visible"} borderWidth={1} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
+                  <Box position="relative" w={{base: "100%", md: "30%"}} h={{base:"30vh", md: "70vh"}} p={2} bg="gray.100" borderRadius={"md"} border={"visible"} borderWidth={2} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}>
                     {/* Left: searchable table for selection with tags inside search */}
                     <Box position="relative">
-                    <Box border="1px solid" px={2} py={1} mb={2} maxW="100%" overflowX="auto" overflowY="visible" whiteSpace="nowrap" bg="white" _dark={{ bg: "black" }}>
-                      <Flex wrap="nowrap" align="center" gap={1}>
-                        {[...selectedIds].map(id => {
-                          const opt = options.find(o => o.id === id);
-                          return opt ? (
-                            <Box
-                              key={id}
-                              pl={2}
-                              py={1}
-                              borderWidth={1}
-                              display="flex"
-                              alignItems="center"
-                              width="fit-content"
-                            >
-                              {opt.label}
-                              <CloseButton size="2xs" p={0} m={0} onClick={() => toggle(id)} />
-                            </Box>
-                          ) : null;
-                        })}
-                        <Input
-                          variant="flushed"
-                          borderBottomWidth={0}
-                          placeholder={selectedIds.size === 0 && !query ? "Search..." : ""}
-                          value={query}
-                          onChange={e => setQuery(e.target.value)}
-                          flexGrow={1}
-                          position="relative"
-                          onFocus={() => setAutoComplete(true)}
-                          onBlur={() => setAutoComplete(false)}
-                          _placeholder={{color: "gray.400"}}
-                        />
+                      <Flex wrap="nowrap" align="center" pb={2} overflow="hidden">
+                        <SearchInput value={query} onChange={setQuery} placeholder={`Search Groups...`}/>
                       </Flex>
                     </Box>
-                    <Table.Root size="sm" interactive position="absolute" top={"100%"} zIndex={2000} borderWidth={1} borderColor={"black"} left={0} pl={2} py={1} bg="white" _dark={{ bg: "black", borderColor: "white" }}>
-                      <Table.Body>
-                      {query.length > 0 && autoComplete && autocompleteFilter.map(o => (
-                        <Table.Row key={o.id} onClick={() => toggle(o.id)}>
-                          <Table.Cell borderBottom={"black"}>
-                            {o.label}
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                      </Table.Body>
-                    </Table.Root>
+                    <Box maxH="18vh" overflowY="auto">
+                      <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white" _dark={{ bg: "black" }} >
+                        <Table.Body>
+                          {filtered.map(o => (
+                            <Table.Row
+                              key={o.id}
+                              cursor="pointer"
+                              bg={selectedId === o.id ? "gray.50" : undefined}
+                              _dark={{bg: selectedId === o.id ? "gray.900" : undefined}}
+                              onClick={() => {if (selectedId != o.id) selectGroup(o.id); else selectGroup('');}}
+                            >
+                              <Table.Cell h="full">
+                                <Flex>
+                                  <Checkbox.Root
+                                    size="sm"
+                                    checked={selectedId === o.id}
+                                    colorPalette="blue"
+                                    mr={"10px"}
+                                  >
+                                    <Checkbox.HiddenInput />
+                                    <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} _dark={{ _hover: {borderColor: "white"}}} />
+                                  </Checkbox.Root>
+                                  {o.label}
+                                </Flex>
+                              </Table.Cell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table.Root>
                     </Box>
-                    <Table.Root size="sm" showColumnBorder interactive variant="outline" bg="white" _dark={{ bg: "black" }}>
-                      <Table.Header>
-                        <Table.ColumnHeader textAlign={"center"} bg="white" color="blue.500" fontWeight={"bold"} _dark={{ bg: "black" }}>Sensor Groups</Table.ColumnHeader>
-                      </Table.Header>
-                      <Table.Body>
-                        {filtered.map(o => (
-                          <Table.Row
-                            key={o.id}
-                            cursor="pointer"
-                            bg={selectedIds.has(o.id) ? "gray.100" : "undefined"}
-                            _dark={{bg: selectedIds.has(o.id) ? "gray.900" : "undefined"}}
-                            onClick={() => toggle(o.id)}
-                          >
-                            <Table.Cell h="full">
-                              <Flex>
-                                <Checkbox.Root
-                                  size="sm"
-                                  checked={selectedIds.has(o.id)}
-                                  colorPalette="blue"
-                                  mr={"10px"}
-                                >
-                                  <Checkbox.HiddenInput />
-                                  <Checkbox.Control cursor="pointer" _hover={{borderColor: "black"}} _dark={{ _hover: {borderColor: "white"}}} />
-                                </Checkbox.Root>
-                                {o.label}
-                              </Flex>
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Root>
-                    <Box position="absolute" right="5" bottom="5">
-                      <Button onClick={() => setCreateGrp(true)} borderRadius="md" boxShadow="sm" bg="orange" size={{base: "xs", md:"sm"}}>
+                    <Box justifySelf={"right"} py={2} pt={3}>
+                      <Button onClick={() => setCreateGrp(true)} borderRadius="md" boxShadow="sm" color="black" bg="orange" size={{base: "xs", md:"sm"}}>
                         <Plus/><Text display={{base: "none", md: "block"}}>Add New</Text>
                       </Button>
                     </Box>
@@ -650,34 +649,42 @@ export function MonitoringGroupAssignModal({
                   <Droppable droppableId="middle">
                     {provided => (
                       <Box
-                        h="65vh"
-                        overflowY="auto"
-                        w="30%"
-                        borderWidth={1}
+                        h={{base:"20vh", md: "70vh"}}
+                        w={{base: "100%", md: "30%"}}
+                        borderWidth={2}
+                        borderRadius={"md"}
                         p={2}
                         bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
                       >
-                        <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} color="red.600" fontWeight={"bold"}>Not Assigned</Box>
-                        {middleItems.map((sensor, index) => (
-                          <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
-                            {prov => (
-                              <Box
-                                ref={prov.innerRef}
-                                {...prov.draggableProps}
-                                {...prov.dragHandleProps}
-                                p={2}
-                                bg="white"
-                                _dark={{bg: "black"}}
-                                border="1px solid gray"
-                              >
-                                {sensor.sensor_name}
-                              </Box>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
+                        <Box
+                          maxH="100%"
+                          overflowY="auto"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          <Box textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"} mb={2}>Not Assigned</Box>
+                          {middleItems.map((sensor, index) => (
+                            <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
+                              {prov => (
+                                <HStack
+                                  ref={prov.innerRef}
+                                  {...prov.draggableProps}
+                                  {...prov.dragHandleProps}
+                                  p={2}
+                                  mb={0.5}
+                                  bg="white"
+                                  _dark={{bg: "black"}}
+                                  border="1px solid gray"
+                                  alignItems={"center"}
+                                >
+                                  {sensor.sensor_name}
+                                  <Icon as={LuChevronRight} ml="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveMiddleToRight(sensor); }}/>
+                                </HStack>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </Box>
                       </Box>
                     )}
                   </Droppable>
@@ -686,34 +693,41 @@ export function MonitoringGroupAssignModal({
                   <Droppable droppableId="right">
                     {provided => (
                       <Box
-                        h="65vh"
-                        overflowY="auto"
-                        w="30%"
-                        borderWidth={1}
+                        h={{base:"20vh", md: "70vh"}}
+                        w={{base: "100%", md: "30%"}}
+                        borderWidth={2}
+                        borderRadius={"md"}
                         p={2}
                         bg="gray.100" border={"visible"} borderColor={"black"} _dark={{ bg: "gray.800", borderColor: "white" }}
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
                       >
-                        <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} color="green.600" fontWeight={"bold"}>Assigned</Text>
-                        {rightItems.map((sensor, index) => (
-                          <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
-                            {prov => (
-                              <Box
-                                ref={prov.innerRef}
-                                {...prov.draggableProps}
-                                {...prov.dragHandleProps}
-                                p={2}
-                                bg="white"
-                                _dark={{bg: "black"}}
-                                border="1px solid gray"
-                              >
-                                {sensor.sensor_name}
-                              </Box>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
+                        <Box
+                          maxH="100%"
+                          overflowY="auto"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          <Text textAlign={"center"} border="1px solid gray" bg="white" _dark={{ bg: "black" }} p={2} fontWeight={"bold"} borderRadius={"md"} mb={2}>Assigned</Text>
+                          {rightItems.map((sensor, index) => (
+                            <Draggable key={sensor.id} draggableId={sensor.id} index={index}>
+                              {prov => (
+                                <HStack
+                                  ref={prov.innerRef}
+                                  {...prov.draggableProps}
+                                  {...prov.dragHandleProps}
+                                  p={2}
+                                  bg="white"
+                                  _dark={{bg: "black"}}
+                                  border="1px solid gray"
+                                  alignItems={"center"}
+                                >
+                                  <Icon as={LuChevronLeft} mr="auto" cursor={"pointer"} size="sm" borderRadius="md" _hover={{bg: "gray.300"}} _dark={{_hover: {bg: "gray.700"}}} onClick={(e) => { e.stopPropagation(); moveRightToMiddle(sensor); }}/>
+                                  {sensor.sensor_name}
+                                </HStack>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </Box>
                       </Box>
                     )}
                   </Droppable>
@@ -721,8 +735,8 @@ export function MonitoringGroupAssignModal({
               </DragDropContext>
             </Dialog.Body>
 
-            <Dialog.Footer>
-              <Button variant="outline">
+            <Dialog.Footer pt={0}>
+              <Button variant="outline" onClick={handleApply}>
                 Apply
               </Button>
               <Button variant="outline" onClick={onClose}>

@@ -29,7 +29,7 @@ class ChecklistTemplateItem(DBBase):
 class Checklist(DBBase):
     __tablename__ = "checklist"
     id           = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    location_id  = Column(UUID(as_uuid=True), ForeignKey("mon_loc.id"), nullable=False)
+    location_id  = Column(UUID(as_uuid=True), ForeignKey("mon_loc.id", ondelete="CASCADE"), nullable=False)
     template_id  = Column(UUID(as_uuid=True), ForeignKey("checklist_template.id"), nullable=False)
     performed_at = Column(DateTime, nullable=False, server_default=func.now())
     created_by   = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
@@ -38,7 +38,7 @@ class Checklist(DBBase):
 class ChecklistResponse(DBBase):
     __tablename__ = "checklist_response"
     id               = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    checklist_id     = Column(UUID(as_uuid=True), ForeignKey("checklist.id"), nullable=False)
+    checklist_id     = Column(UUID(as_uuid=True), ForeignKey("checklist.id", ondelete="CASCADE"), nullable=False)
     template_item_id = Column(UUID(as_uuid=True), ForeignKey("checklist_template_item.id"), nullable=False)
     value            = Column(Boolean, nullable=False)  # for yes/no, extend later for text
     comment          = Column(Text)

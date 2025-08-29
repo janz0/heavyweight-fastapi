@@ -1,4 +1,4 @@
-# app/checklists/crud.py
+# app/checklists/services.py
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session

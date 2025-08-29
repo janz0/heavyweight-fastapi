@@ -5,12 +5,12 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@/app/styles/globals.css";
 import { Provider as ChakraProvider } from "@/app/src/components/ui/provider";
 import { Toaster } from "@/components/ui/toaster";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/UI/Navbar";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { ColorModeProvider } from "./src/components/ui/color-mode";
 import { NavigationProvider } from "./context/NavigationContext";
-import Sidebar from "./components/SideNav";
+import Sidebar from "./components/UI/SideNav";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -61,9 +61,9 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)" _dark={{background: "gray.700"}}>
       <Navbar />
-      <Flex flex="1" minH="0" w="100vw" pl="2" gap="1">
+      <Flex flex="1" minH="0" w="100vw" pl={{md: "2"}} gap="1">
         <Sidebar />
-        <Box flex="1" px={{ base: 4, md: 8 }} py={{ base: 2, md: 4 }} overflowY="auto" bg="gray.100" _dark={{background: "gray.900"}} borderTopLeftRadius={"xl"}>{children}</Box>
+        <Box flex="1" px={{ base: 0, md: 8 }} py={{ base: 0, md: 4 }} overflowY="auto" bg="gray.100" _dark={{background: "gray.900"}} borderTopLeftRadius={{md: "xl"}}>{children}</Box>
       </Flex>
     </Flex>
   );

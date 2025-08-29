@@ -3,7 +3,7 @@
 
 import { Flex, IconButton } from "@chakra-ui/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNavigation } from "../context/NavigationContext";
+import { useNavigation } from "../../context/NavigationContext";
 
 export function BackForward() {
   const { canGoBack, canGoForward, back, forward } = useNavigation();

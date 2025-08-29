@@ -3,20 +3,23 @@
 import 'leaflet/dist/leaflet.css';
 
 import React, { useState, useEffect } from 'react';
-import { Box, HStack, Heading, Text, VStack, Button, Tabs, Popover, Flex, IconButton, Separator, Table } from '@chakra-ui/react';
+import { Box, HStack, Heading, Text, VStack, Button, Popover, Flex, IconButton, Separator } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
 import type { Source } from '@/types/source';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+//import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 import DataTable from '@/app/components/DataTable';
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/components/Modals/SourceModals';
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/components/Modals/SensorModals';
-import { MonitoringGroupCreateModal } from '@/app/sensors/components/MonitoringGroupModals';
+import { MonitoringGroupCreateModal, MonitoringGroupEditModal, MonitoringGroupDeleteModal } from '@/app/components/Modals/MonitoringGroupModals';
 import { listMonitoringGroups } from '@/services/monitoringGroups';
 import type { MonitoringGroup } from '@/types/monitoringGroup';
 import { LocationEditModal, LocationDeleteModal } from '../../components/Modals/LocationModals';
+import ChecklistViewer from '@/app/components/CheckListViewer';
+import { LocationMap } from '@/app/components/UI/LocationMap';
+import { ChecklistCreateModal } from '@/app/components/Modals/ChecklistCreateModal';
 
 interface LocationPageClientProps {
   location: Location;
@@ -93,16 +96,22 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const handleDeleteLocation = () => {setLocDelOpen(true); setPopoverOpen(false)};
 
   const [isGrpCreateOpen, setGrpCreateOpen] = useState(false);
+  const [isGrpEditOpen, setGrpEditOpen] = useState(false);
+  const [isGrpDelOpen, setGrpDelOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<MonitoringGroup | undefined>();
+  const [grpToDelete, setGrpToDelete] = useState<MonitoringGroup | undefined>();
   const [locationGroups, setLocationGroups] = useState<MonitoringGroup[]>([])
   const handleNewGrp = () => (setGrpCreateOpen(true));
+  const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
+  const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
   const [isPopoverOpen, setPopoverOpen] = useState(false);
+  const [isChecklistModalOpen, setChecklistModalOpen] = useState(false);
 
   useEffect(() => {
     listMonitoringGroups(location.id)
       .then(setLocationGroups)
       .catch(err => {
         console.error("Could not load groups:", err)
-        // optionally show a toaster
       })
   }, [location.id])
   console.log(locationGroups);
@@ -194,46 +203,25 @@ export default function LocationPageClient({ location, initialSources, initialSe
         </Box>
       </Flex>
       <HStack mb={3} h="50vh" align="stretch">
-        {/* Map View */}
-        <Tabs.Root defaultValue="map" orientation="horizontal" h="full" w="full" >
-          <Box border="inset" borderRadius="xl" overflow="hidden" h="full" w="full">
-            <Tabs.List>
-              <Tabs.Trigger value="map">Map</Tabs.Trigger>
-              <Tabs.Trigger value="chart">Chart</Tabs.Trigger>
-              <Tabs.Trigger value="alerts">Alerts</Tabs.Trigger>
-              <Tabs.Indicator />
-            </Tabs.List>
-            <Tabs.Content value="map" h="calc(100% - 40px)" p="0">
-              <MapContainer
-                center={[location.lat, location.lon]}
-                zoom={13}
-                scrollWheelZoom={false}
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <Marker position={[location.lat, location.lon]} />
-              </MapContainer>
-            </Tabs.Content>
-            <Tabs.Content value="chart">
-              <Box h="full">
-                {/* Chart placeholder */}
-                <Table.Root>
-                </Table.Root>
-              </Box>
-            </Tabs.Content>
-            <Tabs.Content value="alerts">
-              <Box h="full">
-                {/* Alerts placeholder */}
-                <Text>🚨 Alerts view coming soon</Text>
-              </Box>
-            </Tabs.Content>
-          </Box>
-        </Tabs.Root>
+        <Box className="bg-card" w="160vw" overflow={"hidden"}>
+            <LocationMap
+              lat={location.lat}
+              lon={location.lon}
+              siteImageUrl="/your-site-photo.jpg" // or location.site_image if you store it
+              imageCoordinates={[
+                [location.lon - 0.01, location.lat - 0.01],
+                [location.lon + 0.01, location.lat - 0.01],
+                [location.lon + 0.01, location.lat + 0.01],
+                [location.lon - 0.01, location.lat + 0.01],
+              ]}
+              initialMarkers={[[location.lon, location.lat]]}
+            />
+        </Box>
+        <Box className='bg-card' w="full">
+          <ChecklistViewer locationId={location.id} />
+        </Box>
       </HStack>
-      <Separator variant="solid" size="lg" marginY="12" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
+      <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
           variant={activeTab === 'sources' ? 'solid' : 'ghost'}
@@ -281,18 +269,30 @@ export default function LocationPageClient({ location, initialSources, initialSe
       )}
 
       {activeTab === 'groups' && (
-        <DataTable columns={groupColumns} data={initialGroups} onCreate={handleNewGrp} onEdit={() => console.log("Edit Group")} onDelete={() => console.log("Delete Group")} name={activeTab} />
+        <DataTable columns={groupColumns} data={initialGroups} onCreate={handleNewGrp} onEdit={handleEditGroup} onDelete={handleDeleteGroup} name={activeTab} />
       )}
-
-      <SourceCreateModal isOpen={isSrcCreateOpen} onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } } />
-      <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }} />
-      <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }} />
-      <SensorCreateModal isOpen={isSenCreateOpen} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
-      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }} />
+      <Button
+        colorScheme="yellow"
+        onClick={() => setChecklistModalOpen(true)}
+      >
+        Add Checklist
+      </Button>
+      <SourceCreateModal isOpen={isSrcCreateOpen} onClose={() => { setSrcCreateOpen(false); setSelectedSource(undefined);  } } />
+      <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSrcEditOpen(false); setSelectedSource(undefined);  }} />
+      <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcDelOpen(false); setSrcToDelete(undefined);  }} />
+      <SensorCreateModal isOpen={isSenCreateOpen} onClose={() => { setSenCreateOpen(false); setSelectedSensor(undefined);  } } />
+      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSenEditOpen(false); setSelectedSensor(undefined);  }} />
+      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenDelOpen(false); setSenToDelete(undefined);  }} />
       <MonitoringGroupCreateModal isOpen={isGrpCreateOpen} onClose={() => setGrpCreateOpen(false)} locationId={location.id} />
+      <MonitoringGroupEditModal isOpen={isGrpEditOpen} group={selectedGroup} onClose={() => { setGrpEditOpen(false); setSelectedGroup(undefined); }}/>
+      <MonitoringGroupDeleteModal isOpen={isGrpDelOpen} group={grpToDelete} onClose={() => { setGrpDelOpen(false); setGrpToDelete(undefined); }}/>
       <LocationEditModal isOpen={isLocEditOpen} location={location} onClose={() => { setLocEditOpen(false); }} />
       <LocationDeleteModal isOpen={isLocDelOpen} location={location} onClose={() => { setLocDelOpen(false); }} />
+      <ChecklistCreateModal
+        isOpen={isChecklistModalOpen}
+        onClose={() => setChecklistModalOpen(false)}
+        locationId={location.id}
+      />
     </Box>
   );
 }

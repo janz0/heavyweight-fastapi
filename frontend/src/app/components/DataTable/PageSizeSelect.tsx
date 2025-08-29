@@ -1,7 +1,6 @@
 // components/PageSizeSelect/index.tsx
 import React, { useMemo } from "react";
 import { Select, createListCollection } from "@chakra-ui/react";
-import { useColorModeValue } from "../src/components/ui/color-mode";
 
 export interface PageSizeSelectProps {
   value: number;
@@ -19,8 +18,6 @@ export default function PageSizeSelect({ value, options, onChange }: PageSizeSel
     [options]
   );
 
-  const bg = useColorModeValue("white", "gray.600");
-  const select_bg = useColorModeValue("gray.100","gray.700");
   return (
     <Select.Root
       collection={collection}
@@ -31,7 +28,7 @@ export default function PageSizeSelect({ value, options, onChange }: PageSizeSel
     >
       <Select.HiddenSelect />
       <Select.Control>
-        <Select.Trigger bg={bg} borderRadius="md" boxShadow="sm">
+        <Select.Trigger bg={'bg.panel'} border='1px solid var(--chakra-colors-border-emphasized)' borderRadius='0.375rem' boxShadow='md'>
           <Select.ValueText placeholder={options[0].toString()} />
         </Select.Trigger>
         <Select.IndicatorGroup>
@@ -41,7 +38,7 @@ export default function PageSizeSelect({ value, options, onChange }: PageSizeSel
       <Select.Positioner>
         <Select.Content>
           {options.map((n) => (
-            <Select.Item key={n} item={{ value: n.toString(), label: n.toString() }} _hover={{ bg: select_bg }}>
+            <Select.Item key={n} item={{ value: n.toString(), label: n.toString() }} _selected={{bg: 'gray.subtle'}} _hover={{ bg: 'gray.subtle' }}>
               {n}
             </Select.Item>
           ))}

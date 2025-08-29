@@ -1,10 +1,10 @@
 // File: app/locations/components/LocationsPageClient.tsx
 "use client";
 
-// React + Next Imports
+// React Imports
 import { useEffect, useState } from "react";
 
-// Chakra Imports + Icons
+// Chakra Imports
 import { Box, Flex, Spinner } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
@@ -12,8 +12,10 @@ import { useColorMode } from "@/app/src/components/ui/color-mode";
 // UI Components
 import DataTable from "@/app/components/DataTable";
 
-// Services + Types
+// Modals
 import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from "../components/Modals/LocationModals";
+
+// Types
 import type { Location } from "@/types/location";
 
 // Column definition with label override
@@ -49,7 +51,6 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
   const [isDelOpen, setDelOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | undefined>();
   const [toDelete, setToDelete] = useState<Location | undefined>();
-
 
   // Colors
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';

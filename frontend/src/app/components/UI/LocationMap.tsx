@@ -116,7 +116,7 @@ export function LocationMap({
       <TabPanels>
         {/* 1. Interactive Vector Map */}
         <TabPanel p={0}>
-          <Box h="490px">
+          <Box h="400px">
             <Map
               ref={mapRef} // ← assign the MapRef here
               initialViewState={{
