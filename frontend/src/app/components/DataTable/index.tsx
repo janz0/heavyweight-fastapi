@@ -65,9 +65,9 @@ export default function DataTable<T extends { id: string; }>({
 
       // Initialize widths so they sum up to viewport width
       const totalWidth = window.innerWidth; // current screen width
-      const reserved = 36 + 100; // checkbox col (36px) + actions col (100px)
+      const reserved = 36 + 100 + 3; // checkbox col (36px) + actions col (100px)
       const available = totalWidth - reserved;
-      const baseWidth = Math.max(MIN_COL_PX, Math.floor(available / columns.length));
+      const baseWidth = Math.max(MIN_COL_PX, Math.round(available / columns.length));
 
       return Object.fromEntries(columns.map(c => [c.key, baseWidth]));
     }
@@ -76,7 +76,7 @@ export default function DataTable<T extends { id: string; }>({
   });
 
   // Column Resizing
-  const MIN_COL_PX = 110;
+  const MIN_COL_PX = 60;
   const resizingRef = useRef<{ key: string; startX: number; startWidth: number;} | null>(null);
   const startResize = useCallback((e: React.PointerEvent, key: string) => {
     e.preventDefault();
@@ -215,18 +215,23 @@ export default function DataTable<T extends { id: string; }>({
     const container = document.querySelector(".bg-card"); // or use a ref
     const totalWidth = container?.clientWidth ?? window.innerWidth;
 
-    const reserved = 36 + 100;
+    const reserved = 36 + 100 + 3;
     const available = totalWidth - reserved;
 
     const sum = Object.values(colWidths).reduce((a, b) => a + b, 0);
 
-    if (Math.abs(sum - available) > 1) { // allow a 1px tolerance
+    if (Math.abs(sum - available) > 1) {
       const factor = available / sum;
-      setColWidths(prev =>
-        Object.fromEntries(
-          Object.entries(prev).map(([k, w]) => [k, Math.floor(w * factor)])
-        )
-      );
+      const entries = Object.entries(colWidths).map(([k, w]) => [k, Math.round(w * factor)]);
+      
+      // ✅ Snap last column so totals match exactly
+      const currentSum = entries.reduce((a, [, w]) => a + (w as number), 0);
+      const diff = available - currentSum;
+      if (entries.length > 0) {
+        entries[entries.length - 1][1] = (entries[entries.length - 1][1] as number) + diff;
+      }
+
+      setColWidths(Object.fromEntries(entries));
     }
   }, [colWidths]);
 
@@ -274,7 +279,7 @@ export default function DataTable<T extends { id: string; }>({
         </Flex>
       </Flex>
       <Box className="bg-card">
-        <Table.ScrollArea border='1px solid var(--chakra-colors-border-emphasized)' maxH="70vh" borderRadius='0.375rem'>
+        <Table.ScrollArea border='1px solid var(--chakra-colors-border-emphasized)' maxH="70vh" borderRadius='0.375rem' overflowX="auto">
           <Table.Root
             size="sm"
             interactive
@@ -284,9 +289,9 @@ export default function DataTable<T extends { id: string; }>({
             borderCollapse="separate"
             borderSpacing={0}
             boxShadow="lg"
-            width="full"
-            minW="full"
-            maxW="full"
+            width="100%"
+            minW="100%"
+            maxW="100%"
             css={{
               "& [data-sticky-edge='right']::after": {
                 content: '""',

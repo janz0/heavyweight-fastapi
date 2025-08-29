@@ -1,25 +1,18 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Box, Button, HStack, Heading, IconButton, Text, VStack, Flex, Popover, Table, Select, Portal, createListCollection } from '@chakra-ui/react';
+import { Box, Button, HStack, Heading, IconButton, Text, VStack, Flex, Popover, Table } from '@chakra-ui/react';
 import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
 import type { MonitoringSensor } from '@/types/sensor';
 import { Chart as ChartJS, registerables } from 'chart.js';
 ChartJS.register(...registerables);
-import { Line } from 'react-chartjs-2';
 import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
 import { SensorEditModal, SensorDeleteModal } from '../../components/Modals/SensorModals';
+import GraphPanel, { GraphConfig } from "@/app/components/Graphs/GraphPanel";
 
 interface SensorPageClientProps {
   sensor: MonitoringSensor;
 }
-
-const chart = createListCollection({
-  items: [
-    { label: "Latitude", value: "latitude" },
-    { label: "Longitude", value: "longitude" },
-  ],
-})
 
 // Utility to format ISO date strings to "Month day, year"
 function formatDate(dateString?: string | null) {
@@ -35,7 +28,6 @@ function formatDate(dateString?: string | null) {
 export default function SensorPageClient({ sensor }: SensorPageClientProps) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const accent  = colorMode === 'light' ? '#3B82F6'  : '#60A5FA';
   const [isSenEditOpen, setSenEditOpen] = useState(false);
   const [isSenDelOpen, setSenDelOpen] = useState(false);
   const handleEditSensor = () => { setSenEditOpen(true); setPopoverOpen(false)};
@@ -47,7 +39,10 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
     longitude: number;
   };
 
-  type NumericField = 'latitude' | 'longitude';
+  const [graphConfig, setGraphConfig] = useState<GraphConfig>({
+    type: "line",
+    field: "latitude",
+  });
 
   // Simple random-walk around a starting coordinate
   function makeSampleData(
@@ -80,7 +75,6 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
   const thumbBg = useColorModeValue('gray.600', 'gray.400');
   const thumbBorder = useColorModeValue('gray.100', 'gray.800');
   const [sampleData] = useState<SampleRow[]>(() => makeSampleData());
-  const [selectedField, setSelectedField] = useState<NumericField>('latitude');
   const [isPopoverOpen, setPopoverOpen] = useState(false);
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
@@ -204,71 +198,12 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
         <Box className="bg-card" minW={0} flex={"1 1 0%"}>
           {/* --------------- */}
           {/* the actual line chart */}
-          <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={8} borderWidth={2}>
-            <Box className="bg-card" bg="gray.200" position="absolute" right={"2%"} top={3} p={1} m={0}>
-              <Select.Root collection={chart} w="150px" value={[selectedField]} 
-                onValueChange={(e) => {
-                  const next = e.value[0] as NumericField;
-                  if (next) setSelectedField(next);
-                }}>
-                <Select.HiddenSelect />
-                <Select.Control>
-                  <Select.Trigger h="25px" minH={0}>
-                    <Select.ValueText fontSize={12}/>
-                  </Select.Trigger>
-                  <Select.IndicatorGroup>
-                    <Select.Indicator />
-                  </Select.IndicatorGroup>
-                </Select.Control>
-                <Portal>
-                  <Select.Positioner>
-                    <Select.Content>
-                      {chart.items.map((c) => (
-                        <Select.Item item={c} key={c.value}>
-                          {c.label}
-                          <Select.ItemIndicator />
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Positioner>
-                </Portal>
-              </Select.Root>
-            </Box>
-            <Line
-              data={{
-                labels: sampleData.map(d =>
-                  new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                ),
-                datasets: [
-                  {
-                    label: `${sensor.sensor_name} — ${selectedField}`,
-                    data: sampleData.map((pt) => pt[selectedField]),
-                    fill: false,
-                    tension: 0.4,
-                    borderColor: accent,
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  x: { title: { display: true, text: 'Time' },
-                      grid: {display: false}, },
-                  y: {
-                    title: {
-                      display: true,
-                      text: selectedField === 'latitude' ? 'Latitude (°)' : 'Longitude (°)',
-                    },
-                  },
-                },
-                plugins: {
-                  legend: {position: 'top'},
-                  tooltip: {enabled: true},
-                }
-              }}
-            />
-          </Box>
+          <GraphPanel
+            sensorName={sensor.sensor_name}
+            data={sampleData}
+            config={graphConfig}
+            onConfigChange={setGraphConfig}
+          />
         </Box>
       </HStack>
       <SensorEditModal isOpen={isSenEditOpen} sensor={sensor} onClose={() => { setSenEditOpen(false); }} />
