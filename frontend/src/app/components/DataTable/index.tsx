@@ -57,25 +57,7 @@ export default function DataTable<T extends { id: string; }>({
   // Group Assign
   const [isGrpAssignOpen, setGrpAssign] = useState(false);
   const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
-
-  // Get Local Column Widths
-  const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(`${name}-colWidths`);
-      if (saved) return JSON.parse(saved);
-
-      // Initialize widths so they sum up to viewport width
-      const totalWidth = window.innerWidth; // current screen width
-      const reserved = 36 + 100 + 3; // checkbox col (36px) + actions col (100px)
-      const available = totalWidth - reserved;
-      const baseWidth = Math.max(MIN_COL_PX, Math.round(available / columns.length));
-
-      return Object.fromEntries(columns.map(c => [c.key, baseWidth]));
-    }
-    // SSR fallback
-    return Object.fromEntries(columns.map(c => [c.key, MIN_COL_PX]));
-  });
-
+  
   // Column Resizing
   const MIN_COL_PX = 60;
   const resizingRef = useRef<{ key: string; startX: number; startWidth: number;} | null>(null);
@@ -141,6 +123,24 @@ export default function DataTable<T extends { id: string; }>({
     // Optional: capture pointer for smoother drags
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
   }, [columns]);
+
+  // Get Local Column Widths
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`${name}-colWidths`);
+      if (saved) return JSON.parse(saved);
+
+      // Initialize widths so they sum up to viewport width
+      const totalWidth = window.innerWidth; // current screen width
+      const reserved = 36 + 100 + 3; // checkbox col (36px) + actions col (100px)
+      const available = totalWidth - reserved;
+      const baseWidth = Math.max(MIN_COL_PX, Math.round(available / columns.length));
+
+      return Object.fromEntries(columns.map(c => [c.key, baseWidth]));
+    }
+    // SSR fallback
+    return Object.fromEntries(columns.map(c => [c.key, MIN_COL_PX]));
+  });
 
   // Sort/Filter Table
   const filtered = useMemo(() =>
