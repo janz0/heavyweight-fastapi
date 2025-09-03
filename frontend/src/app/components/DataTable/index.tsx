@@ -6,7 +6,7 @@ import Link from "next/link";
 
 // Chakra Imports + Icons
 import { Box, Button, ButtonGroup, Checkbox, Flex, Heading, Icon, IconButton, Pagination, Popover, Table, Text, useToken, VStack } from "@chakra-ui/react";
-import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass, PencilSimple, Plus, Trash } from "phosphor-react";
+import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass, PencilSimple, Plus, Trash, Copy } from "phosphor-react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 // UI Components
@@ -38,6 +38,7 @@ export default function DataTable<T extends { id: string; }>({
   onCreate,
   onEdit,
   onDelete,
+  onDuplicate,
 }: DataTableProps<T>) {
   // Page Size Select
   const [page, setPage] = useState(1);
@@ -464,15 +465,20 @@ export default function DataTable<T extends { id: string; }>({
                           </IconButton>
                         </Popover.Trigger>
                         <Popover.Positioner>
-                          <Popover.Content width="64px" height="100px" borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                          <Popover.Content width="64px" height={onDuplicate ? "135px" : "100px"} borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
                             <Popover.Arrow>
                               <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
                             </Popover.Arrow>
-                            <Popover.Body height="100px" p={0}>
+                            <Popover.Body height={onDuplicate ? "135px" : "100px"} p={0}>
                               <VStack gap={0} justifyContent={"center"} height="inherit">
                                 <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
                                   <PencilSimple />
                                 </Button>
+                                {onDuplicate && (
+                                  <Button variant="ghost" size="md" onClick={() => onDuplicate(item)}>
+                                    <Copy />
+                                  </Button>
+                                )}
                                 <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
                                   <Trash />
                                 </Button>

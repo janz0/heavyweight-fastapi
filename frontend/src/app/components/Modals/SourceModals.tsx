@@ -506,3 +506,58 @@ export function SourceDeleteModal({
     </Dialog.Root>
   );
 }
+
+// ----------------------
+// DuplicateSourceModal
+// ----------------------
+export function SourceDuplicateModal({
+  isOpen,
+  onClose,
+  source,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  source?: Source;
+}) {
+  const handleDuplicate = async (payload: SourcePayload) => {
+    await createSource(payload); // same service as create
+    toaster.create({ description: "Source duplicated", type: "success" });
+    onClose();
+  };
+
+  // Strip out id and source_name before passing down
+  const cloneData: Omit<Source, "id"> | undefined = source
+    ? {
+        ...source,
+        source_name: "", // clear name
+      }
+    : undefined;
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
+      <Portal>
+        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Positioner>
+          <Dialog.Content border="2px solid">
+            <Dialog.Header>
+              <Dialog.Title>Duplicate Source</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
+                  <X size={16} />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <SourceForm
+                onSubmit={handleDuplicate}
+                onClose={onClose}
+                initialData={cloneData as Source}
+                submitLabel="Create"
+              />
+            </Dialog.Body>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}

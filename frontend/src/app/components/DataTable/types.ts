@@ -20,7 +20,8 @@ export interface DataTableProps<T extends { id: string; }> {
   onCreate: () => void;
   onEdit: (item: T) => void;
   onDelete: (item: T) => void;
-
+  onDuplicate?: (item: T) => void;
+  
   selection?: {
     selectedIds: Set<string>;
     toggleSelection: (id: string) => void;
