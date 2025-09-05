@@ -15,6 +15,7 @@ export interface Source {
   last_data_upload: string;
   active: number;
   last_updated: string;        // ISO-formatted timestamp (e.g. "2025-06-05T12:34:56Z")
+  root_directory: string;
 
   details?: {
     loc_number?: string;
@@ -34,6 +35,7 @@ export interface SourcePayload {
   source_type?: string;
   config?: string;
   active?: number;
+  root_directory?: string;
 }
 
 /**
@@ -48,6 +50,7 @@ export interface SourceCreatePayload {
   source_type: string;
   config: string;
   active: number;
+  root_directory: string;
 }
 
 /**

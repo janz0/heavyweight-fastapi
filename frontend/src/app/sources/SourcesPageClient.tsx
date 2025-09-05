@@ -25,6 +25,7 @@ const columns: Column[] = [
   { key: "source_name", label: "Source Name" },
   { key: "details.loc_name", label: "Location" },
   { key: "folder_path", label: "Folder Path" },
+  { key: "root_directory", label: "Root Directory"},
   { key: "file_keyword", label: "File Keyword" },
   { key: "file_type", label: "File Type" },
   { key: "source_type", label: "Source Type" },

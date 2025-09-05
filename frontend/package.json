@@ -22,6 +22,7 @@
     "@tanstack/react-table": "^8.21.3",
     "chart.js": "^4.4.9",
     "framer-motion": "^12.23.9",
+    "json-edit-react": "^1.28.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.507.0",
     "mapbox-gl": "^3.12.0",

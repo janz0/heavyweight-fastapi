@@ -423,7 +423,7 @@ export default function DataTable<T extends { id: string; }>({
 
                     if (col.key === "active") {
                       return (
-                        <Table.Cell key={col.key} className="table-cell" textAlign="center">
+                        <Table.Cell key={col.key} className="table-cell" textAlign="center" w="80px">
                           <Box
                             display="inline-block"
                             boxSize="10px"

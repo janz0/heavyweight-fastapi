@@ -6,10 +6,13 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
-import { Button, CloseButton, createListCollection, Dialog, Field, Flex, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
+import { Button, CloseButton, createListCollection, Dialog, Field, Flex, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
 import { X } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
+import { Maximize2 } from "lucide-react";
+
+import { JsonEditor } from 'json-edit-react';
 
 // Services + Types
 import { createSource, updateSource, deleteSource} from "@/services/sources";
@@ -77,7 +80,20 @@ function SourceForm({
       return "";
     }
   });
+  const [config, setConfig] = useState(() => {
+    if (!initialData?.config) return {};
+    try {
+      return typeof initialData.config === "string"
+        ? JSON.parse(initialData.config)
+        : initialData.config;
+    } catch {
+      return {};
+    }
+  });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
+  const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
+
+  const [isConfigOpen, setConfigOpen] = useState(false);
 
   // load projects
   useEffect(() => {
@@ -148,8 +164,9 @@ function SourceForm({
       file_keyword:  fileKeyword,
       file_type:     fileType,
       source_type:   sourceType,
-      config:        JSON.stringify({ interval }),
+      config:        JSON.stringify({ config }),
       active:        active ? 1 : 0,
+      root_directory: rootDirectory,
     };
 
     try {
@@ -189,6 +206,7 @@ function SourceForm({
       setInterval("");
     }
     setActive(initialData.active === 1);
+    setRootDir(initialData.root_directory);
   }, [initialData]);
 
   return (
@@ -270,6 +288,11 @@ function SourceForm({
         <Input value={folderPath} borderColor={bc} onChange={e => setFolderPath(e.target.value)} />
       </Field.Root>
 
+      <Field.Root required mb={4}>
+        <Field.Label>Root Directory</Field.Label>
+        <Input value={rootDirectory} borderColor={bc} onChange={e => setRootDir(e.target.value)} />
+      </Field.Root>
+
       <Field.Root mb={4}>
         <Field.Label>File Keyword</Field.Label>
         <Input
@@ -299,7 +322,58 @@ function SourceForm({
           onChange={e => setSourceType(e.target.value)}
         />
       </Field.Root>
+      <Field.Root mb={4}>
+        <Field.Label>Config</Field.Label>
+        <Flex align="center" gap={2} position="relative" w="100%">
+          <Textarea
+            borderColor={bc}
+            w="100%"
+            placeholder='{"interval":"5min"}'
+            minH="120px"
+            fontFamily="mono"
+            value={JSON.stringify(config, null, 2)}
+            readOnly
+          />
+          <IconButton
+            position="absolute"
+            right="0"
+            top="0"
+            aria-label="Fullscreen editor"
+            size="2xs"
+            bg="transparent"
+            color="bg.inverted"
+          ><Maximize2 size="sm" onClick={() => setConfigOpen(true)}></Maximize2></IconButton>
+        </Flex>
 
+        {/* Fullscreen editor */}
+        <Dialog.Root open={isConfigOpen} onOpenChange={() => setConfigOpen(false)}>
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content w="100vw" h="100vh" maxW="30vw" maxH="70vh">
+                <Dialog.Header>
+                  <Dialog.CloseTrigger asChild>
+                    <IconButton aria-label="Close" variant="ghost" onClick={() => setConfigOpen(false)}>
+                      <X size={16} />
+                    </IconButton>
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+                <Dialog.Body>
+                  <JsonEditor
+                    data={config}
+                    setData={setConfig}
+                    rootName="Config"
+                    defaultValue=""
+                  />
+                </Dialog.Body>
+                <Dialog.Footer>
+                  <Button onClick={() => setConfigOpen(false)}>Done</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+      </Field.Root>
       <Field.Root required mb={4}>
         <Field.Label>Interval</Field.Label>
         <Select.Root
@@ -379,7 +453,7 @@ export function SourceCreateModal({
       <Portal>
         <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Content border="2px solid" maxH="80vh">
             <Dialog.Header>
               <Dialog.Title>Create Source</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -388,7 +462,7 @@ export function SourceCreateModal({
                 </IconButton>
               </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
+            <Dialog.Body overflowY="auto">
               <SourceForm
                 onSubmit={handleCreate}
                 onClose={onClose}
@@ -427,7 +501,7 @@ export function SourceEditModal({
       <Portal>
         <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Content border="2px solid" maxH="80vh">
             <Dialog.Header>
               <Dialog.Title>Edit Source</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -436,7 +510,7 @@ export function SourceEditModal({
                 </IconButton>
               </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
+            <Dialog.Body overflowY="auto">
               <SourceForm
                 onSubmit={handleUpdate}
                 onClose={onClose}
@@ -486,7 +560,7 @@ export function SourceDeleteModal({
       <Portal>
         <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Content border="2px solid" maxH="80vh">
             <Dialog.Header>
               <Dialog.Title>Delete Source</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -538,7 +612,7 @@ export function SourceDuplicateModal({
       <Portal>
         <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Content border="2px solid" maxH="80vh">
             <Dialog.Header>
               <Dialog.Title>Duplicate Source</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -547,7 +621,7 @@ export function SourceDuplicateModal({
                 </IconButton>
               </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
+            <Dialog.Body overflowY="auto">
               <SourceForm
                 onSubmit={handleDuplicate}
                 onClose={onClose}
