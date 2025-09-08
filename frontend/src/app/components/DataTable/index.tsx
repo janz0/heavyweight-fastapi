@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Box, Button, ButtonGroup, Checkbox, Flex, Heading, Icon, IconButton, Pagination, Popover, Table, Text, useToken, VStack } from "@chakra-ui/react";
 import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass, PencilSimple, Plus, Trash, Copy } from "phosphor-react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
+import { RotateCcw } from "lucide-react";
 
 // UI Components
 import CountFooter from "./CountFooter";
@@ -58,8 +59,19 @@ export default function DataTable<T extends { id: string; }>({
   const [isGrpAssignOpen, setGrpAssign] = useState(false);
   const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
   
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  const getContainerWidth = () => {
+    return tableRef.current?.clientWidth ?? 0;
+  };
+
+  console.log(getContainerWidth());
   // Column Resizing
-  const MIN_COL_PX = 60;
+  const reserved = 36 + 100 + 80 + 3; // checkbox + actions + buffer
+  const available = Math.max(0, 10 - reserved);
+
+  // Dynamic minimum: each col gets at least its fair share of available space
+  const MIN_COL_PX = Math.floor(available / columns.length);
   const resizingRef = useRef<{ key: string; startX: number; startWidth: number;} | null>(null);
   const startResize = useCallback((e: React.PointerEvent, key: string) => {
     e.preventDefault();
@@ -83,7 +95,7 @@ export default function DataTable<T extends { id: string; }>({
 
       setColWidths(prev => {
         const colIndex = columns.findIndex(c => c.key === r.key);
-        if (colIndex === -1 || colIndex === columns.length - 1) return prev;
+        if (colIndex === -2 || colIndex === columns.length - 2) return prev;
 
         const nextKey = columns[colIndex + 1].key;
         const currentWidth = prev[r.key];
@@ -122,7 +134,7 @@ export default function DataTable<T extends { id: string; }>({
 
     // Optional: capture pointer for smoother drags
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-  }, [columns]);
+  }, [columns, MIN_COL_PX]);
 
   // Get Local Column Widths
   const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
@@ -132,15 +144,51 @@ export default function DataTable<T extends { id: string; }>({
 
       // Initialize widths so they sum up to viewport width
       const totalWidth = window.innerWidth; // current screen width
-      const reserved = 36 + 100 + 3; // checkbox col (36px) + actions col (100px)
+      const reserved = 36 + 100 + 80 + 3; // checkbox col (36px) + actions col (100px)
       const available = totalWidth - reserved;
       const baseWidth = Math.max(MIN_COL_PX, Math.round(available / columns.length));
 
       return Object.fromEntries(columns.map(c => [c.key, baseWidth]));
     }
+
     // SSR fallback
     return Object.fromEntries(columns.map(c => [c.key, MIN_COL_PX]));
   });
+
+  const resetColumns = useCallback(() => {
+    const totalWidth = getContainerWidth() ?? window.innerWidth;
+
+    const reserved = 36 + 100 + 40 + 3; // checkbox + actions + buffer
+    const available = totalWidth - reserved;
+
+    const resizableCols = columns.filter((c) => c.key !== "active" && c.key !== "status");
+    let baseWidth = Math.round(available / resizableCols.length);
+    baseWidth = baseWidth < MIN_COL_PX ? MIN_COL_PX : baseWidth;
+
+    // start with all base widths
+    const entries = columns.map((c) =>
+      c.key === "active" || c.key === "status" ? [c.key, 80] : [c.key, baseWidth]
+    );
+
+    // compute sum and diff
+    const currentSum = entries.reduce((a, [, w]) => a + (w as number), 0);
+    const diff = available - currentSum;
+
+    // snap last column to fix rounding error
+    if (entries.length > 0) {
+      const lastResizable = entries.findIndex(([k]) => k !== "active" && k !== "status" && k === resizableCols.at(-1)?.key);
+      if (lastResizable !== -1) {
+        entries[lastResizable][1] =
+          (entries[lastResizable][1] as number) + diff;
+      }
+    }
+
+    setColWidths(Object.fromEntries(entries));
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(`${name}-colWidths`);
+    }
+  }, [columns, name, MIN_COL_PX]);
 
   // Sort/Filter Table
   const filtered = useMemo(() =>
@@ -213,10 +261,9 @@ export default function DataTable<T extends { id: string; }>({
 
   // Clamp width to page size
   useEffect(() => {
-    const container = document.querySelector(".bg-card"); // or use a ref
-    const totalWidth = container?.clientWidth ?? window.innerWidth;
+    const totalWidth = getContainerWidth() ?? window.innerWidth;
 
-    const reserved = 36 + 100 + 3;
+    const reserved = 36 + 100 + 3 + 80;
     const available = totalWidth - reserved;
 
     const sum = Object.values(colWidths).reduce((a, b) => a + b, 0);
@@ -246,11 +293,12 @@ export default function DataTable<T extends { id: string; }>({
   return (
     <Box width="full">
       <Flex mb={2} align="center" w="100%" className="bg-card">
-        <Heading fontSize={{base:"xl", sm: "xl", md: "3xl"}} color={color}>  
+        <Heading fontSize={{base:"xl", sm: "xl", md: "3xl"}} color={color}>
           <Text as="span">{name.charAt(0).toUpperCase()}</Text>
           <Text as="span" fontSize={{base:"md", sm: "lg", md: "2xl"}}>{name.slice(1)}</Text>
         </Heading>
         <Flex ml="auto" align="center" gap={{base: 1, sm: 2, md: 3}}>
+          <IconButton aria-label="Reset Columns" as={RotateCcw} bg="transparent" size={'2xs'} color='fg' onClick={resetColumns}/>
           <Box display={{base: "none", md: "block"}}>
             <SearchInput value={search} onChange={setSearch} placeholder={`Search ${name}...`} />
           </Box>
@@ -280,7 +328,7 @@ export default function DataTable<T extends { id: string; }>({
         </Flex>
       </Flex>
       <Box className="bg-card">
-        <Table.ScrollArea border='1px solid var(--chakra-colors-border-emphasized)' maxH="70vh" borderRadius='0.375rem' overflowX="auto">
+        <Table.ScrollArea border='1px solid var(--chakra-colors-border-emphasized)' maxH="70vh" borderRadius='0.375rem' ref={tableRef}>
           <Table.Root
             size="sm"
             interactive
@@ -291,8 +339,6 @@ export default function DataTable<T extends { id: string; }>({
             borderSpacing={0}
             boxShadow="lg"
             width="100%"
-            minW="100%"
-            maxW="100%"
             css={{
               "& [data-sticky-edge='right']::after": {
                 content: '""',
@@ -337,8 +383,8 @@ export default function DataTable<T extends { id: string; }>({
                     onClick={() => requestSort(col.key)}
                     cursor="pointer"
                     textAlign="center"
-                    w={`${colWidths[col.key]}px`}
-                    minW={`${MIN_COL_PX}px`}
+                    w={col.key === 'active' || col.key === 'status' ? '80px' : `${colWidths[col.key]}px`}
+                    minW={col.key === 'active' || col.key === 'status' ? '80px' : `${MIN_COL_PX}px`}
                     m={0}
                     {...(i === 0 ? { "data-sticky-edge": "right", position: "sticky", insetInlineStart: "36px", top: 0, borderLeft: "none", zIndex: 9 } : {position: "relative"})}
                   >
@@ -421,7 +467,7 @@ export default function DataTable<T extends { id: string; }>({
                       );
                     }
 
-                    if (col.key === "active") {
+                    if (col.key === "active" || col.key === "Status") {
                       return (
                         <Table.Cell key={col.key} className="table-cell" textAlign="center" w="80px">
                           <Box

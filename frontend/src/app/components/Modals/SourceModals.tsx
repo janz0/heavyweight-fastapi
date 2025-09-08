@@ -350,7 +350,7 @@ function SourceForm({
           <Portal>
             <Dialog.Backdrop />
             <Dialog.Positioner>
-              <Dialog.Content w="100vw" h="100vh" maxW="30vw" maxH="70vh">
+              <Dialog.Content maxW="30vw" maxH="80vh">
                 <Dialog.Header>
                   <Dialog.CloseTrigger asChild>
                     <IconButton aria-label="Close" variant="ghost" onClick={() => setConfigOpen(false)}>
@@ -358,7 +358,7 @@ function SourceForm({
                     </IconButton>
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
-                <Dialog.Body>
+                <Dialog.Body maxH="100vh" w="100%" overflowY="auto">
                   <JsonEditor
                     data={config}
                     setData={setConfig}
@@ -367,7 +367,7 @@ function SourceForm({
                   />
                 </Dialog.Body>
                 <Dialog.Footer>
-                  <Button onClick={() => setConfigOpen(false)}>Done</Button>
+                  <Button onClick={() => setConfigOpen(false)}>Save</Button>
                 </Dialog.Footer>
               </Dialog.Content>
             </Dialog.Positioner>
