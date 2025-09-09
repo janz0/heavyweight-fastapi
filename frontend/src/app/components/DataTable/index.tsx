@@ -65,13 +65,8 @@ export default function DataTable<T extends { id: string; }>({
     return tableRef.current?.clientWidth ?? 0;
   };
 
-  console.log(getContainerWidth());
-  // Column Resizing
-  const reserved = 36 + 100 + 80 + 3; // checkbox + actions + buffer
-  const available = Math.max(0, 10 - reserved);
+  const MIN_COL_PX = 80;
 
-  // Dynamic minimum: each col gets at least its fair share of available space
-  const MIN_COL_PX = Math.floor(available / columns.length);
   const resizingRef = useRef<{ key: string; startX: number; startWidth: number;} | null>(null);
   const startResize = useCallback((e: React.PointerEvent, key: string) => {
     e.preventDefault();
@@ -143,11 +138,11 @@ export default function DataTable<T extends { id: string; }>({
       if (saved) return JSON.parse(saved);
 
       // Initialize widths so they sum up to viewport width
-      const totalWidth = window.innerWidth; // current screen width
+      const totalWidth = getContainerWidth(); // current screen width
       const reserved = 36 + 100 + 80 + 3; // checkbox col (36px) + actions col (100px)
       const available = totalWidth - reserved;
-      const baseWidth = Math.max(MIN_COL_PX, Math.round(available / columns.length));
-
+      const baseWidth = Math.max(MIN_COL_PX, Math.round(available / (columns.length-1)));
+      
       return Object.fromEntries(columns.map(c => [c.key, baseWidth]));
     }
 
@@ -156,18 +151,19 @@ export default function DataTable<T extends { id: string; }>({
   });
 
   const resetColumns = useCallback(() => {
-    const totalWidth = getContainerWidth() ?? window.innerWidth;
+    const totalWidth = getContainerWidth();
 
-    const reserved = 36 + 100 + 40 + 3; // checkbox + actions + buffer
-    const available = totalWidth - reserved;
+    const reserved = 36 + 100 + 80 + 3; // checkbox + actions + buffer
+    const available = Math.max(0, totalWidth - reserved);
 
     const resizableCols = columns.filter((c) => c.key !== "active" && c.key !== "status");
+
     let baseWidth = Math.round(available / resizableCols.length);
     baseWidth = baseWidth < MIN_COL_PX ? MIN_COL_PX : baseWidth;
-
+    
     // start with all base widths
-    const entries = columns.map((c) =>
-      c.key === "active" || c.key === "status" ? [c.key, 80] : [c.key, baseWidth]
+    const entries = resizableCols.map((c) =>
+      [c.key, baseWidth]
     );
 
     // compute sum and diff
@@ -261,7 +257,7 @@ export default function DataTable<T extends { id: string; }>({
 
   // Clamp width to page size
   useEffect(() => {
-    const totalWidth = getContainerWidth() ?? window.innerWidth;
+    const totalWidth = getContainerWidth();
 
     const reserved = 36 + 100 + 3 + 80;
     const available = totalWidth - reserved;
@@ -383,6 +379,7 @@ export default function DataTable<T extends { id: string; }>({
                     onClick={() => requestSort(col.key)}
                     cursor="pointer"
                     textAlign="center"
+                    overflow="hidden"
                     w={col.key === 'active' || col.key === 'status' ? '80px' : `${colWidths[col.key]}px`}
                     minW={col.key === 'active' || col.key === 'status' ? '80px' : `${MIN_COL_PX}px`}
                     m={0}
@@ -430,9 +427,9 @@ export default function DataTable<T extends { id: string; }>({
               {visibleItems.map((item, i) => (
                 <Table.Row
                   key={i}
-                  _hover={{ bg: "bg.subtle" }}
+                  _hover={{ bg: "bg.muted" }}
                 >
-                  <Table.Cell bg='bg' _hover={{ bg: "bg.subtle" }} py={1} position={"sticky"} data-sticky-edge="right" left={0} borderRight={"none"}
+                  <Table.Cell bg='bg' py={1} position={"sticky"} data-sticky-edge="right" left={0} borderRight={"none"}
                     _before={{
                       content: '""',
                       position: "absolute",
@@ -517,17 +514,23 @@ export default function DataTable<T extends { id: string; }>({
                             </Popover.Arrow>
                             <Popover.Body height={onDuplicate ? "135px" : "100px"} p={0}>
                               <VStack gap={0} justifyContent={"center"} height="inherit">
+                                <Popover.CloseTrigger asChild>
                                 <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
                                   <PencilSimple />
                                 </Button>
+                                </Popover.CloseTrigger>
                                 {onDuplicate && (
+                                  <Popover.CloseTrigger asChild>
                                   <Button variant="ghost" size="md" onClick={() => onDuplicate(item)}>
                                     <Copy />
                                   </Button>
+                                  </Popover.CloseTrigger>
                                 )}
+                                <Popover.CloseTrigger asChild>
                                 <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
                                   <Trash />
                                 </Button>
+                                </Popover.CloseTrigger>
                               </VStack>
                             </Popover.Body>
                           </Popover.Content>

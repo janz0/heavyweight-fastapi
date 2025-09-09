@@ -13,6 +13,7 @@ import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { Maximize2 } from "lucide-react";
 
 import { JsonEditor } from 'json-edit-react';
+import type { FilterFunction } from 'json-edit-react';
 
 // Services + Types
 import { createSource, updateSource, deleteSource} from "@/services/sources";
@@ -26,6 +27,13 @@ const INTERVAL_OPTIONS = [
   { label: "5 minutes",  value: "5min"  },
   { label: "10 minutes", value: "10min" },
   { label: "15 minutes", value: "15min" },
+  { label: "30 minutes", value: "30min" },
+  { label: "1 hour", value: "1hr" },
+  { label: "3 hours", value: "3hr" },
+  { label: "6 hours", value: "6hr" },
+  { label: "12 hours", value: "12hr" },
+  { label: "24 hours", value: "24hr" },
+  { label: "48 hours", value: "48hr" },
 ];
 
 // ----------------------
@@ -69,31 +77,41 @@ function SourceForm({
   const [fileKeyword, setFileKeyword] = useState(initialData?.file_keyword || "");
   const [fileType,    setFileType]    = useState(initialData?.file_type    || "");
   const [sourceType,  setSourceType]  = useState(initialData?.source_type  || "");
-  const [interval,    setInterval]    = useState(() => {
+  const [interval, setInterval] = useState<string>(() => {
     if (!initialData) return "";
     try {
       const cfg = typeof initialData.config === "string"
         ? JSON.parse(initialData.config)
         : (initialData.config as { interval?: string });
       return cfg.interval ?? "";
-    } catch {
-      return "";
-    }
+    } catch { return ""; }
   });
-  const [config, setConfig] = useState(() => {
+
+  
+  // keep config WITHOUT interval
+  const [config, setConfig] = useState<Record<string, unknown>>(() => {
     if (!initialData?.config) return {};
     try {
-      return typeof initialData.config === "string"
+      const full = typeof initialData.config === "string"
         ? JSON.parse(initialData.config)
         : initialData.config;
-    } catch {
-      return {};
-    }
+      const { interval: _ignored, ...rest } = (full ?? {}) as Record<string, unknown>;
+      return rest;
+    } catch { return {}; }
   });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
 
+  const effectiveConfig = useMemo(
+    () => ({ ...(interval ? { interval } : {}), ...config,  }),
+    [config, interval]
+  );
   const [isConfigOpen, setConfigOpen] = useState(false);
+
+  const LOCK_KEYS = new Set(['id', 'interval']);
+
+  const lockRootAndKeys: FilterFunction = ({ level, key }) =>
+    level === 0 || (typeof key === 'string' && LOCK_KEYS.has(key));
 
   // load projects
   useEffect(() => {
@@ -164,7 +182,7 @@ function SourceForm({
       file_keyword:  fileKeyword,
       file_type:     fileType,
       source_type:   sourceType,
-      config:        JSON.stringify({ config }),
+      config:        JSON.stringify({ effectiveConfig }),
       active:        active ? 1 : 0,
       root_directory: rootDirectory,
     };
@@ -197,13 +215,15 @@ function SourceForm({
     setSourceType(initialData.source_type);
 
     try {
-      const cfg =
-        typeof initialData.config === "string"
-          ? JSON.parse(initialData.config)
-          : (initialData.config as { interval?: string });
-      setInterval(cfg.interval ?? "");
+      const full = typeof initialData.config === "string"
+        ? JSON.parse(initialData.config)
+        : (initialData.config as Record<string, unknown>);
+      const { interval: cfgInterval, ...rest } = full ?? {};
+      setInterval((cfgInterval as string) ?? "");
+      setConfig(rest as Record<string, unknown>);
     } catch {
       setInterval("");
+      setConfig({});
     }
     setActive(initialData.active === 1);
     setRootDir(initialData.root_directory);
@@ -331,12 +351,12 @@ function SourceForm({
             placeholder='{"interval":"5min"}'
             minH="120px"
             fontFamily="mono"
-            value={JSON.stringify(config, null, 2)}
+            value={JSON.stringify(effectiveConfig, null, 2)}
             readOnly
           />
           <IconButton
             position="absolute"
-            right="0"
+            right="4"
             top="0"
             aria-label="Fullscreen editor"
             size="2xs"
@@ -360,8 +380,17 @@ function SourceForm({
                 </Dialog.Header>
                 <Dialog.Body maxH="100vh" w="100%" overflowY="auto">
                   <JsonEditor
-                    data={config}
-                    setData={setConfig}
+                    data={effectiveConfig}
+                    setData={(draft: any) => {
+                      if (!draft || typeof draft !== "object") {
+                        setConfig({});
+                        return;
+                      }
+                      const { interval: _ignored, ...rest } = draft ?? {};
+                      setConfig(rest);
+                    }}
+                    restrictEdit={lockRootAndKeys}
+                    restrictDelete={lockRootAndKeys}
                     rootName="Config"
                     defaultValue=""
                   />
