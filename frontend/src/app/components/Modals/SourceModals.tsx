@@ -95,9 +95,15 @@ function SourceForm({
       const full = typeof initialData.config === "string"
         ? JSON.parse(initialData.config)
         : initialData.config;
-      const { interval: _ignored, ...rest } = (full ?? {}) as Record<string, unknown>;
-      return rest;
-    } catch { return {}; }
+
+      // remove "interval" without creating an unused binding
+      return Object.fromEntries(
+        Object.entries((full ?? {}) as Record<string, unknown>)
+          .filter(([k]) => k !== "interval")
+      );
+    } catch {
+      return {};
+    }
   });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
@@ -228,7 +234,8 @@ function SourceForm({
     setActive(initialData.active === 1);
     setRootDir(initialData.root_directory);
   }, [initialData]);
-
+  const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+    typeof v === "object" && v !== null && !Array.isArray(v);
   return (
     <form id="source-form" onSubmit={handleSubmit}>
       {/* Project */}
@@ -381,12 +388,16 @@ function SourceForm({
                 <Dialog.Body maxH="100vh" w="100%" overflowY="auto">
                   <JsonEditor
                     data={effectiveConfig}
-                    setData={(draft: any) => {
-                      if (!draft || typeof draft !== "object") {
+                    setData={(data) => {
+                      // accept `unknown` as required by the lib, then narrow:
+                      if (!isPlainObject(data)) {
                         setConfig({});
                         return;
                       }
-                      const { interval: _ignored, ...rest } = draft ?? {};
+                      // keep everything except "interval" (which is controlled by the select)
+                      const rest = Object.fromEntries(
+                        Object.entries(data).filter(([k]) => k !== "interval")
+                      );
                       setConfig(rest);
                     }}
                     restrictEdit={lockRootAndKeys}
