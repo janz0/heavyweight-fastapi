@@ -26,6 +26,7 @@ from app.monitoring_sensor_alert.apis import router as monitoring_sensor_alert_r
 from app.monitoring_sensor_baseline.apis import router as monitoring_sensor_baseline_router
 from app.monitoring_sensor_data.apis import router as monitoring_sensor_data_router
 from app.checklists.apis import router as checklists_router
+from app.scheduler_task.apis import router as tasks_router
 
 # Lifespan (startup, shutdown)
 @asynccontextmanager
@@ -96,3 +97,4 @@ app.include_router(monitoring_sensor_alert_router, dependencies=[])
 app.include_router(monitoring_sensor_baseline_router, dependencies=[])
 app.include_router(monitoring_sensor_data_router, dependencies=[])
 app.include_router(checklists_router, dependencies=[])
+app.include_router(tasks_router, dependencies=[])
