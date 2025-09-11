@@ -5,6 +5,7 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from importlib import import_module
 from typing import Optional, List, Any, Dict
+import inspect
 
 from app.scheduler_task.models import SchedulerTask
 
@@ -70,7 +71,27 @@ def run_task_by_id(
         fn = _resolve_callable(task.func_path)
         args = task.args_json or []
         kwargs = task.kwargs_json or {}
-        fn(*args, **kwargs)
+
+        # Inject the SQLAlchemy Session if the job accepts it.
+        # Supports either param name: "db" (preferred) or "session".
+        params = inspect.signature(fn).parameters
+
+        if inspect.iscoroutinefunction(fn):
+            # If a job is async, run it here (this code is typically in a thread, so asyncio.run is fine).
+            import asyncio
+            if "db" in params:
+                asyncio.run(fn(*args, db=db, **kwargs))
+            elif "session" in params:
+                asyncio.run(fn(*args, session=db, **kwargs))
+            else:
+                asyncio.run(fn(*args, **kwargs))
+        else:
+            if "db" in params:
+                fn(*args, db=db, **kwargs)
+            elif "session" in params:
+                fn(*args, session=db, **kwargs)
+            else:
+                fn(*args, **kwargs)
 
         # 4) Success: reset retries, set next_run
         task.last_status = "ok"
