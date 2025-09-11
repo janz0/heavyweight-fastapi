@@ -99,11 +99,18 @@ def run_task_by_id(
         task.retry_count = 0
         task.last_run_at = now
         task.next_run_at = now + timedelta(seconds=task.interval_seconds)
+
     except Exception as e:
-        # 5) Failure: bump retry_count, decide next_run via backoff
+        # <<< IMPORTANT: clear failed transaction first
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+        # It’s safe to update the ORM state after rollback
+        import traceback
         task.last_status = "error"
-        # Don't let extremely long traces bloat the row
-        task.last_error = str(e)[:10000]
+        task.last_error = (traceback.format_exc() or str(e))[:10000]
         task.retry_count = (task.retry_count or 0) + 1
         if task.retry_count <= (task.max_retries or 0):
             delay = min(3600, int((task.backoff_seconds or 10) * (2 ** (task.retry_count - 1))))
@@ -119,9 +126,6 @@ def run_task_by_id(
             db.commit()
             db.refresh(task)
         except Exception:
-            # As a last resort, don't crash the endpoint: make it consistent
-            db.rollback()
-            db.commit()
             db.refresh(task)
 
     return task
