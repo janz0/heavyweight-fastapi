@@ -115,7 +115,13 @@ def run_task_by_id(
         # Always release the lock
         task.locked_by = None
         task.locked_at = None
-        db.commit()
-        db.refresh(task)
+        try:
+            db.commit()
+            db.refresh(task)
+        except Exception:
+            # As a last resort, don't crash the endpoint: make it consistent
+            db.rollback()
+            db.commit()
+            db.refresh(task)
 
     return task
