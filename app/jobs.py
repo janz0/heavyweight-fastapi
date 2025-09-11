@@ -69,4 +69,3 @@ def slow_task(seconds: int = 3):
     print(f"Starting slow task for {seconds}s...")
     time.sleep(seconds)
     print("Slow task done.")
-''
