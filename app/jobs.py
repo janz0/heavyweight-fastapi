@@ -57,7 +57,7 @@ def create_upcoming_mon_sensor_data_partitions(*, db=None) -> None:
     return run_db_routine(
         "create_upcoming_mon_sensor_data_partitions",
         args=[],
-        kind="procedure",
+        kind="function",
         schema="public",
         db=db,
     )
