@@ -32,7 +32,7 @@ const columns: Column[] = [
   { key: 'lon', label: 'Longitude' },
   { key: 'created_at', label: 'Created' },
   { key: 'last_updated', label: 'Updated' },
-  { key: 'last_inspected', label: 'Inspected' },
+  { key: 'frequency', label: 'Frequency' },
   { key: "active", label: 'Status' },
 ];
 

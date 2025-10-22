@@ -68,7 +68,7 @@ def fetch_due_tasks(engine: Engine, limit: int = 20) -> List[dict]:
         return [dict(r) for r in rows]
 
 def trigger_task_run(task_id: str) -> None:
-    base = os.getenv("API_BASE_URL")   # e.g. https://api.yourdomain.com  (no trailing /)
+    base = os.getenv("API_BASE_URL")
     token = os.getenv("API_TOKEN")     # optional bearer token
     if not base:
         log.debug("API_BASE_URL not set; skipping trigger.")

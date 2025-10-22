@@ -2,7 +2,7 @@
 
 from typing import Optional, List
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 from app.monitoring_sensor import schemas, selectors
 from app.monitoring_sensor.models import MonitoringSensor
 from app.monitoring_source import services as source_services
@@ -56,9 +56,10 @@ def list_sensors_for_location(
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
-          .join(Source, MonitoringSensor.mon_source_id == Source.id)
-          .join(Location, Source.mon_loc_id == Location.id)
+          .join(MonitoringSensor.mon_source)
+          .join(Source.mon_loc)
           .filter(Location.id == loc_id)
+          .options(contains_eager(MonitoringSensor.mon_source))
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
           .all()

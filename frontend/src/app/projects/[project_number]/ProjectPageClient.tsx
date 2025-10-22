@@ -32,7 +32,7 @@ const locationColumns: Column[] = [
   { key: 'lon', label: 'Longitude' },
   { key: 'created_at', label: 'Created' },
   { key: 'last_updated', label: 'Updated' },
-  { key: 'last_inspected', label: 'Inspected' },
+  { key: 'frequency', label: 'Frequency' },
   { key: "active", label: 'Status' },
 ];
 
@@ -44,8 +44,8 @@ const sourcesColumns: Column[] = [
   { key: "file_keyword", label: "File Keyword" },
   { key: "file_type", label: "File Type" },
   { key: "source_type", label: "Source Type" },
-  { key: "config", label: "Config" },
   { key: "last_updated", label: "Last Data Upload" },
+  { key: "config", label: "Config" },
   { key: "active", label: "Status" },
 ];
 

@@ -41,8 +41,8 @@ const sourcesColumns: Column[] = [
   { key: "file_keyword", label: "File Keyword" },
   { key: "file_type", label: "File Type" },
   { key: "source_type", label: "Source Type" },
-  { key: "config", label: "Config" },
   { key: "last_updated", label: "Last Data Upload" },
+  { key: "config", label: "Config" },
   { key: "active", label: "Status" },
 ];
 

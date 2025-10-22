@@ -21,7 +21,7 @@ def run_db_routine(
 ) -> None:
     """
     Execute a Postgres routine (function/procedure) via SQLAlchemy.
-    - Pass the FastAPI SQLAlchemy Session as `db` (we’ll inject it from the endpoint).
+    - Pass the FastAPI SQLAlchemy Session as `db`
     - Uses bind parameters for values; the identifier (schema.name) is validated/whitelisted.
     """
     if db is None:
