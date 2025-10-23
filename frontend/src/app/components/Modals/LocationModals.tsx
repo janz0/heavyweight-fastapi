@@ -19,6 +19,17 @@ import type { Location, LocationPayload } from "@/types/location";
 import { listProjects } from "@/services/projects";
 import type { Project } from "@/types/project";
 
+const FREQUENCY_ITEMS = [
+  { label: "Real Time", value: "real time"},
+  { label: "Twice Daily", value: "twice daily"},
+  { label: "Daily", value: "daily"},
+  { label: "Twice Weekly", value: "twice weekly"},
+  { label: "Weekly", value: "weekly"},
+  { label: "Every Second Week", value: "every second week"},
+  { label: "Monthly", value: "monthly"},
+  { label: "Quarterly", value: "quarterly"},
+]
+
 // ==============================
 // Shared Form Component
 // ==============================
@@ -84,6 +95,15 @@ function LocationForm({
     }),
     [projects]
   );
+
+  const frequencyCollection = useMemo(
+    () => createListCollection({ 
+      items: FREQUENCY_ITEMS.map(opt => ({
+        label: opt.label,
+        value: opt.value
+      }))}),
+    []
+  )
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -157,7 +177,30 @@ function LocationForm({
       </HStack>
       <Field.Root required mb={4}>
         <Field.Label>Frequency</Field.Label>
-        <Input value={frequency} borderColor={bc} onChange={(e) => setFrequency(e.target.value)} />
+        <Select.Root
+          collection={frequencyCollection}
+          value={frequency ? [frequency] : []}
+          onValueChange={(e) => setFrequency(e.value[0])}
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger borderColor={bc}>
+              <Select.ValueText placeholder="Select frequency" />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {frequencyCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
       </Field.Root>
       <Field.Root justifyItems={"center"}>
         <Flex gap="2">
