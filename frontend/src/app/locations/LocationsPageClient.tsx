@@ -17,24 +17,7 @@ import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from "../
 
 // Types
 import type { Location } from "@/types/location";
-
-// Column definition with label override
-interface Column {
-  key: string;
-  label: string;
-}
-
-const columns: Column[] = [
-  { key: 'loc_name', label: 'Location Name' },
-  { key: 'loc_number', label: 'Location Number' },
-  { key: 'details.project_name', label: 'Project' },
-  { key: 'lat', label: 'Latitude' },
-  { key: 'lon', label: 'Longitude' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'last_updated', label: 'Updated' },
-  { key: 'frequency', label: 'Frequency' },
-  { key: "active", label: 'Status' },
-];
+import { locationColumns } from "@/types/columns";
 
 interface Props {
   locations: Location[];
@@ -75,7 +58,7 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={columns} color={"blue.600"} data={locations} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="locations"/>
+        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="locations"/>
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />

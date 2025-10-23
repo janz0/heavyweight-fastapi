@@ -11,24 +11,9 @@ import { SensorCreateModal, SensorDeleteModal, SensorEditModal } from '@/app/com
 import DataTable from '@/app/components/DataTable';
 import { Chart as ChartJS, ChartOptions, registerables } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { sensorColumns } from '@/types/columns';
 
 ChartJS.register(...registerables);
-
-interface Column {
-  key: string;
-  label: string;
-}
-
-const sensorColumns: Column[] = [
-  { key: 'sensor_name', label: 'Sensor Name' },
-  { key: 'sensor_type', label: 'Sensor Type' },
-  { key: 'details.mon_source_name', label: 'Source' },
-  { key: 'sensor_group_id', label: 'Sensor Group' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'last_updated', label: 'Updated' },
-  { key: 'sensor data', label: 'Sensor Data'},
-  { key: 'active', label: 'Active' },
-];
 
 interface Props {
   source: Source;

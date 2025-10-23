@@ -20,6 +20,7 @@ import { LocationEditModal, LocationDeleteModal } from '../../components/Modals/
 import ChecklistViewer from '@/app/components/CheckListViewer';
 import { LocationMap } from '@/app/components/UI/LocationMap';
 import { ChecklistCreateModal } from '@/app/components/Modals/ChecklistCreateModal';
+import { sourcesColumns, sensorColumns, groupColumns } from '@/types/columns';
 
 interface LocationPageClientProps {
   location: Location;
@@ -27,44 +28,6 @@ interface LocationPageClientProps {
   initialSensors: MonitoringSensor[];
   initialGroups: MonitoringGroup[];
 }
-
-interface Column {
-  key: string;
-  label: string;
-}
-
-const sourcesColumns: Column[] = [
-  { key: "source_name", label: "Source Name" },
-  { key: "details.loc_name", label: "Location" },
-  { key: "folder_path", label: "Folder Path" },
-  { key: "root_directory", label: "Root Directory"},
-  { key: "file_keyword", label: "File Keyword" },
-  { key: "file_type", label: "File Type" },
-  { key: "source_type", label: "Source Type" },
-  { key: "last_updated", label: "Last Data Upload" },
-  { key: "config", label: "Config" },
-  { key: "active", label: "Status" },
-];
-
-const sensorColumns: Column[] = [
-  { key: 'sensor_name', label: 'Sensor Name' },
-  { key: 'sensor_type', label: 'Sensor Type' },
-  { key: 'mon_source_id', label: 'Source' },
-  { key: 'sensor_group_id', label: 'Sensor Group' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'last_updated', label: 'Updated' },
-  { key: 'sensor data', label: 'Sensor Data'},
-  { key: 'active', label: 'Active' },
-];
-
-const groupColumns: Column[] = [
-  { key: 'group_name', label: 'Group Name' },
-  { key: 'group_type', label: 'Group Type' },
-  { key: 'data', label: 'Data' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'last_updated', label: 'Updated' },
-  { key: 'active', label: 'Active' },
-];
 
 export default function LocationPageClient({ location, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
   const { colorMode } = useColorMode();
