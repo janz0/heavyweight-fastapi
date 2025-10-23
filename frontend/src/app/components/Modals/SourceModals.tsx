@@ -36,6 +36,8 @@ const INTERVAL_OPTIONS = [
   { label: "48 hours", value: "48hr" },
 ];
 
+const TYPE_ITEMS = ["IPI-Campbell", "AMTS-DeltaWatch", "AMTS-GeoMoS", "EWS"] as const;
+
 // ----------------------
 // Shared form component
 // ----------------------
@@ -159,6 +161,11 @@ function SourceForm({
     }
   }, [projectIds, projects]);
 
+  const typesCollection = useMemo(
+    () => createListCollection({ items: TYPE_ITEMS }),
+    []
+  );
+  
   const locationCollection = useMemo(
     () => createListCollection({
       items: locations.map(l => ({
@@ -342,12 +349,32 @@ function SourceForm({
 
       <Field.Root mb={4}>
         <Field.Label>Source Type</Field.Label>
-        <Input
-          placeholder="Optional"
-          value={sourceType}
-          borderColor={bc}
-          onChange={e => setSourceType(e.target.value)}
-        />
+        <Select.Root
+          collection={typesCollection}
+          value={sourceType ? [sourceType] : []}
+          onValueChange={e => setSourceType(e.value[0] ?? "")}
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger borderColor={bc}>
+              <Select.ValueText
+                placeholder="Select Type"
+              />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {typesCollection.items.map((item) => (
+                <Select.Item key={item} item={item}>
+                  {item}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
       </Field.Root>
       <Field.Root mb={4}>
         <Field.Label>Config</Field.Label>
