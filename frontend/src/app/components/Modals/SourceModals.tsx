@@ -36,7 +36,8 @@ const INTERVAL_OPTIONS = [
   { label: "48 hours", value: "48hr" },
 ];
 
-const TYPE_ITEMS = ["IPI-Campbell", "AMTS-DeltaWatch", "AMTS-GeoMoS", "EWS"] as const;
+const SOURCE_TYPE_ITEMS = ["IPI-Campbell", "AMTS-DeltaWatch", "AMTS-GeoMoS", "EWS"] as const;
+const FILE_TYPE_ITEMS = ["CSV"] as const;
 
 // ----------------------
 // Shared form component
@@ -161,11 +162,16 @@ function SourceForm({
     }
   }, [projectIds, projects]);
 
-  const typesCollection = useMemo(
-    () => createListCollection({ items: TYPE_ITEMS }),
+  const sourceTypesCollection = useMemo(
+    () => createListCollection({ items: SOURCE_TYPE_ITEMS }),
     []
   );
   
+  const fileTypesCollection = useMemo(
+    () => createListCollection({ items: FILE_TYPE_ITEMS }),
+    []
+  );
+
   const locationCollection = useMemo(
     () => createListCollection({
       items: locations.map(l => ({
@@ -339,26 +345,16 @@ function SourceForm({
 
       <Field.Root mb={4}>
         <Field.Label>File Type</Field.Label>
-        <Input
-          placeholder="Optional"
-          value={fileType}
-          borderColor={bc}
-          onChange={e => setFileType(e.target.value)}
-        />
-      </Field.Root>
-
-      <Field.Root mb={4}>
-        <Field.Label>Source Type</Field.Label>
         <Select.Root
-          collection={typesCollection}
-          value={sourceType ? [sourceType] : []}
-          onValueChange={e => setSourceType(e.value[0] ?? "")}
+          collection={fileTypesCollection}
+          value={fileType ? [fileType] : []}
+          onValueChange={e => setFileType(e.value[0] ?? "")}
         >
           <Select.HiddenSelect />
           <Select.Control>
             <Select.Trigger borderColor={bc}>
               <Select.ValueText
-                placeholder="Select Type"
+                placeholder="Optional"
               />
             </Select.Trigger>
             <Select.IndicatorGroup>
@@ -367,7 +363,37 @@ function SourceForm({
           </Select.Control>
           <Select.Positioner>
             <Select.Content>
-              {typesCollection.items.map((item) => (
+              {fileTypesCollection.items.map((item) => (
+                <Select.Item key={item} item={item}>
+                  {item}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
+      </Field.Root>
+
+      <Field.Root mb={4}>
+        <Field.Label>Source Type</Field.Label>
+        <Select.Root
+          collection={sourceTypesCollection}
+          value={sourceType ? [sourceType] : []}
+          onValueChange={e => setSourceType(e.value[0] ?? "")}
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger borderColor={bc}>
+              <Select.ValueText
+                placeholder="Optional"
+              />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {sourceTypesCollection.items.map((item) => (
                 <Select.Item key={item} item={item}>
                   {item}
                 </Select.Item>
