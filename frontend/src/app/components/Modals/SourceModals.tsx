@@ -110,12 +110,50 @@ function SourceForm({
   });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
-
+  const stripOuterBraces = (s: string) => {
+    const t = (s ?? "").trim();
+    return t.startsWith("{") && t.endsWith("}") ? t.slice(1, -1).trim() : t;
+  };
+  const deindentOneLevel = (s: string) =>
+  (s ?? "")
+    .split("\n")
+    .map(line => line.replace(/^(?: {2}|\t)(?!\s*$)/, "")) // don't touch blank lines
+    .join("\n");
   const effectiveConfig = useMemo(
     () => ({ ...(interval ? { interval } : {}), ...config,  }),
     [config, interval]
   );
   const [isConfigOpen, setConfigOpen] = useState(false);
+  const [configInnerText, setConfigInnerText] = useState(() =>
+    deindentOneLevel(stripOuterBraces(JSON.stringify(config, null, 2)))
+  );
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  const applyConfigInnerText = () => {
+    const inner = stripOuterBraces(configInnerText);
+    // Re-wrap user input with braces to parse as an object
+    const full = inner ? `{\n${inner}\n}` : "{}";
+
+    let next: Record<string, unknown> = {};
+    try {
+      const parsed = JSON.parse(full);
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        next = Object.fromEntries(
+          Object.entries(parsed).filter(([k]) => k !== "interval" && k !== "id")
+        );
+      }
+    } catch (e) {
+      setConfigError(e instanceof Error ? e.message : "Invalid JSON");
+    }
+    setConfig(next);
+    setConfigInnerText(deindentOneLevel(stripOuterBraces(JSON.stringify(next, null, 2))));
+  };
+
+  useEffect(() => {
+    setConfigInnerText(
+      deindentOneLevel(stripOuterBraces(JSON.stringify(config, null, 2)))
+    );
+  }, [config]);
 
   const LOCK_KEYS = new Set(['id', 'interval']);
 
@@ -194,6 +232,7 @@ function SourceForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    applyConfigInnerText(); // ensure `config` matches the textarea
     const payload: SourcePayload = {
       mon_loc_id:    locationIds[0] || "",
       source_name:   sourceName,
@@ -408,11 +447,23 @@ function SourceForm({
           <Textarea
             borderColor={bc}
             w="100%"
-            placeholder='{"interval":"5min"}'
+            placeholder={`"sn_map": {
+  "x1": "IPI-N05-05",
+  "x2": "IPI-N11-12",
+  "x3": "IPI-N02-05",
+  "x4": "IPI-N11-04",
+  "x5": "IPI-N08-03"
+},
+"notes": "",
+"threshold": 5`}
             minH="120px"
             fontFamily="mono"
-            value={JSON.stringify(effectiveConfig, null, 2)}
-            readOnly
+            value={configInnerText}
+            onChange={(e) => {
+              setConfigInnerText(stripOuterBraces(e.target.value));
+              if (configError) setConfigError(null);
+            }}
+            onBlur={applyConfigInnerText}
           />
           <IconButton
             position="absolute"
@@ -422,7 +473,14 @@ function SourceForm({
             size="2xs"
             bg="transparent"
             color="bg.inverted"
+            onClick={() => {
+              applyConfigInnerText();
+              setConfigOpen(true);
+            }}
           ><Maximize2 size="sm" onClick={() => setConfigOpen(true)}></Maximize2></IconButton>
+          {configError && (
+            <Field.ErrorText>{configError}</Field.ErrorText>
+          )}
         </Flex>
 
         {/* Fullscreen editor */}
