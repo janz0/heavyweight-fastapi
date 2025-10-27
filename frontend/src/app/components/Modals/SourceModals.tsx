@@ -177,14 +177,7 @@ function SourceForm({
       return { ok: false as const, message: e instanceof Error ? e.message : "Invalid JSON" };
     }
   };
-  const selectionSx = jsonErrLoc
-    ? {
-        '::selection': {
-          backgroundColor: colorMode === 'light' ? 'red.200' : 'red.600',
-          color: colorMode === 'light' ? 'black' : 'white',
-        },
-      }
-    : undefined;
+  
   const applyConfigInnerText = () => {
     const res = validateInner(configInnerText);
     if (res.ok) {

@@ -79,7 +79,7 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
       const parsed = JSON.parse(raw);
       // unwrap accidental { effectiveConfig: {...} } shapes
       if (parsed && typeof parsed === "object" && "effectiveConfig" in parsed) {
-        const inner = (parsed as any).effectiveConfig;
+        const inner = parsed.effectiveConfig;
         if (inner && typeof inner === "object") return inner as Record<string, unknown>;
       }
       return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
@@ -87,8 +87,8 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
   }
   if (typeof raw === "object") {
     // unwrap { effectiveConfig } if present
-    if (raw && "effectiveConfig" in (raw as any) && typeof (raw as any).effectiveConfig === "object") {
-      return (raw as any).effectiveConfig as Record<string, unknown>;
+    if (raw && "effectiveConfig" in raw && typeof raw.effectiveConfig === "object") {
+      return raw.effectiveConfig as Record<string, unknown>;
     }
     return raw as Record<string, unknown>;
   }
@@ -308,6 +308,7 @@ const toggleAll = (check: boolean) => {
           </Text>
         </Box>
       </Flex>
+      <Box width="full" className="bg-card">
       <HStack>
         <Box width="full" h="60vh" className="bg-card">
           <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={14} borderWidth={2}>
@@ -342,7 +343,6 @@ const toggleAll = (check: boolean) => {
             </Box>
             <Line ref={chartRef} data={{ labels, datasets }} options={chartOptions} />
           </Box>
-
         </Box>
         <Box minW="15vw" h="60vh" className="bg-card">
           {/* Chart placeholder */}
@@ -473,7 +473,7 @@ const toggleAll = (check: boolean) => {
                             const text = JSON.stringify(configViewer.data ?? {}, null, 2);
                             await navigator.clipboard.writeText(text);
                             toaster.create({ description: "Config copied to clipboard", type: "success" });
-                          } catch (err) {
+                          } catch {
                             toaster.create({
                               description: "Copy failed. Your browser may have blocked clipboard access.",
                               type: "error",
@@ -492,6 +492,7 @@ const toggleAll = (check: boolean) => {
           </Box>
         </Box>
       </HStack>
+      </Box>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"Sensors"}/>
       <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />

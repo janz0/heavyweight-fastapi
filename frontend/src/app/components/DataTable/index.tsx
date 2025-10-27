@@ -38,9 +38,8 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
   if (typeof raw === "string") {
     try {
       const parsed = JSON.parse(raw);
-      // unwrap accidental { effectiveConfig: {...} } shapes
       if (parsed && typeof parsed === "object" && "effectiveConfig" in parsed) {
-        const inner = (parsed as any).effectiveConfig;
+        const inner = parsed.effectiveConfig;
         if (inner && typeof inner === "object") return inner as Record<string, unknown>;
       }
       return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
@@ -48,8 +47,8 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
   }
   if (typeof raw === "object") {
     // unwrap { effectiveConfig } if present
-    if (raw && "effectiveConfig" in (raw as any) && typeof (raw as any).effectiveConfig === "object") {
-      return (raw as any).effectiveConfig as Record<string, unknown>;
+    if (raw && "effectiveConfig" in raw && typeof raw.effectiveConfig === "object") {
+      return raw.effectiveConfig as Record<string, unknown>;
     }
     return raw as Record<string, unknown>;
   }
@@ -664,7 +663,7 @@ export default function DataTable<T extends { id: string; }>({
                         const text = JSON.stringify(configViewer.data ?? {}, null, 2);
                         await navigator.clipboard.writeText(text);
                         toaster.create({ description: "Config copied to clipboard", type: "success" });
-                      } catch (err) {
+                      } catch {
                         toaster.create({
                           description: "Copy failed. Your browser may have blocked clipboard access.",
                           type: "error",
