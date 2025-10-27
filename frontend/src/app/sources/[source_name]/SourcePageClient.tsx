@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from 'react';
-import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection, Checkbox } from '@chakra-ui/react';
+import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection, Checkbox, Dialog, Textarea } from '@chakra-ui/react';
 import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
 import type { Source } from '@/types/source';
 import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
@@ -12,6 +12,9 @@ import DataTable from '@/app/components/DataTable';
 import { Chart as ChartJS, ChartOptions, registerables } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { sensorColumns } from '@/types/columns';
+import { Eye } from 'lucide-react';
+import { JsonEditor } from 'json-edit-react';
+import { toaster } from '@/components/ui/toaster';
 
 ChartJS.register(...registerables);
 
@@ -69,6 +72,29 @@ function formatDate(dateString?: string | null) {
   }).format(date);
 }
 
+const parseConfig = (raw: unknown): Record<string, unknown> | null => {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      // unwrap accidental { effectiveConfig: {...} } shapes
+      if (parsed && typeof parsed === "object" && "effectiveConfig" in parsed) {
+        const inner = (parsed as any).effectiveConfig;
+        if (inner && typeof inner === "object") return inner as Record<string, unknown>;
+      }
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    } catch { return null; }
+  }
+  if (typeof raw === "object") {
+    // unwrap { effectiveConfig } if present
+    if (raw && "effectiveConfig" in (raw as any) && typeof (raw as any).effectiveConfig === "object") {
+      return (raw as any).effectiveConfig as Record<string, unknown>;
+    }
+    return raw as Record<string, unknown>;
+  }
+  return null;
+};
+
 export default function SourcePageClient({ source, initialSensors }: Props) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
@@ -85,7 +111,11 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
   const handleEditSource = () => { setSrcEditOpen(true); setPopoverOpen(false) };
   const handleDeleteSource = () => { setSrcDelOpen(true); setPopoverOpen(false) };
   const [selectedField, setSelectedField] = useState<NumericField>('latitude');
-
+  const [configViewer, setConfigViewer] = useState<{
+    open: boolean;
+    data: Record<string, unknown> | null;
+    title?: string;
+  }>({ open: false, data: null, title: undefined });
   const [isPopoverOpen, setPopoverOpen] = useState(false);
   // scrollbar colors
   const trackBg = useColorModeValue('gray.200', 'gray.700');
@@ -259,7 +289,22 @@ const toggleAll = (check: boolean) => {
             Last Updated: {formatDate(source.last_updated)}
           </Text>
           <Text fontSize="sm">
-            Config: {source.config}
+            Config  
+            <IconButton
+              aria-label={source.config ? "View config" : "No config available"}
+              variant="ghost"
+              size="xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!source.config) return; // no-op if empty
+                setConfigViewer({ open: true, data: parseConfig(source.config), title: source.source_name });
+              }}
+              // optional: visually soften when empty
+              opacity={source.config ? 1 : 0.4}
+              cursor={source.config ? "pointer" : "not-allowed"}
+            >
+              <Eye size={16} />
+            </IconButton>
           </Text>
         </Box>
       </Flex>
@@ -392,6 +437,58 @@ const toggleAll = (check: boolean) => {
                 </HStack>
               ))}
             </VStack>
+            <Dialog.Root open={configViewer.open} onOpenChange={(o) => !o && setConfigViewer(prev => ({ ...prev, open: false }))}>
+              <Portal>
+                <Dialog.Backdrop />
+                <Dialog.Positioner>
+                  <Dialog.Content maxH="80vh" overflow="hidden" border="2px solid">
+                    <Dialog.Header>
+                      <Dialog.Title>Config{configViewer.title ? ` — ${configViewer.title}` : ""}</Dialog.Title>
+                      <Dialog.CloseTrigger asChild>
+                        <IconButton aria-label="Close" variant="ghost" size="xs" />
+                      </Dialog.CloseTrigger>
+                    </Dialog.Header>
+    
+                    <Dialog.Body maxH="65vh" overflowY="auto">
+                      {configViewer.data ? (
+                        <JsonEditor
+                          data={configViewer.data}
+                          setData={() => { /* read-only viewer */ }}
+                          restrictEdit={() => true}     // disallow edits
+                          restrictDelete={() => true}   // disallow deletes
+                          restrictAdd={() => true}
+                          rootName="Config"
+                          defaultValue=""
+                        />
+                      ) : (
+                        <Textarea readOnly value="No config available" />
+                      )}
+                    </Dialog.Body>
+    
+                    <Dialog.Footer display="flex" gap={2}>
+                      <Button
+                        variant="surface"
+                        onClick={async () => {
+                          try {
+                            const text = JSON.stringify(configViewer.data ?? {}, null, 2);
+                            await navigator.clipboard.writeText(text);
+                            toaster.create({ description: "Config copied to clipboard", type: "success" });
+                          } catch (err) {
+                            toaster.create({
+                              description: "Copy failed. Your browser may have blocked clipboard access.",
+                              type: "error",
+                            });
+                          }
+                        }}
+                      >
+                        Copy JSON
+                      </Button>
+                      <Button onClick={() => setConfigViewer(prev => ({ ...prev, open: false }))}>Close</Button>
+                    </Dialog.Footer>
+                  </Dialog.Content>
+                </Dialog.Positioner>
+              </Portal>
+            </Dialog.Root>
           </Box>
         </Box>
       </HStack>
