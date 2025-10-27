@@ -16,26 +16,9 @@ import DataTable from "@/app/components/DataTable";
 // Services + Types
 import type { MonitoringSensor } from "@/types/sensor";
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from "../components/Modals/SensorModals";
-
+import { sensorColumns } from "@/types/columns";
 // Register chart components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
-
-// Column definition with label override
-interface Column {
-  key: string;
-  label: string;
-}
-
-const columns: Column[] = [
-  { key: 'sensor_name', label: 'Sensor Name' },
-  { key: 'sensor_type', label: 'Sensor Type' },
-  { key: 'details.mon_source_name', label: 'Source' },
-  { key: 'sensor_group_id', label: 'Sensor Group' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'last_updated', label: 'Updated' },
-  { key: 'sensor data', label: 'Sensor Data'},
-  { key: 'active', label: 'Active' },
-];
 
 interface Props {
   sensors: MonitoringSensor[];
@@ -76,7 +59,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={columns} color={color} data={sensors} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="sensors"/>
+        <DataTable columns={sensorColumns} color={color} data={sensors} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="sensors"/>
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />

@@ -5,15 +5,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 // Chakra Imports + Icons
-import { Box, Button, ButtonGroup, Checkbox, Flex, Heading, Icon, IconButton, Pagination, Popover, Table, Text, useToken, VStack } from "@chakra-ui/react";
+import { Box, Button, ButtonGroup, Checkbox, Dialog, Flex, Heading, Icon, IconButton, Pagination, Popover, Portal, Table, Text, Textarea, useToken, VStack } from "@chakra-ui/react";
 import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass, PencilSimple, Plus, Trash, Copy } from "phosphor-react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Eye } from "lucide-react";
 
 // UI Components
 import CountFooter from "./CountFooter";
 import PageSizeSelect from "./PageSizeSelect";
 import SearchInput from "../UI/SearchInput";
+import { toaster } from "@/components/ui/toaster";
+import { JsonEditor } from "json-edit-react";
 
 // Modals
 import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
@@ -21,7 +23,7 @@ import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
 // Types
 import type { DataTableProps } from "./types";
 
-// Helper Function
+// Helper Functions
 function getNestedValue<T>(obj: T, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, part) => {
     if (typeof acc === "object" && acc !== null && part in acc) {
@@ -30,6 +32,29 @@ function getNestedValue<T>(obj: T, path: string): unknown {
     return undefined;
   }, obj);
 }
+
+const parseConfig = (raw: unknown): Record<string, unknown> | null => {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      // unwrap accidental { effectiveConfig: {...} } shapes
+      if (parsed && typeof parsed === "object" && "effectiveConfig" in parsed) {
+        const inner = (parsed as any).effectiveConfig;
+        if (inner && typeof inner === "object") return inner as Record<string, unknown>;
+      }
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    } catch { return null; }
+  }
+  if (typeof raw === "object") {
+    // unwrap { effectiveConfig } if present
+    if (raw && "effectiveConfig" in (raw as any) && typeof (raw as any).effectiveConfig === "object") {
+      return (raw as any).effectiveConfig as Record<string, unknown>;
+    }
+    return raw as Record<string, unknown>;
+  }
+  return null;
+};
 
 export default function DataTable<T extends { id: string; }>({
   name = "",
@@ -59,6 +84,13 @@ export default function DataTable<T extends { id: string; }>({
   const [isGrpAssignOpen, setGrpAssign] = useState(false);
   const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
   
+  // Dialog state
+  const [configViewer, setConfigViewer] = useState<{
+    open: boolean;
+    data: Record<string, unknown> | null;
+    title?: string;
+  }>({ open: false, data: null, title: undefined });
+
   const tableRef = useRef<HTMLDivElement>(null);
 
   const getContainerWidth = () => {
@@ -403,11 +435,10 @@ export default function DataTable<T extends { id: string; }>({
                       }}
                       position="absolute"
                       top={0}
-                      right={'-4px'}            // a little outside so it’s easy to grab; adjust if needed
+                      right={'-4px'}
                       bottom={0}
                       width="8px"
                       cursor="col-resize"
-                      // Make sure dragging the handle doesn't sort:
                       onClick={(e) => e.stopPropagation()}
                       zIndex={1}
                     />
@@ -463,7 +494,38 @@ export default function DataTable<T extends { id: string; }>({
                         </Table.Cell>
                       );
                     }
+                    if (col.key === "config") {
+                      const cfg = parseConfig(value);
+                      const rowTitle =
+                        String(
+                          getNestedValue(item, "source_name") ??
+                          getNestedValue(item, "sensor_name") ??
+                          getNestedValue(item, "loc_name") ??
+                          item.id
+                        );
 
+                      const hasConfig = !!cfg && Object.keys(cfg).length > 0;
+
+                      return (
+                        <Table.Cell key={col.key} className="table-cell" textAlign="center">
+                          <IconButton
+                            aria-label={hasConfig ? "View config" : "No config available"}
+                            variant="ghost"
+                            size="xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!hasConfig) return; // no-op if empty
+                              setConfigViewer({ open: true, data: cfg, title: rowTitle });
+                            }}
+                            // optional: visually soften when empty
+                            opacity={hasConfig ? 1 : 0.4}
+                            cursor={hasConfig ? "pointer" : "not-allowed"}
+                          >
+                            <Eye size={16} />
+                          </IconButton>
+                        </Table.Cell>
+                      );
+                    }
                     if (col.key === "active" || col.key === "Status") {
                       return (
                         <Table.Cell key={col.key} className="table-cell" textAlign="center" w="80px">
@@ -492,7 +554,7 @@ export default function DataTable<T extends { id: string; }>({
                       )
                     }
                     return (
-                      <Table.Cell key={col.key} className="table-cell" textAlign="left">
+                      <Table.Cell key={col.key} className="table-cell" textAlign="left" >
                         {String(value)}
                       </Table.Cell>
                     );
@@ -566,6 +628,58 @@ export default function DataTable<T extends { id: string; }>({
             </Pagination.NextTrigger>
           </ButtonGroup>
         </Pagination.Root>
+        <Dialog.Root open={configViewer.open} onOpenChange={(o) => !o && setConfigViewer(prev => ({ ...prev, open: false }))}>
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content maxH="80vh" overflow="hidden" border="2px solid">
+                <Dialog.Header>
+                  <Dialog.Title>Config{configViewer.title ? ` — ${configViewer.title}` : ""}</Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <IconButton aria-label="Close" variant="ghost" size="xs" />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+
+                <Dialog.Body maxH="65vh" overflowY="auto">
+                  {configViewer.data ? (
+                    <JsonEditor
+                      data={configViewer.data}
+                      setData={() => { /* read-only viewer */ }}
+                      restrictEdit={() => true}     // disallow edits
+                      restrictDelete={() => true}   // disallow deletes
+                      restrictAdd={() => true}
+                      rootName="Config"
+                      defaultValue=""
+                    />
+                  ) : (
+                    <Textarea readOnly value="No config available" />
+                  )}
+                </Dialog.Body>
+
+                <Dialog.Footer display="flex" gap={2}>
+                  <Button
+                    variant="surface"
+                    onClick={async () => {
+                      try {
+                        const text = JSON.stringify(configViewer.data ?? {}, null, 2);
+                        await navigator.clipboard.writeText(text);
+                        toaster.create({ description: "Config copied to clipboard", type: "success" });
+                      } catch (err) {
+                        toaster.create({
+                          description: "Copy failed. Your browser may have blocked clipboard access.",
+                          type: "error",
+                        });
+                      }
+                    }}
+                  >
+                    Copy JSON
+                  </Button>
+                  <Button onClick={() => setConfigViewer(prev => ({ ...prev, open: false }))}>Close</Button>
+                </Dialog.Footer>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
         <Box position="absolute" py={1} right={6}><CountFooter count={data.length} total={filtered.length} name={name} color="fg.muted" /></Box>
       </Flex>
     </Box>

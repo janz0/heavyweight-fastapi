@@ -36,6 +36,9 @@ const INTERVAL_OPTIONS = [
   { label: "48 hours", value: "48hr" },
 ];
 
+const SOURCE_TYPE_ITEMS = ["IPI-Campbell", "AMTS-DeltaWatch", "AMTS-GeoMoS", "EWS"] as const;
+const FILE_TYPE_ITEMS = ["csv"] as const;
+
 // ----------------------
 // Shared form component
 // ----------------------
@@ -107,12 +110,115 @@ function SourceForm({
   });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
-
+  const stripOuterBraces = (s: string) => {
+    const t = (s ?? "").trim();
+    return t.startsWith("{") && t.endsWith("}") ? t.slice(1, -1).trim() : t;
+  };
+  const deindentOneLevel = (s: string) =>
+  (s ?? "")
+    .split("\n")
+    .map(line => line.replace(/^(?: {2}|\t)(?!\s*$)/, "")) // don't touch blank lines
+    .join("\n");
   const effectiveConfig = useMemo(
     () => ({ ...(interval ? { interval } : {}), ...config,  }),
     [config, interval]
   );
   const [isConfigOpen, setConfigOpen] = useState(false);
+  const [configInnerText, setConfigInnerText] = useState(() =>
+    deindentOneLevel(stripOuterBraces(JSON.stringify(config, null, 2)))
+  );
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  const textRef = React.useRef<HTMLTextAreaElement>(null);
+
+  type JsonErrLoc = { line: number; column: number; posInInner: number; message: string } | null;
+  const [jsonErrLoc, setJsonErrLoc] = useState<JsonErrLoc>(null);
+
+  // Convert the thrown JSON.parse error into line/col inside the *inner* text
+  function locateJsonError(innerText: string, err: unknown): JsonErrLoc {
+    const msg = err instanceof Error ? err.message : String(err);
+
+    // Most engines include "... at position N"
+    const m = msg.match(/position\s+(\d+)/i);
+    if (!m) return { line: 1, column: 1, posInInner: 0, message: msg };
+
+    const absolutePos = Number(m[1]); // in the *full* string we parse
+    // You build `full` as `{\n${inner}\n}` (or `{}` when empty)
+    // So the inner text starts at offset 2 characters: "{\n"
+    const INNER_OFFSET = 2;
+
+    // If inner is empty, the error likely points at the closing brace; clamp to zero
+    const posInInner = Math.max(0, absolutePos - INNER_OFFSET);
+
+    // Compute line/column inside the inner text
+    const before = innerText.slice(0, posInInner);
+    const lines = before.split("\n");
+    const line = lines.length;            // 1-based
+    const column = (lines[lines.length - 1] || "").length + 1; // 1-based
+
+    return { line, column, posInInner, message: msg };
+  }
+
+  const validateInner = (innerText: string) => {
+    const inner = stripOuterBraces(innerText);
+    const full = inner ? `{\n${inner}\n}` : "{}";
+    try {
+      const parsed = JSON.parse(full);
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        return { ok: false as const, message: "Config must be a JSON object" };
+      }
+      const next = Object.fromEntries(
+        Object.entries(parsed).filter(([k]) => k !== "interval" && k !== "id")
+      );
+      return { ok: true as const, next };
+    } catch (e) {
+      const loc = locateJsonError(inner, e);
+      setJsonErrLoc(loc);
+      return { ok: false as const, message: e instanceof Error ? e.message : "Invalid JSON" };
+    }
+  };
+  const selectionSx = jsonErrLoc
+    ? {
+        '::selection': {
+          backgroundColor: colorMode === 'light' ? 'red.200' : 'red.600',
+          color: colorMode === 'light' ? 'black' : 'white',
+        },
+      }
+    : undefined;
+  const applyConfigInnerText = () => {
+    const res = validateInner(configInnerText);
+    if (res.ok) {
+      setConfig(res.next);
+      setConfigError(null);
+      setConfigInnerText(
+        deindentOneLevel(stripOuterBraces(JSON.stringify(res.next, null, 2)))
+      );
+    } else {
+      setConfigError(res.message);
+    }
+  };
+  const openFullscreen = () => {
+    const res = validateInner(configInnerText);
+    if (res.ok) {
+      setConfig(res.next);
+      setConfigError(null);
+      setConfigOpen(true);
+    } else {
+      setConfigError(res.message);
+      toaster.create({
+        description: jsonErrLoc
+          ? `Cannot open editor: Invalid JSON - Line ${jsonErrLoc.line} ` //, Col ${jsonErrLoc.column}
+          : `Cannot open editor: ${res.message}`,
+        type: "error",
+      });
+    }
+  };
+  useEffect(() => {
+    setConfigInnerText(
+      deindentOneLevel(stripOuterBraces(JSON.stringify(config, null, 2)))
+    );
+  }, [config]);
+
 
   const LOCK_KEYS = new Set(['id', 'interval']);
 
@@ -159,6 +265,46 @@ function SourceForm({
     }
   }, [projectIds, projects]);
 
+  // When jsonErrLoc changes, select the whole line in the textarea
+  useEffect(() => {
+    if (!jsonErrLoc || !textRef.current) return;
+
+    const el = textRef.current;
+    const value = el.value;
+    const { posInInner } = jsonErrLoc;
+
+    let lineStart = value.lastIndexOf("\n", Math.max(0, posInInner - 1)) + 1;
+    if (lineStart < 0) lineStart = 0;
+
+    let lineEnd = value.indexOf("\n", posInInner);
+    if (lineEnd === -1) lineEnd = value.length;
+
+    const firstNonRel = value.slice(lineStart, lineEnd).search(/[^\t ]/);
+    const firstNon = firstNonRel === -1 ? lineStart : lineStart + firstNonRel;
+
+    let lastNon = lineEnd - 1;
+    while (lastNon >= lineStart && (value[lastNon] === ' ' || value[lastNon] === '\t')) {
+      lastNon--;
+    }
+    const hasContent = lastNon >= firstNon;
+
+    const start = hasContent ? firstNon : posInInner;
+    const end   = hasContent ? lastNon + 1 : Math.min(posInInner + 1, value.length);
+
+    el.focus();
+    el.setSelectionRange(start, end);
+  }, [jsonErrLoc]);
+
+  const sourceTypesCollection = useMemo(
+    () => createListCollection({ items: SOURCE_TYPE_ITEMS }),
+    []
+  );
+  
+  const fileTypesCollection = useMemo(
+    () => createListCollection({ items: FILE_TYPE_ITEMS }),
+    []
+  );
+
   const locationCollection = useMemo(
     () => createListCollection({
       items: locations.map(l => ({
@@ -181,6 +327,13 @@ function SourceForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const res = validateInner(configInnerText);
+    if (!res.ok) {
+      setConfigError(res.message);
+      toaster.create({ description: `Fix config: ${res.message}`, type: "error" });
+      return;
+    }
+    setConfig(res.next); // ensure synced
     const payload: SourcePayload = {
       mon_loc_id:    locationIds[0] || "",
       source_name:   sourceName,
@@ -188,7 +341,7 @@ function SourceForm({
       file_keyword:  fileKeyword,
       file_type:     fileType,
       source_type:   sourceType,
-      config:        JSON.stringify({ effectiveConfig }),
+      config:        JSON.stringify( effectiveConfig ),
       active:        active ? 1 : 0,
       root_directory: rootDirectory,
     };
@@ -332,35 +485,113 @@ function SourceForm({
 
       <Field.Root mb={4}>
         <Field.Label>File Type</Field.Label>
-        <Input
-          placeholder="Optional"
-          value={fileType}
-          borderColor={bc}
-          onChange={e => setFileType(e.target.value)}
-        />
+        <Select.Root
+          collection={fileTypesCollection}
+          value={fileType ? [fileType] : []}
+          onValueChange={e => setFileType(e.value[0] ?? "")}
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger borderColor={bc}>
+              <Select.ValueText
+                placeholder="Optional"
+              />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.ClearTrigger />
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {fileTypesCollection.items.map((item) => (
+                <Select.Item key={item} item={item}>
+                  {item}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
       </Field.Root>
 
       <Field.Root mb={4}>
         <Field.Label>Source Type</Field.Label>
-        <Input
-          placeholder="Optional"
-          value={sourceType}
-          borderColor={bc}
-          onChange={e => setSourceType(e.target.value)}
-        />
+        <Select.Root
+          collection={sourceTypesCollection}
+          value={sourceType ? [sourceType] : []}
+          onValueChange={e => setSourceType(e.value[0] ?? "")}
+        >
+          <Select.HiddenSelect />
+          <Select.Control>
+            <Select.Trigger borderColor={bc}>
+              <Select.ValueText
+                placeholder="Optional"
+              />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.ClearTrigger />
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {sourceTypesCollection.items.map((item) => (
+                <Select.Item key={item} item={item}>
+                  {item}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
       </Field.Root>
       <Field.Root mb={4}>
         <Field.Label>Config</Field.Label>
         <Flex align="center" gap={2} position="relative" w="100%">
           <Textarea
-            borderColor={bc}
+            ref={textRef}
+            className={`config-textarea ${jsonErrLoc ? 'has-error' : ''}`}
+            borderColor={jsonErrLoc ? 'red.400' : bc}
             w="100%"
-            placeholder='{"interval":"5min"}'
+            placeholder={`"sn_map": {
+  "x1": "IPI-N05-05",
+  "x2": "IPI-N11-12",
+  "x3": "IPI-N02-05",
+  "x4": "IPI-N11-04",
+  "x5": "IPI-N08-03"
+},
+"notes": "",
+"threshold": 5`}
             minH="120px"
             fontFamily="mono"
-            value={JSON.stringify(effectiveConfig, null, 2)}
-            readOnly
+            value={configInnerText}
+            onChange={(e) => {
+              setConfigInnerText(stripOuterBraces(e.target.value));
+              if (configError) setConfigError(null);
+              if (jsonErrLoc) setJsonErrLoc(null); // clear error highlight on edit
+            }}
+            onBlur={applyConfigInnerText}
           />
+          {jsonErrLoc && (
+            <style jsx global>{`
+              /* Customize selection highlight when the textarea has an error */
+              .config-textarea.has-error::selection {
+                background: var(--chakra-colors-red-600);
+                color: white;
+              }
+              /* Some browsers (Firefox) also support ::-moz-selection */
+              .config-textarea.has-error::-moz-selection {
+                background: var(--chakra-colors-red-600);
+                color: white;
+              }
+            `}</style>
+          )}
+          {(configError || jsonErrLoc) && (
+            <Field.ErrorText>
+              {jsonErrLoc
+                ? `Invalid JSON at line ${jsonErrLoc.line}, column ${jsonErrLoc.column}: ${configError ?? "Syntax error"}`
+                : configError}
+            </Field.ErrorText>
+          )}
           <IconButton
             position="absolute"
             right="4"
@@ -369,7 +600,7 @@ function SourceForm({
             size="2xs"
             bg="transparent"
             color="bg.inverted"
-          ><Maximize2 size="sm" onClick={() => setConfigOpen(true)}></Maximize2></IconButton>
+          ><Maximize2 size="sm" onClick={openFullscreen}></Maximize2></IconButton>
         </Flex>
 
         {/* Fullscreen editor */}

@@ -15,20 +15,7 @@ import DataTable from "@/app/components/DataTable";
 // Services + Types
 import { ProjectCreateModal, ProjectDeleteModal, ProjectEditModal } from "../components/Modals/ProjectModals";
 import type { Project } from "@/types/project";
-
-interface Column {
-  key: string;
-  label: string;
-}
-
-const columns: Column[] = [
-  { key: "project_name", label: "Project" },
-  { key: "project_number", label: "Number" },
-  { key: "start_date", label: "Start Date" },
-  { key: "end_date", label: "End Date" },
-  { key: "locations_count", label: "Locations" },
-  { key: "active", label: "Status" },
-];
+import { projectColumns } from "@/types/columns";
 
 interface Props {
   projects: Project[];
@@ -69,7 +56,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={columns} color={color} data={projects} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="projects" />
+        <DataTable columns={projectColumns} color={color} data={projects} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="projects" />
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />

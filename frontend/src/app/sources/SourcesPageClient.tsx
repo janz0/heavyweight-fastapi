@@ -15,24 +15,7 @@ import DataTable from "@/app/components/DataTable";
 // Services + Types
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal, SourceDuplicateModal } from "../components/Modals/SourceModals";
 import type { Source } from "@/types/source";
-
-interface Column {
-  key: string; // Allow nested key paths
-  label: string;
-}
-
-const columns: Column[] = [
-  { key: "source_name", label: "Source Name" },
-  { key: "details.loc_name", label: "Location" },
-  { key: "folder_path", label: "Folder Path" },
-  { key: "root_directory", label: "Root Directory"},
-  { key: "file_keyword", label: "File Keyword" },
-  { key: "file_type", label: "File Type" },
-  { key: "source_type", label: "Source Type" },
-  { key: "config", label: "Config" },
-  { key: "last_updated", label: "Last Data Upload" },
-  { key: "active", label: "Status" },
-];
+import { sourcesColumns } from "@/types/columns";
 
 interface Props {
   sources: Source[];
@@ -76,7 +59,7 @@ export default function SourcesPageClient({ sources: initialSources }: Props) {
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={columns} color={color} data={sources} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="sources" />
+        <DataTable columns={sourcesColumns} color={color} data={sources} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="sources" />
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
