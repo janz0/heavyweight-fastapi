@@ -78,7 +78,7 @@ export async function getSource(sourceId: string): Promise<Source> {
 export async function getSourceByName(
   name: string
 ): Promise<Source> {
-  const res = await fetch(`${BASE}/name/${encodeURIComponent(name)}`);
+  const res = await fetch(`${BASE}/name/${name}`);
   if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
   return (await res.json()) as Source;
 }
