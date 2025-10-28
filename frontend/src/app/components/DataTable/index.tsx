@@ -88,7 +88,8 @@ export default function DataTable<T extends { id: string; }>({
     open: boolean;
     data: Record<string, unknown> | null;
     title?: string;
-  }>({ open: false, data: null, title: undefined });
+    suggestion?: string; // 👈 add this
+  }>({ open: false, data: null, title: undefined, suggestion: undefined });
 
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -503,6 +504,10 @@ export default function DataTable<T extends { id: string; }>({
                           item.id
                         );
 
+                      const sourceType = String(getNestedValue(item, "source_type") ?? "");
+                      const suggestion =
+                        sourceType === "IPI-Campbell" ? "Suggested sn_map name: IPI-Num-Depth" : undefined;
+
                       const hasConfig = !!cfg && Object.keys(cfg).length > 0;
 
                       return (
@@ -514,7 +519,7 @@ export default function DataTable<T extends { id: string; }>({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!hasConfig) return; // no-op if empty
-                              setConfigViewer({ open: true, data: cfg, title: rowTitle });
+                              setConfigViewer({ open: true, data: cfg, title: rowTitle, suggestion });
                             }}
                             // optional: visually soften when empty
                             opacity={hasConfig ? 1 : 0.4}
@@ -633,12 +638,18 @@ export default function DataTable<T extends { id: string; }>({
             <Dialog.Positioner>
               <Dialog.Content maxH="80vh" overflow="hidden" border="2px solid">
                 <Dialog.Header>
-                  <Dialog.Title>Config{configViewer.title ? ` — ${configViewer.title}` : ""}</Dialog.Title>
-                  <Dialog.CloseTrigger asChild>
+                  <Box flex="1">
+                    <Dialog.Title>Config{configViewer.title ? ` — ${configViewer.title}` : ""}</Dialog.Title>
+                    {configViewer.suggestion && (
+                      <Dialog.Description mt="1" fontSize="sm" color="fg.muted">
+                        {configViewer.suggestion}
+                      </Dialog.Description>
+                    )}
+                  </Box>
+                  <Dialog.CloseTrigger>
                     <IconButton aria-label="Close" variant="ghost" size="xs" />
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
-
                 <Dialog.Body maxH="65vh" overflowY="auto">
                   {configViewer.data ? (
                     <JsonEditor
