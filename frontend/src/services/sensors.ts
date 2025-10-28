@@ -35,7 +35,7 @@ export async function listSensors(
 export async function getSensorByName(
   name: string
 ): Promise<MonitoringSensor> {
-  const res = await fetch(`${BASE}/name/${encodeURIComponent(name)}`);
+  const res = await fetch(`${BASE}/name/${name}`);
   if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
   return (await res.json()) as MonitoringSensor;
 }
