@@ -494,7 +494,7 @@ const toggleAll = (check: boolean) => {
       </HStack>
       </Box>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
-      <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"Sensors"}/>
+      <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"sensors"}/>
       <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />
       <SourceDeleteModal isOpen={isSrcDelOpen} source={source} onClose={() => { setSrcDelOpen(false); }} />
       <SensorCreateModal isOpen={isSenCreateOpen} projectId={source.details?.project_id} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
