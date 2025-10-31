@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 
 import React, { useState, useEffect } from 'react';
-import { Box, HStack, Heading, Text, VStack, Button, Popover, Flex, IconButton, Separator } from '@chakra-ui/react';
+import { Box, HStack, Heading, Text, VStack, Button, Popover, Flex, IconButton, Separator, Collapsible } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
@@ -21,6 +21,9 @@ import ChecklistViewer from '@/app/components/CheckListViewer';
 import { LocationMap } from '@/app/components/UI/LocationMap';
 import { ChecklistCreateModal } from '@/app/components/Modals/ChecklistCreateModal';
 import { sourcesColumns, sensorColumns, groupColumns } from '@/types/columns';
+import { Tooltip } from '@/app/src/components/ui/tooltip';
+import { Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
+
 
 interface LocationPageClientProps {
   location: Location;
@@ -69,7 +72,23 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
   const [isPopoverOpen, setPopoverOpen] = useState(false);
+
+    // Map controls
+  const [isMapCollapsed, setMapCollapsed] = useState(false);
+  const [isMapMaximized, setMapMaximized] = useState(false);
+  const [mapHeight, setMapHeight] = useState<number>(400);
+  const [prevMapHeight, setPrevMapHeight] = useState<number>(400);
+
+  // Checklist controls
+  const [isChecklistCollapsed, setChecklistCollapsed] = useState(false);
+  const [isChecklistMaximized, setChecklistMaximized] = useState(false);
   const [isChecklistModalOpen, setChecklistModalOpen] = useState(false);
+  // initialize map height to ~50% viewport (client-side)
+  useEffect(() => {
+    const h = Math.round(window.innerHeight * 0.5);
+    setMapHeight(h);
+    setPrevMapHeight(h);
+  }, []);
 
   useEffect(() => {
     listMonitoringGroups(location.id)
@@ -79,7 +98,42 @@ export default function LocationPageClient({ location, initialSources, initialSe
       })
   }, [location.id])
   console.log(locationGroups);
+  const minimizeMap = () => {
+    if (!isMapCollapsed) {
+      setPrevMapHeight(mapHeight || 400);
+      setMapHeight(0);
+      setMapCollapsed(true);
+      setMapMaximized(false);
+    }
+  };
+  const restoreMap = () => {
+    setMapHeight(prevMapHeight || 400);
+    setMapCollapsed(false);
+    setMapMaximized(false);
+  };
+  const maximizeMap = () => {
+    setPrevMapHeight(mapHeight || 400);
+    setMapHeight(Math.round(window.innerHeight * 0.7));
+    setMapCollapsed(false);
+    setMapMaximized(true);
+    // if checklist was maximized, restore it
+    setChecklistMaximized(false);
+  };
 
+  const minimizeChecklist = () => {
+    setChecklistCollapsed(true);
+    setChecklistMaximized(false);
+  };
+  const restoreChecklist = () => {
+    setChecklistCollapsed(false);
+    setChecklistMaximized(false);
+  };
+  const maximizeChecklist = () => {
+    setChecklistCollapsed(false);
+    setChecklistMaximized(true);
+    // hide map while checklist is maximized
+    setMapMaximized(false);
+  };
   function formatDate(dateString?: string | null) {
     if (!dateString) return '—';
     const date = new Date(dateString);
@@ -166,25 +220,115 @@ export default function LocationPageClient({ location, initialSources, initialSe
           </Flex>
         </Box>
       </Flex>
-      <HStack mb={3} h="50vh" align="stretch">
-        <Box className="bg-card" w="160vw" overflow={"hidden"}>
-            <LocationMap
-              lat={location.lat}
-              lon={location.lon}
-              siteImageUrl="/your-site-photo.jpg" // or location.site_image if you store it
-              imageCoordinates={[
-                [location.lon - 0.01, location.lat - 0.01],
-                [location.lon + 0.01, location.lat - 0.01],
-                [location.lon + 0.01, location.lat + 0.01],
-                [location.lon - 0.01, location.lat + 0.01],
-              ]}
-              initialMarkers={[[location.lon, location.lat]]}
-            />
+      <Flex
+  mb={3}
+  align="stretch"
+  gap={3}
+  direction={isMapMaximized || isChecklistMaximized ? "column" : "row"}
+>
+  {/* Map panel */}
+  <Box
+    className="bg-card"
+    position="relative"
+    w={isChecklistMaximized ? "0" : (isMapMaximized ? "100%" : "160vw")}
+    overflow="hidden"
+    display={isChecklistMaximized ? "none" : "block"}
+  >
+    {/* map controls (top-right) */}
+    <Flex position="absolute" top={6} right={6} gap={1} zIndex={1}>
+      {isMapCollapsed ? (
+        <Tooltip content="Restore map">
+          <IconButton aria-label="Restore map" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
+            <ChevronDown size={16} />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Tooltip content="Minimize map">
+          <IconButton aria-label="Minimize map" size="xs" bg="bg.subtle" variant="ghost" onClick={minimizeMap}>
+            <ChevronUp size={16} />
+          </IconButton>
+        </Tooltip>
+      )}
+      {!isMapMaximized ? (
+        <Tooltip content="Maximize map">
+          <IconButton aria-label="Maximize map" size="xs" bg="bg.subtle" variant="ghost" onClick={maximizeMap}>
+            <Maximize2 size={16} />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Tooltip content="Restore map size">
+          <IconButton aria-label="Restore map size" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
+            <Minimize2 size={16} />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Flex>
+
+    {/* collapsible map content */}
+    <Collapsible.Root open={!isMapCollapsed}>
+      <Collapsible.Content>
+        <Box h={`${mapHeight}px`}>
+          <LocationMap
+            lat={location.lat}
+            lon={location.lon}
+            siteImageUrl="/your-site-photo.jpg"
+            imageCoordinates={[
+              [location.lon - 0.01, location.lat - 0.01],
+              [location.lon + 0.01, location.lat - 0.01],
+              [location.lon + 0.01, location.lat + 0.01],
+              [location.lon - 0.01, location.lat + 0.01],
+            ]}
+            initialMarkers={[[location.lon, location.lat]]}
+          />
         </Box>
-        <Box className='bg-card' w="full">
-          <ChecklistViewer locationId={location.id} />
-        </Box>
-      </HStack>
+      </Collapsible.Content>
+    </Collapsible.Root>
+  </Box>
+
+  {/* Checklist panel */}
+  <Box
+    className="bg-card"
+    position="relative"
+    w={isMapMaximized ? "0" : "100%"}
+    display={isMapMaximized ? "none" : "block"}
+  >
+    {/* checklist controls (top-right) */}
+    <Flex position="absolute" top={2} right={2} gap={1} zIndex={1}>
+      {isChecklistCollapsed ? (
+        <Tooltip content="Restore checklist">
+          <IconButton aria-label="Restore checklist" size="xs" variant="ghost" onClick={restoreChecklist}>
+            <ChevronUp size={16} />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Tooltip content="Minimize checklist">
+          <IconButton aria-label="Minimize checklist" size="xs" variant="ghost" onClick={minimizeChecklist}>
+            <ChevronDown size={16} />
+          </IconButton>
+        </Tooltip>
+      )}
+      {!isChecklistMaximized ? (
+        <Tooltip content="Maximize checklist">
+          <IconButton aria-label="Maximize checklist" size="xs" variant="ghost" onClick={maximizeChecklist}>
+            <Maximize2 size={16} />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Tooltip content="Restore checklist width">
+          <IconButton aria-label="Restore checklist width" size="xs" variant="ghost" onClick={restoreChecklist}>
+            <Minimize2 size={16} />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Flex>
+
+    <Collapsible.Root open={!isChecklistCollapsed}>
+      <Collapsible.Content>
+        <ChecklistViewer locationId={location.id} />
+      </Collapsible.Content>
+    </Collapsible.Root>
+  </Box>
+</Flex>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
