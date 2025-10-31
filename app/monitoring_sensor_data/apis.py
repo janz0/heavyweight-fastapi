@@ -24,6 +24,24 @@ def list_monitoring_sensor_data(
     return selectors.get_monitoring_sensor_data_list(db, skip=skip, limit=limit)
 
 
+def _parse_csv_values(value: Optional[str]) -> Optional[List[str]]:
+    if value is None:
+        return None
+    items = [item.strip() for item in value.split(",")]
+    items = [item for item in items if item]
+    return items or None
+
+
+def _parse_uuid_csv(value: Optional[str]) -> Optional[List[UUID]]:
+    items = _parse_csv_values(value)
+    if not items:
+        return None
+    try:
+        return [UUID(item) for item in items]
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+
 def _query_data(
     *,
     project_id: Optional[UUID] = None,
@@ -34,6 +52,8 @@ def _query_data(
     sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
+    source_ids: Optional[str] = None,
+    source_names: Optional[str] = None,
     field_name: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -44,6 +64,9 @@ def _query_data(
     output: str = "json",
     db: Session,
 ):
+    parsed_source_ids = _parse_uuid_csv(source_ids)
+    parsed_source_names = _parse_csv_values(source_names)
+
     rows = selectors.query_monitoring_sensor_data(
         db,
         project_id=project_id,
@@ -54,6 +77,8 @@ def _query_data(
         sensor_name=sensor_name,
         sensor_type=sensor_type,
         sensor_group_id=sensor_group_id,
+        source_ids=parsed_source_ids,
+        source_names=parsed_source_names,
         field_name=field_name,
         start=start,
         end=end,
@@ -112,6 +137,8 @@ def query_monitoring_sensor_data(
     sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
+    source_ids: Optional[str] = None,
+    source_names: Optional[str] = None,
     field_name: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -130,6 +157,8 @@ def query_monitoring_sensor_data(
         sensor_name=sensor_name,
         sensor_type=sensor_type,
         sensor_group_id=sensor_group_id,
+        source_ids=source_ids,
+        source_names=source_names,
         field_name=field_name,
         start=start,
         end=end,
@@ -152,6 +181,8 @@ def query_sensor_pivot(
     sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
+    source_ids: Optional[str] = None,
+    source_names: Optional[str] = None,
     field_name: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -170,6 +201,8 @@ def query_sensor_pivot(
         sensor_name=sensor_name,
         sensor_type=sensor_type,
         sensor_group_id=sensor_group_id,
+        source_ids=source_ids,
+        source_names=source_names,
         field_name=field_name,
         start=start,
         end=end,

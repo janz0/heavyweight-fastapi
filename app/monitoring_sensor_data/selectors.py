@@ -33,6 +33,8 @@ def query_monitoring_sensor_data(
     sensor_name: Optional[str] = None,
     sensor_type: Optional[str] = None,
     sensor_group_id: Optional[UUID] = None,
+    source_ids: Optional[List[UUID]] = None,
+    source_names: Optional[List[str]] = None,
     field_name: Optional[str] = None,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
@@ -67,6 +69,10 @@ def query_monitoring_sensor_data(
         q = q.filter(MonitoringSensor.sensor_type == sensor_type)
     if sensor_group_id:
         q = q.filter(MonitoringGroup.id == sensor_group_id)
+    if source_ids:
+        q = q.filter(Source.id.in_(source_ids))
+    if source_names:
+        q = q.filter(Source.source_name.in_(source_names))
     if field_name:
         q = q.filter(MonitoringSensorField.field_name == field_name)
     if start:
@@ -97,6 +103,10 @@ def query_monitoring_sensor_data(
             base_filters.append(MonitoringSensor.sensor_type == sensor_type)
         if sensor_group_id:
             base_filters.append(MonitoringGroup.id == sensor_group_id)
+        if source_ids:
+            base_filters.append(Source.id.in_(source_ids))
+        if source_names:
+            base_filters.append(Source.source_name.in_(source_names))
         if field_name:
             base_filters.append(MonitoringSensorField.field_name == field_name)
         if start:

@@ -41,7 +41,7 @@ def client(db):
     app.dependency_overrides.clear()
 
 
-def setup_sensor_data(db):
+def setup_sensor_data(db, *, source_name=None):
     project = Project(id=uuid.uuid4(), project_number="P1", project_name="Proj", start_date=date.today(), status="active")
     db.add(project)
     db.commit()
@@ -50,7 +50,7 @@ def setup_sensor_data(db):
     db.add(location)
     db.commit()
     db.refresh(location)
-    source = Source(id=uuid.uuid4(), mon_loc_id=location.id, folder_path="fp", file_keyword="kw", file_type="csv")
+    source = Source(id=uuid.uuid4(), mon_loc_id=location.id, folder_path="fp", file_keyword="kw", file_type="csv", source_name=source_name)
     db.add(source)
     db.commit()
     db.refresh(source)
