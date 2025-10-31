@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 const MapPicker = dynamic(() => import("./components/MapPicker"), { ssr: false });
 
 // Chakra Imports + Icons
-import { Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
+import { Box, Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { X } from "lucide-react";
@@ -31,6 +31,8 @@ const FREQUENCY_ITEMS = [
   { label: "Monthly", value: "monthly"},
   { label: "Quarterly", value: "quarterly"},
 ]
+
+import { Map } from "lucide-react";
 
 // ==============================
 // Shared Form Component
@@ -197,27 +199,20 @@ function LocationForm({
             }}
           />
         </Field.Root>
+        <Box marginTop={"auto"}>
+          <IconButton
+            aria-label="coordinates-map"
+            variant="outline"
+            borderColor={"black"}
+            onClick={(e) => {
+              e.preventDefault();
+              setMapOpen(true);
+            }}
+          >
+            <Map/>
+          </IconButton>
+        </Box>
       </HStack>
-      <Flex mb={4} gap={2}>
-        <Button
-          variant="outline"
-          onClick={(e) => {
-            e.preventDefault();
-            setMapOpen(true);
-          }}
-        >
-          Pick on map
-        </Button>
-        <Switch.Root
-          checked={active === 1}
-          onCheckedChange={({ checked }) => setActive(checked ? 1 : 0)}
-        >
-          <Switch.HiddenInput />
-          <Switch.Control _checked={{ bg: 'green.400' }}>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Root>
-      </Flex>
 
       {/* Map dialog (MapLibre) */}
       <Dialog.Root open={isMapOpen} onOpenChange={(o) => !o && setMapOpen(false)} size="xl">
