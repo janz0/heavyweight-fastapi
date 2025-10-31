@@ -4,6 +4,8 @@
 // React + Next Imports
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+const MapPicker = dynamic(() => import("./components/MapPicker"), { ssr: false });
 
 // Chakra Imports + Icons
 import { Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
@@ -50,14 +52,17 @@ function LocationForm({
   const bc = colorMode === "light" ? "black" : "white";
   const fixedProjectId = initialProjectId ?? initialData?.project_id;
   const isProjectLocked = Boolean(fixedProjectId);
+  const TORONTO: [number, number] = [43.6532, -79.3832];
+
+  const [isMapOpen, setMapOpen] = useState(false);
 
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState(initialData?.project_id ?? initialProjectId ?? "");
   const [locName, setLocName] = useState(initialData?.loc_name ?? "");
   const [locNumber, setLocNumber] = useState(initialData?.loc_number ?? "");
-  const [latitude, setLatitude] = useState(initialData ? String(initialData.lat) : "");
-  const [longitude, setLongitude] = useState(initialData ? String(initialData.lon) : "");
+  const [latitude, setLatitude] = useState(initialData ? initialData.lat : 0);
+  const [longitude, setLongitude] = useState(initialData ? initialData.lon : 0);
   const [frequency, setFrequency] = useState(initialData?.frequency ?? "");
   const [active, setActive] = useState(initialData ? initialData.active : 1);
 
@@ -74,16 +79,16 @@ function LocationForm({
       setProjectId(initialData.project_id);
       setLocName(initialData.loc_name);
       setLocNumber(initialData.loc_number ?? "");
-      setLatitude(String(initialData.lat));
-      setLongitude(String(initialData.lon));
+      setLatitude(initialData.lat);
+      setLongitude(initialData.lon);
       setFrequency(initialData.frequency);
       setActive(initialData.active);
     } else {
       setProjectId(initialProjectId ?? "");
       setLocName("");
       setLocNumber("");
-      setLatitude("");
-      setLongitude("");
+      setLatitude(Number.NaN);
+      setLongitude(Number.NaN);
       setFrequency("");
       setActive(1);
     }
@@ -107,9 +112,9 @@ function LocationForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const latNum = parseFloat(latitude);
-    const lonNum = parseFloat(longitude);
-    if (isNaN(latNum) || isNaN(lonNum)) {
+    const latNum = latitude;
+    const lonNum = longitude;
+    if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) {
       toaster.create({ description: "Invalid latitude or longitude", type: "error" });
       return;
     }
@@ -168,13 +173,94 @@ function LocationForm({
       <HStack gap={4} mb={4}>
         <Field.Root required>
           <Field.Label>Latitude</Field.Label>
-          <Input type="number" value={latitude} borderColor={bc} onChange={(e) => setLatitude(e.target.value)} />
+          <Input
+            type="number"
+            step="0.000001"
+            value={Number.isFinite(latitude) ? latitude : ""} // show empty if NaN
+            borderColor={bc}
+            onChange={(e) => {
+              const val = e.target.value;
+              setLatitude(val === "" ? Number.NaN : parseFloat(val));
+            }}
+          />
         </Field.Root>
         <Field.Root required>
           <Field.Label>Longitude</Field.Label>
-          <Input type="number" value={longitude} borderColor={bc} onChange={(e) => setLongitude(e.target.value)} />
+          <Input
+            type="number"
+            step="0.000001"
+            value={Number.isFinite(longitude) ? longitude : ""}
+            borderColor={bc}
+            onChange={(e) => {
+              const val = e.target.value;
+              setLongitude(val === "" ? Number.NaN : parseFloat(val));
+            }}
+          />
         </Field.Root>
       </HStack>
+      <Flex mb={4} gap={2}>
+        <Button
+          variant="outline"
+          onClick={(e) => {
+            e.preventDefault();
+            setMapOpen(true);
+          }}
+        >
+          Pick on map
+        </Button>
+        <Switch.Root
+          checked={active === 1}
+          onCheckedChange={({ checked }) => setActive(checked ? 1 : 0)}
+        >
+          <Switch.HiddenInput />
+          <Switch.Control _checked={{ bg: 'green.400' }}>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Root>
+      </Flex>
+
+      {/* Map dialog (MapLibre) */}
+      <Dialog.Root open={isMapOpen} onOpenChange={(o) => !o && setMapOpen(false)} size="xl">
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content border="2px solid" maxW="90vw" w="900px">
+              <Dialog.Header>
+                <Dialog.Title>Select Location</Dialog.Title>
+                <Dialog.CloseTrigger asChild>
+                  <IconButton aria-label="Close" variant="ghost" onClick={() => setMapOpen(false)}>
+                    <X size={16} />
+                  </IconButton>
+                </Dialog.CloseTrigger>
+              </Dialog.Header>
+              <Dialog.Body>
+                <MapPicker
+                  lat={Number.isFinite(latitude) && !(latitude === 0 && longitude === 0) ? latitude : null}
+                  lon={Number.isFinite(longitude) && !(latitude === 0 && longitude === 0) ? longitude : null}
+                  defaultCenter={TORONTO}
+                  onPick={(la, lo) => {
+                    setLatitude(+la.toFixed(6));
+                    setLongitude(+lo.toFixed(6));
+                  }}
+                  height={400}
+                />
+                <Flex mt={3} gap={3} align="center" justify="flex-end">
+                  <Button
+                    onClick={() => {
+                      setLatitude(TORONTO[0]);
+                      setLongitude(TORONTO[1]);
+                    }}
+                    variant="surface"
+                  >
+                    Center on Toronto
+                  </Button>
+                  <Button onClick={() => setMapOpen(false)}>Done</Button>
+                </Flex>
+              </Dialog.Body>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
       <Field.Root required mb={4}>
         <Field.Label>Frequency</Field.Label>
         <Select.Root
@@ -220,6 +306,7 @@ function LocationForm({
         <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>Cancel</Button>
         <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
       </Dialog.Footer>
+      
     </form>
   );
 }
