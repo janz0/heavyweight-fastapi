@@ -278,7 +278,6 @@ export default function LocationPageClient({ location, initialSources, initialSe
               [location.lon + 0.01, location.lat + 0.01],
               [location.lon - 0.01, location.lat + 0.01],
             ]}
-            initialMarkers={[[location.lon, location.lat]]}
           />
         </Box>
       </Collapsible.Content>

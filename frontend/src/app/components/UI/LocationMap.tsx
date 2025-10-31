@@ -1,17 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Box } from "@chakra-ui/react";
 
 // 1) Import styles & components from react-map-gl/maplibre
-import Map, { Marker as MapMarker } from "react-map-gl/maplibre";
-import type {
-  MapLayerMouseEvent,
-  MapRef,
-  MarkerDragEvent
-} from "react-map-gl/maplibre";
-
-// 2) Import the **MapLibre-GL** type, not Mapbox-GL
+import Map, { Marker as MapMarker, NavigationControl } from "react-map-gl/maplibre";
+import type { MapRef } from "react-map-gl/maplibre";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -26,93 +20,105 @@ interface LocationMapProps {
     [number, number],
     [number, number]
   ];
-  initialMarkers?: [number, number][];
 }
 
 export function LocationMap({
-  lat: initialLat,
-  lon: initialLon,
+  lat,
+  lon,
   siteImageUrl,
   imageCoordinates,
-  initialMarkers = [],
 }: LocationMapProps) {
-  // ─── State for markers ────────────────────────────────────────────────────
-  const [markers, setMarkers] = useState(() =>
-    initialMarkers.map(([lon, lat]) => ({ lat, lon }))
-  );
-
-  // ─── Refs ─────────────────────────────────────────────────────────────────
-  // MapRef here is the React-Map-GL wrapper.  .getMap() will return a MaplibreMap.
   const mapRef = useRef<MapRef>(null);
 
-  // ─── 1) Click handler: extract lng/lat from MapLayerMouseEvent  ───────────
-  const handleMapClick = useCallback((evt: MapLayerMouseEvent) => {
-    const { lng, lat } = evt.lngLat;
-    setMarkers((prev) => [...prev, { lat, lon: lng }]);
-  }, []);
-
-  // ─── 2) Drag-end handler: same fix for LngLat  ─────────────────────────────
-  const handleDragEnd = useCallback(
-    (evt: MarkerDragEvent, idx: number) => {
-      const { lng, lat } = evt.lngLat;
-      setMarkers((prev) =>
-        prev.map((m, i) => (i === idx ? { lat, lon: lng } : m))
-      );
-    },
-    []
-  );
-
-  // ─── 3) onLoad handler: use mapRef.current.getMap() → a MaplibreMap ────────
+  // Add/refresh the raster image overlay on load
   const onMapLoad = useCallback(() => {
-    if (!mapRef.current) {
-      // If the ref isn’t set yet, bail out
-      return;
-    }
-
-    // 3.a) getMap() returns a Maplibre-GL Map
+    if (!mapRef.current) return;
     const rawMap: MaplibreMap = mapRef.current.getMap();
 
-    // 3.b) Add your image source / layer on the **Maplibre** map
-    rawMap.addSource("site-photo", {
+    // avoid duplicate source/layer on re-mounts
+    if (!rawMap.getSource("site-photo")) {
+      rawMap.addSource("site-photo", {
         type: "image",
         url: siteImageUrl,
         coordinates: imageCoordinates,
       });
+    }
+    if (!rawMap.getLayer("site-photo-layer")) {
       rawMap.addLayer({
         id: "site-photo-layer",
         source: "site-photo",
         type: "raster",
         paint: { "raster-opacity": 0.8 },
       });
-    },
-    [siteImageUrl, imageCoordinates]
-  );
+    }
+  }, [siteImageUrl, imageCoordinates]);
+
+  // Keep map centered if the coordinates change
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const rawMap = mapRef.current.getMap();
+    rawMap.easeTo({ center: [lon, lat], duration: 400 });
+  }, [lat, lon]);
+
+  const fmt = (n: number) => n.toFixed(6);
 
   return (
-  <Box h="100%">
-    <Map
-      ref={mapRef} // ← assign the MapRef here
-      initialViewState={{
-        latitude: initialLat,
-        longitude: initialLon,
-        zoom: 13,
-      }}
-      mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=jhTNNVnrTk3AjXEL4NP1"
-      style={{ width: "100%", height: "100%", borderRadius: "12px" }}
-      onClick={handleMapClick}
-      onLoad={onMapLoad}
-    >
-      {markers.map((m, i) => (
+    <Box h="100%">
+      <Map
+        ref={mapRef}
+        initialViewState={{
+          latitude: lat,
+          longitude: lon,
+          zoom: 13,
+          bearing: 0,
+          pitch: 0,
+        }}
+        mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+        style={{ width: "100%", height: "100%", borderRadius: "12px" }}
+        onLoad={onMapLoad}
+        // Note: no onClick = no pin-adding; marker is static and non-draggable
+      >
+        <NavigationControl position="top-left" />
+
         <MapMarker
-          key={i}
-          latitude={m.lat}
-          longitude={m.lon}
-          color="yellow"
-          draggable
-          onDragEnd={(e) => handleDragEnd(e, i)}
-        />
-      ))}
-    </Map>
-  </Box>
+          latitude={lat}
+          longitude={lon}
+          anchor="bottom"
+          draggable={false}
+        >
+          {/* simple styled dot (same vibe as your picker) */}
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              background: "#e11d48",
+              borderRadius: "50%",
+              border: "2px solid white",
+              boxShadow: "0 0 0 2px rgba(0,0,0,0.25)",
+            }}
+            title="Location"
+          />
+        </MapMarker>
+
+        {/* Coordinate badge */}
+        <div
+          style={{
+            position: "absolute",
+            left: 12,
+            bottom: 12,
+            padding: "6px 10px",
+            borderRadius: 8,
+            background: "rgba(0,0,0,0.65)",
+            color: "white",
+            fontSize: 12,
+            lineHeight: 1.2,
+            backdropFilter: "blur(2px)",
+          }}
+        >
+          <div><strong>Lat:</strong> {fmt(lat)}</div>
+          <div><strong>Lon:</strong> {fmt(lon)}</div>
+        </div>
+      </Map>
+    </Box>
   );
 }
