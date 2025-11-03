@@ -6,8 +6,8 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
-import { Button, CloseButton, createListCollection, Dialog, Field, Flex, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
-import { X } from "lucide-react";
+import { Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
+import { X, Plus } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { Maximize2 } from "lucide-react";
@@ -22,6 +22,8 @@ import { listLocations } from "@/services/locations";
 import type { Source, SourcePayload } from "@/types/source";
 import type { Project } from "@/types/project";
 import type { Location } from "@/types/location";
+import { ProjectCreateModal } from "./ProjectModals";
+import { LocationCreateModal } from "./LocationModals";
 
 const INTERVAL_OPTIONS = [
   { label: "5 minutes",  value: "5min"  },
@@ -318,6 +320,12 @@ function SourceForm({
     []
   );
 
+  const [isCreateProjectOpen, setCreateProjectOpen] = useState(false);
+  const handleNewProject = () => { setCreateProjectOpen(true); };
+
+  const [isCreateLocationOpen, setCreateLocationOpen] = useState(false);
+  const handleNewLocation = () => { setCreateLocationOpen(true); };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const res = validateInner(configInnerText);
@@ -385,70 +393,95 @@ function SourceForm({
   return (
     <form id="source-form" onSubmit={handleSubmit}>
       {/* Project */}
-      <Field.Root required mb={4}>
-        <Field.Label>Project</Field.Label>
-        <Select.Root
-          collection={projectCollection}
-          value={projectIds}
-          onValueChange={e => setProjectIds(e.value)}
-          disabled={isProjectLocked}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText placeholder="Select project" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {!isProjectLocked && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {projectCollection.items.map(item => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
+      <HStack>
+        <Field.Root required mb={4}>
+          <Field.Label>Project</Field.Label>
+          <Select.Root
+            collection={projectCollection}
+            value={projectIds}
+            onValueChange={e => setProjectIds(e.value)}
+            disabled={isProjectLocked}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc}>
+                <Select.ValueText placeholder="Select project" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                {!isProjectLocked && <Select.ClearTrigger />}
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content>
+                {projectCollection.items.map(item => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+        <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost" onClick={handleNewProject}>
+          <Plus size={16} />
+        </IconButton>
+      </HStack>
 
       {/* Location */}
-      <Field.Root required mb={4}>
-        <Field.Label>Location</Field.Label>
-        <Select.Root
-          collection={locationCollection}
-          value={locationIds}
-          onValueChange={e => setLocationIds(e.value)}
-          disabled={isLocationLocked || !projectIds[0]}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText
-                placeholder={
-                  !projectIds[0] ? "Select a project first" : "Select location"
-                }
-              />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {!isLocationLocked && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {locationCollection.items.map(item => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
+      <HStack>
+        <Field.Root required mb={4}>
+          <Field.Label>Location</Field.Label>
+          <Select.Root
+            collection={locationCollection}
+            value={locationIds}
+            onValueChange={e => setLocationIds(e.value)}
+            disabled={isLocationLocked || !projectIds[0]}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc}>
+                <Select.ValueText
+                  placeholder={
+                    !projectIds[0] ? "Select a project first" : "Select location"
+                  }
+                />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                {!isLocationLocked && <Select.ClearTrigger />}
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content>
+                {locationCollection.items.map(item => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+        <IconButton mt="auto" mb={4} aria-label="New Location" outline="solid thin" variant="ghost" onClick={() => {
+            if (!projectIds[0]) {
+              toaster.create({ description: "Select a project first", type: "info" });
+              return;
+            }
+            handleNewLocation();
+          }}
+          disabled={!projectIds[0] || isLocationLocked}
+          title={
+            !projectIds[0]
+              ? "Select a project first"
+              : isLocationLocked
+              ? "Location is locked for this source"
+              : "New location"
+          }
+          >
+          <Plus size={16} />
+        </IconButton>
+      </HStack>
 
       {/* Other fields */}
       <Field.Root required mb={4}>
@@ -690,6 +723,8 @@ function SourceForm({
           {submitLabel}
         </Button>
       </Dialog.Footer>
+      <ProjectCreateModal isOpen={isCreateProjectOpen} onClose={() => { setCreateProjectOpen(false);}} />
+      <LocationCreateModal projectId={projectIds[0]} isOpen={isCreateLocationOpen} onClose={() => { setCreateLocationOpen(false);}} />
     </form>
   );
 }

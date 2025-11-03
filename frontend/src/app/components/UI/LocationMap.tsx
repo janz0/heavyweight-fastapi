@@ -96,7 +96,7 @@ export function LocationMap({
               border: "2px solid white",
               boxShadow: "0 0 0 2px rgba(0,0,0,0.25)",
             }}
-            title="Location"
+            title={"Lat: " + lat.toString() + "\nLon: " + lat.toString()}
           />
         </MapMarker>
 

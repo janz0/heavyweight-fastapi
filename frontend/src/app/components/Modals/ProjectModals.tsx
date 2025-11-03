@@ -153,9 +153,9 @@ export function ProjectCreateModal({ isOpen, onClose }: BaseProjectModalProps) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Backdrop onClick={onClose} zIndex={1500}/>
+          <Dialog.Content border="2px solid" zIndex={1600}>
             <Dialog.Header>
               <Dialog.Title>Create Project</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -198,9 +198,9 @@ export function ProjectEditModal({ isOpen, onClose, project }: BaseProjectModalP
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Backdrop onClick={onClose} zIndex={1500}/>
+          <Dialog.Content border="2px solid" zIndex={1600}>
             <Dialog.Header>
               <Dialog.Title>Edit Project</Dialog.Title>
               <Dialog.CloseTrigger asChild>
@@ -250,9 +250,9 @@ export function ProjectDeleteModal({ isOpen, onClose, project }: BaseProjectModa
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="sm">
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Backdrop onClick={onClose} zIndex={1500}/>
+          <Dialog.Content border="2px solid" zIndex={1600}>
             <Dialog.Header>
               <Dialog.Title>Delete Project</Dialog.Title>
               <Dialog.CloseTrigger asChild>

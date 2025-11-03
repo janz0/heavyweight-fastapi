@@ -6,13 +6,14 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
-import { Button, CloseButton, createListCollection, Dialog, Field, Flex, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
-import { X } from "lucide-react";
+import { Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
+import { X, Plus } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // Services + Types
 import { listSources } from "@/services/sources";
+import { SourceCreateModal } from "./SourceModals";
 import { createSensor, updateSensor, deleteSensor } from "@/services/sensors";
 import type { Source } from "@/types/source";
 import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
@@ -50,6 +51,8 @@ function SensorForm({
   const fixedSourceId = initialData?.mon_source_id;
   const isSourceLocked = Boolean(fixedSourceId);
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
+  const [isCreateSourceOpen, setCreateSourceOpen] = useState(false);
+  const handleNewSource = () => { setCreateSourceOpen(true); };
 
   useEffect(() => {
     if (fixedProjectId)
@@ -138,66 +141,74 @@ function SensorForm({
 
   return (
     <form id="sensor-form" onSubmit={handleSubmit}>
-      <Field.Root required mb={4}>
-        <Field.Label>Source</Field.Label>
-        <Select.Root
-          collection={sourceCollection}
-          value={monSourceId ? [monSourceId] : []}
-          onValueChange={(e) => setMonSourceId(e.value[0])}
-          disabled={isSourceLocked}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc} >
-              <Select.ValueText placeholder="Select source" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {!isSourceLocked && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {sourceCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
-
-      <Field.Root mb={4}>
-        <Field.Label>Sensor Group</Field.Label>
-        <Select.Root
-          collection={groupCollection}
-          value={sensorGroupId ? [sensorGroupId] : []}
-          onValueChange={(e) => setSensorGroupId(e.value[0])}
-          disabled={!monSourceId || !sources[0]}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText placeholder={!monSourceId ? "Select a source first" : "[Optional] Select group"} />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {monSourceId && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {groupCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
-
+      <HStack>
+        <Field.Root required mb={4}>
+          <Field.Label>Source</Field.Label>
+          <Select.Root
+            collection={sourceCollection}
+            value={monSourceId ? [monSourceId] : []}
+            onValueChange={(e) => setMonSourceId(e.value[0])}
+            disabled={isSourceLocked}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc} >
+                <Select.ValueText placeholder="Select source" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                {!isSourceLocked && <Select.ClearTrigger />}
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content>
+                {sourceCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+        <IconButton mt="auto" mb={4} aria-label="New Source" outline="solid thin" variant="ghost" onClick={handleNewSource}>
+          <Plus size={16} />
+        </IconButton>
+      </HStack>
+      <HStack>
+        <Field.Root mb={4}>
+          <Field.Label>Sensor Group</Field.Label>
+          <Select.Root
+            collection={groupCollection}
+            value={sensorGroupId ? [sensorGroupId] : []}
+            onValueChange={(e) => setSensorGroupId(e.value[0])}
+            disabled={!monSourceId || !sources[0]}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc}>
+                <Select.ValueText placeholder={!monSourceId ? "Select a source first" : "[Optional] Select group"} />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                {monSourceId && <Select.ClearTrigger />}
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content>
+                {groupCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+        <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost">
+          <Plus size={16} />
+        </IconButton>
+      </HStack>
       <Field.Root required mb={4}>
         <Field.Label>Sensor Name</Field.Label>
         <Input
@@ -239,6 +250,7 @@ function SensorForm({
           {submitLabel}
         </Button>
       </Dialog.Footer>
+      <SourceCreateModal isOpen={isCreateSourceOpen} onClose={() => { setCreateSourceOpen(false); } } />
     </form>
   );
 }

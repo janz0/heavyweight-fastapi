@@ -11,7 +11,8 @@ const MapPicker = dynamic(() => import("./components/MapPicker"), { ssr: false }
 import { Box, Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
+
 
 // Location Components
 import { createLocation, updateLocation, deleteLocation } from "@/services/locations";
@@ -20,6 +21,7 @@ import type { Location, LocationPayload } from "@/types/location";
 // Project Components
 import { listProjects } from "@/services/projects";
 import type { Project } from "@/types/project";
+import { ProjectCreateModal } from "./ProjectModals";
 
 const FREQUENCY_ITEMS = [
   { label: "Real Time", value: "real time"},
@@ -67,6 +69,9 @@ function LocationForm({
   const [longitude, setLongitude] = useState(initialData ? initialData.lon : 0);
   const [frequency, setFrequency] = useState(initialData?.frequency ?? "");
   const [active, setActive] = useState(initialData ? initialData.active : 1);
+
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const handleNewProject = () => { setCreateOpen(true); };
 
   useEffect(() => {
     listProjects()
@@ -143,35 +148,41 @@ function LocationForm({
         <Field.Label>Location Number</Field.Label>
         <Input value={locNumber} placeholder="Optional" borderColor={bc} onChange={(e) => setLocNumber(e.target.value)} />
       </Field.Root>
-      <Field.Root required mb={4}>
-        <Field.Label>Project</Field.Label>
-        <Select.Root
-          collection={projectCollection}
-          value={projectId ? [projectId] : []}
-          onValueChange={(e) => setProjectId(e.value[0])}
-          disabled={isProjectLocked}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText placeholder="Select project" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {!isProjectLocked && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {projectCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
+      <HStack>
+        <Field.Root required mb={4}>
+          <Field.Label>Project</Field.Label>
+          <Select.Root
+            collection={projectCollection}
+            value={projectId ? [projectId] : []}
+            onValueChange={(e) => setProjectId(e.value[0])}
+            disabled={isProjectLocked}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc}>
+                <Select.ValueText placeholder="Select project" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                {!isProjectLocked && <Select.ClearTrigger />}
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content>
+                {projectCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+
+          </Select.Root>
+        </Field.Root>
+        <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost" onClick={handleNewProject}>
+          <Plus size={16} />
+        </IconButton>
+      </HStack>
       <HStack gap={4} mb={4}>
         <Field.Root required>
           <Field.Label>Latitude</Field.Label>
@@ -301,7 +312,7 @@ function LocationForm({
         <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>Cancel</Button>
         <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
       </Dialog.Footer>
-      
+      <ProjectCreateModal isOpen={isCreateOpen} onClose={() => { setCreateOpen(false);}} />
     </form>
   );
 }
@@ -332,7 +343,7 @@ export function LocationCreateModal({
       <Portal>
         <Dialog.Backdrop onClick={onClose} />
         <Dialog.Positioner>
-          <Dialog.Content border="2px solid">
+          <Dialog.Content border="2px solid" zIndex={1200}>
             <Dialog.Header>
               <Dialog.Title>Create Location</Dialog.Title>
               <Dialog.CloseTrigger asChild>
