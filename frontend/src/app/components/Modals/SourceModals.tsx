@@ -6,7 +6,7 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
-import { Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
+import { Button, CloseButton, Combobox, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
 import { X, Plus } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
@@ -24,6 +24,7 @@ import type { Project } from "@/types/project";
 import type { Location } from "@/types/location";
 import { ProjectCreateModal } from "./ProjectModals";
 import { LocationCreateModal } from "./LocationModals";
+import { listDistinctRootDirectories } from "@/services/sources";
 
 const INTERVAL_OPTIONS = [
   { label: "5 minutes",  value: "5min"  },
@@ -63,6 +64,27 @@ function SourceForm({
   const isProjectLocked = Boolean(fixedProjectId);
   const fixedLocationId = initialData?.mon_loc_id;
   const isLocationLocked = Boolean(fixedLocationId);
+  const [knownRoots, setKnownRoots] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const roots = await listDistinctRootDirectories(); // or the fallback
+        setKnownRoots(roots);
+      } catch (e) {
+        console.error(e);
+        // non-fatal; user can still type a new path
+      }
+    })();
+  }, []);
+
+  const rootsCollection = useMemo(
+    () =>
+      createListCollection({
+        items: knownRoots.map(r => ({ label: r, value: r })),
+      }),
+    [knownRoots]
+  );
 
   const router = useRouter();
   const editMode = Boolean(initialData);
@@ -112,10 +134,14 @@ function SourceForm({
   });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
+  const [typedRoot, setTypedRoot] = useState(initialData?.root_directory || "");
+  const ignoreEmptyOnBlurRef = React.useRef(false);
+  const manualClearRef = React.useRef(false);
   const stripOuterBraces = (s: string) => {
     const t = (s ?? "").trim();
     return t.startsWith("{") && t.endsWith("}") ? t.slice(1, -1).trim() : t;
   };
+
   const deindentOneLevel = (s: string) =>
   (s ?? "")
     .split("\n")
@@ -401,6 +427,12 @@ function SourceForm({
             value={projectIds}
             onValueChange={e => setProjectIds(e.value)}
             disabled={isProjectLocked}
+            rounded="sm"
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
           >
             <Select.HiddenSelect />
             <Select.Control>
@@ -413,7 +445,14 @@ function SourceForm({
               </Select.IndicatorGroup>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content>
+              <Select.Content
+                mt="-1px"
+                borderWidth="1px"
+                borderColor={bc}
+                rounded="sm"
+                shadow="md"
+                overflowY="auto"
+                w="100%">
                 {projectCollection.items.map(item => (
                   <Select.Item key={item.value} item={item}>
                     {item.label}
@@ -424,7 +463,7 @@ function SourceForm({
           </Select.Root>
         </Field.Root>
         <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost" onClick={handleNewProject}>
-          <Plus size={16} />
+          <Plus />
         </IconButton>
       </HStack>
 
@@ -437,6 +476,12 @@ function SourceForm({
             value={locationIds}
             onValueChange={e => setLocationIds(e.value)}
             disabled={isLocationLocked || !projectIds[0]}
+            rounded="sm"
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
           >
             <Select.HiddenSelect />
             <Select.Control>
@@ -453,7 +498,15 @@ function SourceForm({
               </Select.IndicatorGroup>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content>
+              <Select.Content
+                mt="-1px"
+                borderWidth="1px"
+                borderColor={bc}
+                rounded="sm"
+                shadow="md"
+                overflowY="auto"
+                w="100%"
+              >
                 {locationCollection.items.map(item => (
                   <Select.Item key={item.value} item={item}>
                     {item.label}
@@ -479,24 +532,119 @@ function SourceForm({
               : "New location"
           }
           >
-          <Plus size={16} />
+          <Plus />
         </IconButton>
       </HStack>
 
       {/* Other fields */}
       <Field.Root required mb={4}>
         <Field.Label>Source Name</Field.Label>
-        <Input value={sourceName} borderColor={bc} onChange={e => setSourceName(e.target.value)} />
+        <Input value={sourceName} borderColor={bc} onChange={e => setSourceName(e.target.value)} _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+        }}/>
       </Field.Root>
 
       <Field.Root required mb={4}>
-        <Field.Label>Folder Path</Field.Label>
-        <Input value={folderPath} borderColor={bc} onChange={e => setFolderPath(e.target.value)} />
+        <Field.Label >Folder Path</Field.Label>
+        <Input value={folderPath} borderColor={bc} onChange={e => setFolderPath(e.target.value)}
+        _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+        }}/>
       </Field.Root>
 
       <Field.Root required mb={4}>
         <Field.Label>Root Directory</Field.Label>
-        <Input value={rootDirectory} borderColor={bc} onChange={e => setRootDir(e.target.value)} />
+        <Combobox.Root
+          collection={rootsCollection}
+          inputValue={typedRoot}
+          onInputValueChange={({ inputValue }) => {
+            // Chakra sends "" when the field blurs with no selection—ignore that one
+            if (inputValue === "" && ignoreEmptyOnBlurRef.current) return;
+            setTypedRoot(inputValue);
+          }}
+          value={knownRoots.includes(rootDirectory) ? [rootDirectory] : []}
+          onValueChange={(e) => {
+            const v = e.value[0] ?? "";
+            setRootDir(v);     // committed value (form field)
+            setTypedRoot(v);   // mirror into the textbox so it persists
+          }}
+          openOnClick
+          positioning={{ sameWidth: true, gutter: 0 }}
+        >
+          <Combobox.Control 
+            h="2.5rem"
+            minH="unset"
+            borderWidth="1px"
+            borderColor={bc}
+            rounded="sm"
+            display="flex"
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
+          >
+            <Combobox.Input
+              placeholder="Type or select a root dir (e.g. /mnt/data)"
+              flex="1"
+              h="100%"
+              w="100%"
+              minH="unset"
+              px="2"
+              border="none"
+              _focus={{ outline: "none" }}
+              onBlur={() => {
+                const v = typedRoot.trim();
+                if (v) setRootDir(v);       // commit free text on blur
+                ignoreEmptyOnBlurRef.current = true; // ignore the next "" change
+                // clear the guard on the next tick
+                setTimeout(() => { ignoreEmptyOnBlurRef.current = false; }, 0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const v = typedRoot.trim();
+                  if (v && !knownRoots.includes(v)) {
+                    setRootDir(v);
+                  }
+                }
+              }}
+            />
+            <Combobox.IndicatorGroup>
+              {typedRoot && (
+                <Combobox.ClearTrigger
+                  onClick={() => {
+                    manualClearRef.current = true;
+                    setRootDir("");
+                    setTypedRoot("");
+                  }}
+                />
+              )}
+              
+              <Combobox.Trigger />
+            </Combobox.IndicatorGroup>
+          </Combobox.Control>
+          <Combobox.Positioner>
+            <Combobox.Content
+              mt="7px"
+              borderWidth="1px"
+              borderColor={bc}
+              rounded="sm"
+              shadow="md"
+              overflowY="auto"
+              w="100%"
+            >
+              {rootsCollection.items.map((item) => (
+                <Combobox.Item key={item.value} item={item}>
+                  <Combobox.ItemText>{item.label}</Combobox.ItemText>
+                </Combobox.Item>
+              ))}
+            </Combobox.Content>
+          </Combobox.Positioner>
+        </Combobox.Root>
       </Field.Root>
 
       <Field.Root mb={4}>
@@ -506,6 +654,11 @@ function SourceForm({
           value={fileKeyword}
           borderColor={bc}
           onChange={e => setFileKeyword(e.target.value)}
+          _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+          }}
         />
       </Field.Root>
 
@@ -515,6 +668,12 @@ function SourceForm({
           collection={fileTypesCollection}
           value={fileType ? [fileType] : []}
           onValueChange={e => setFileType(e.value[0] ?? "")}
+          rounded="sm"
+          _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+        }}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -529,7 +688,15 @@ function SourceForm({
             </Select.IndicatorGroup>
           </Select.Control>
           <Select.Positioner>
-            <Select.Content>
+            <Select.Content
+              mt="-1px"
+              borderWidth="1px"
+              borderColor={bc}
+              rounded="sm"
+              shadow="md"
+              overflowY="auto"
+              w="100%"
+            >
               {fileTypesCollection.items.map((item) => (
                 <Select.Item key={item} item={item}>
                   {item}
@@ -546,6 +713,12 @@ function SourceForm({
           collection={sourceTypesCollection}
           value={sourceType ? [sourceType] : []}
           onValueChange={e => setSourceType(e.value[0] ?? "")}
+          rounded="sm"
+          _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+        }}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -560,7 +733,15 @@ function SourceForm({
             </Select.IndicatorGroup>
           </Select.Control>
           <Select.Positioner>
-            <Select.Content>
+            <Select.Content
+              mt="-1px"
+              borderWidth="1px"
+              borderColor={bc}
+              rounded="sm"
+              shadow="md"
+              overflowY="auto"
+              w="100%"
+            >
               {sourceTypesCollection.items.map((item) => (
                 <Select.Item key={item} item={item}>
                   {item}
@@ -572,7 +753,11 @@ function SourceForm({
       </Field.Root>
       <Field.Root mb={4}>
         <Field.Label>Config</Field.Label>
-        <Flex align="center" gap={2} position="relative" w="100%">
+        <Flex align="center" gap={2} position="relative" w="100%" rounded="sm" _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+        }}>
           <Textarea
             ref={textRef}
             className={`config-textarea ${jsonErrLoc ? 'has-error' : ''}`}
@@ -677,6 +862,12 @@ function SourceForm({
           collection={intervalCollection}
           value={interval ? [interval] : []}
           onValueChange={e => setInterval(e.value[0])}
+          rounded="sm"
+          _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+        }}
         >
           <Select.HiddenSelect />
           <Select.Control>
@@ -689,7 +880,15 @@ function SourceForm({
             </Select.IndicatorGroup>
           </Select.Control>
           <Select.Positioner>
-            <Select.Content>
+            <Select.Content
+              mt="-1px"
+              borderWidth="1px"
+              borderColor={bc}
+              rounded="sm"
+              shadow="md"
+              overflowY="auto"
+              w="100%"
+            >
               {INTERVAL_OPTIONS.map(opt => (
                 <Select.Item key={opt.value} item={opt}>
                   {opt.label}
