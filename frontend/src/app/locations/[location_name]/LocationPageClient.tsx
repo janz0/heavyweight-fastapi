@@ -14,7 +14,6 @@ import DataTable from '@/app/components/DataTable';
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/components/Modals/SourceModals';
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/components/Modals/SensorModals';
 import { MonitoringGroupCreateModal, MonitoringGroupEditModal, MonitoringGroupDeleteModal } from '@/app/components/Modals/MonitoringGroupModals';
-import { listMonitoringGroups } from '@/services/monitoringGroups';
 import type { MonitoringGroup } from '@/types/monitoringGroup';
 import { LocationEditModal, LocationDeleteModal } from '../../components/Modals/LocationModals';
 import ChecklistViewer from '@/app/components/CheckListViewer';
@@ -67,7 +66,6 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const [isGrpDelOpen, setGrpDelOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<MonitoringGroup | undefined>();
   const [grpToDelete, setGrpToDelete] = useState<MonitoringGroup | undefined>();
-  const [locationGroups, setLocationGroups] = useState<MonitoringGroup[]>([])
   const handleNewGrp = () => (setGrpCreateOpen(true));
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
@@ -90,34 +88,31 @@ export default function LocationPageClient({ location, initialSources, initialSe
     setPrevMapHeight(h);
   }, []);
 
-  useEffect(() => {
-    listMonitoringGroups(location.id)
-      .then(setLocationGroups)
-      .catch(err => {
-        console.error("Could not load groups:", err)
-      })
-  }, [location.id])
-  console.log(locationGroups);
+  const setMapHeightSmooth = (next: number) => {
+    requestAnimationFrame(() => setMapHeight(next));
+  };
+
   const minimizeMap = () => {
     if (!isMapCollapsed) {
       setPrevMapHeight(mapHeight || 400);
-      setMapHeight(0);
       setMapCollapsed(true);
       setMapMaximized(false);
+      setMapHeightSmooth(0);
+      
     }
   };
   const restoreMap = () => {
-    setMapHeight(prevMapHeight || 400);
     setMapCollapsed(false);
     setMapMaximized(false);
+    setMapHeightSmooth(prevMapHeight || 400);
   };
   const maximizeMap = () => {
     setPrevMapHeight(mapHeight || 400);
-    setMapHeight(Math.round(window.innerHeight * 0.7));
     setMapCollapsed(false);
     setMapMaximized(true);
-    // if checklist was maximized, restore it
     setChecklistMaximized(false);
+    setMapHeightSmooth(Math.round(window.innerHeight * 0.7));
+    
   };
 
   const minimizeChecklist = () => {
@@ -144,6 +139,8 @@ export default function LocationPageClient({ location, initialSources, initialSe
     }).format(date);
   }
 
+  const COLLAPSED_RAIL = 80;
+  const MAP_EASE = "320ms ease-in-out"; // same both ways
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
@@ -221,113 +218,138 @@ export default function LocationPageClient({ location, initialSources, initialSe
         </Box>
       </Flex>
       <Flex
-  mb={3}
-  align="stretch"
-  gap={3}
-  direction={isMapMaximized || isChecklistMaximized ? "column" : "row"}
->
-  {/* Map panel */}
-  <Box
-    className="bg-card"
-    position="relative"
-    w={isChecklistMaximized ? "0" : (isMapMaximized ? "100%" : "160vw")}
-    overflow="hidden"
-    display={isChecklistMaximized ? "none" : "block"}
-  >
-    {/* map controls (top-right) */}
-    <Flex position="absolute" top={6} right={6} gap={1} zIndex={1}>
-      {isMapCollapsed ? (
-        <Tooltip content="Restore map">
-          <IconButton aria-label="Restore map" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
-            <ChevronDown size={16} />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip content="Minimize map">
-          <IconButton aria-label="Minimize map" size="xs" bg="bg.subtle" variant="ghost" onClick={minimizeMap}>
-            <ChevronUp size={16} />
-          </IconButton>
-        </Tooltip>
-      )}
-      {!isMapMaximized ? (
-        <Tooltip content="Maximize map">
-          <IconButton aria-label="Maximize map" size="xs" bg="bg.subtle" variant="ghost" onClick={maximizeMap}>
-            <Maximize2 size={16} />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip content="Restore map size">
-          <IconButton aria-label="Restore map size" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
-            <Minimize2 size={16} />
-          </IconButton>
-        </Tooltip>
-      )}
-    </Flex>
+        mb={3}
+        align="stretch"
+        gap={3}
+        direction={isMapMaximized || isChecklistMaximized ? "column" : "row"}
+        overflow={"hidden"}
+        h={`${mapHeight}px + 10px)`}
+        minH={`42px`}
+      >
+        {/* Map panel */}
+        <Box
+          className="bg-card"
+          position="relative"
+          flex="1 1 auto"
+          minW={0}
+          h="100%"
+          overflow="hidden"
+          display={isChecklistMaximized ? "none" : "block"}
+        >
+          {/* map controls (top-right) */}
+          <Flex position="absolute" top={1} right={1} gap={1} zIndex={1}>
+            {isMapCollapsed ? (
+              <Tooltip content="Restore map">
+                <IconButton aria-label="Restore map" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
+                  <ChevronDown />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Tooltip content="Minimize map">
+                <IconButton aria-label="Minimize map" size="xs" bg="bg.subtle" variant="ghost" onClick={minimizeMap}>
+                  <ChevronUp />
+                </IconButton>
+              </Tooltip>
+            )}
+            {!isMapMaximized ? (
+              <Tooltip content="Maximize map">
+                <IconButton aria-label="Maximize map" size="xs" bg="bg.subtle" variant="ghost" onClick={maximizeMap}>
+                  <Maximize2 />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Tooltip content="Restore map size">
+                <IconButton aria-label="Restore map size" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
+                  <Minimize2 />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Flex>
 
-    {/* collapsible map content */}
-    <Collapsible.Root open={!isMapCollapsed}>
-      <Collapsible.Content>
-        <Box h={`${mapHeight}px`}>
-          <LocationMap
-            lat={location.lat}
-            lon={location.lon}
-            siteImageUrl="/your-site-photo.jpg"
-            imageCoordinates={[
-              [location.lon - 0.01, location.lat - 0.01],
-              [location.lon + 0.01, location.lat - 0.01],
-              [location.lon + 0.01, location.lat + 0.01],
-              [location.lon - 0.01, location.lat + 0.01],
-            ]}
-          />
+          {/* collapsible map content */}
+          <Collapsible.Root open={!isMapCollapsed} minH="10px">
+            <Collapsible.Content>
+              <Box h={`${mapHeight}px`} transition={`height ${MAP_EASE}`}>
+                <LocationMap
+                  lat={location.lat}
+                  lon={location.lon}
+                  siteImageUrl="/your-site-photo.jpg"
+                  imageCoordinates={[
+                    [location.lon - 0.01, location.lat - 0.01],
+                    [location.lon + 0.01, location.lat - 0.01],
+                    [location.lon + 0.01, location.lat + 0.01],
+                    [location.lon - 0.01, location.lat + 0.01],
+                  ]}
+                />
+              </Box>
+            </Collapsible.Content>
+          </Collapsible.Root>
         </Box>
-      </Collapsible.Content>
-    </Collapsible.Root>
-  </Box>
 
-  {/* Checklist panel */}
-  <Box
-    className="bg-card"
-    position="relative"
-    w={isMapMaximized ? "0" : "100%"}
-    display={isMapMaximized ? "none" : "block"}
-  >
-    {/* checklist controls (top-right) */}
-    <Flex position="absolute" top={2} right={2} gap={1} zIndex={1}>
-      {isChecklistCollapsed ? (
-        <Tooltip content="Restore checklist">
-          <IconButton aria-label="Restore checklist" size="xs" variant="ghost" onClick={restoreChecklist}>
-            <ChevronUp size={16} />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip content="Minimize checklist">
-          <IconButton aria-label="Minimize checklist" size="xs" variant="ghost" onClick={minimizeChecklist}>
-            <ChevronDown size={16} />
-          </IconButton>
-        </Tooltip>
-      )}
-      {!isChecklistMaximized ? (
-        <Tooltip content="Maximize checklist">
-          <IconButton aria-label="Maximize checklist" size="xs" variant="ghost" onClick={maximizeChecklist}>
-            <Maximize2 size={16} />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <Tooltip content="Restore checklist width">
-          <IconButton aria-label="Restore checklist width" size="xs" variant="ghost" onClick={restoreChecklist}>
-            <Minimize2 size={16} />
-          </IconButton>
-        </Tooltip>
-      )}
-    </Flex>
+        {/* Checklist panel */}
+        <Box
+          className="bg-card"
+          position="relative"
+          flexShrink={0}
+          flexGrow={0}
+          flexBasis={isMapMaximized ? "0px" : isChecklistCollapsed ? `${COLLAPSED_RAIL}px` : "25%"}
+          transition={"flex-basis 0.5s ease-in-out, min-height 0.5s ease-in-out"}
+          minH={isChecklistCollapsed || isMapMaximized ? "0px" : "250px"}
+          display={isMapMaximized ? "none" : "block"}
+        >
+          {/* checklist controls (top-right) */}
+          <Flex position="absolute" top={1} right={1} gap={1} zIndex={1}>
+            {isChecklistCollapsed ? (
+              <Tooltip content="Restore checklist">
+                <IconButton aria-label="Restore checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={restoreChecklist}>
+                  <ChevronDown />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Tooltip content="Minimize checklist">
+                <IconButton aria-label="Minimize checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={minimizeChecklist}>
+                  <ChevronUp />
+                </IconButton>
+              </Tooltip>
+            )}
+            {!isChecklistMaximized ? (
+              <Tooltip content="Maximize checklist">
+                <IconButton aria-label="Maximize checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={maximizeChecklist}>
+                  <Maximize2 />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Tooltip content="Restore checklist width">
+                <IconButton aria-label="Restore checklist width" size="xs" variant="ghost" bg="bg.subtle" onClick={restoreChecklist}>
+                  <Minimize2 />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Flex>
 
-    <Collapsible.Root open={!isChecklistCollapsed}>
-      <Collapsible.Content>
-        <ChecklistViewer locationId={location.id} />
-      </Collapsible.Content>
-    </Collapsible.Root>
-  </Box>
-</Flex>
+          <Box
+            position="absolute"
+            inset={0}
+            overflowY="auto"
+            // smooth text appearance
+            opacity={isChecklistCollapsed ? 0 : 1}
+            transform={isChecklistCollapsed ? "translateX(8px)" : "translateX(0)"}
+            // fade in a touch after width starts expanding; fade out immediately when collapsing
+            transition={
+              isChecklistCollapsed
+                ? "opacity 320ms ease, transform 600ms ease"
+                : "opacity 700ms ease 720ms, transform 660ms ease 400ms"
+            }
+            pointerEvents={isChecklistCollapsed ? "none" : "auto"}
+            aria-hidden={isChecklistCollapsed ? "true" : "false"}
+          >
+            {/* Keep it mounted; avoid display:none while animating width */}
+            {/* If your Collapsible unmounts by default, pass forceMount (Radix) or just remove it. */}
+            {/* <Collapsible.Root open> ... </Collapsible.Root> */}
+            <ChecklistViewer locationId={location.id} />
+          </Box>
+        </Box>
+      </Flex>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
