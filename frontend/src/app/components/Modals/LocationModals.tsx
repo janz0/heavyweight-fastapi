@@ -139,181 +139,183 @@ function LocationForm({
   };
 
   return (
-    <form id="location-form" onSubmit={handleSubmit}>
-      <Field.Root required mb={4}>
-        <Field.Label>Location Name</Field.Label>
-        <Input value={locName} borderColor={bc} onChange={(e) => setLocName(e.target.value)} />
-      </Field.Root>
-      <Field.Root mb={4}>
-        <Field.Label>Location Number</Field.Label>
-        <Input value={locNumber} placeholder="Optional" borderColor={bc} onChange={(e) => setLocNumber(e.target.value)} />
-      </Field.Root>
-      <HStack>
+    <>
+      <form id="location-form" onSubmit={handleSubmit}>
         <Field.Root required mb={4}>
-          <Field.Label>Project</Field.Label>
+          <Field.Label>Location Name</Field.Label>
+          <Input value={locName} borderColor={bc} onChange={(e) => setLocName(e.target.value)} />
+        </Field.Root>
+        <Field.Root mb={4}>
+          <Field.Label>Location Number</Field.Label>
+          <Input value={locNumber} placeholder="Optional" borderColor={bc} onChange={(e) => setLocNumber(e.target.value)} />
+        </Field.Root>
+        <HStack>
+          <Field.Root required mb={4}>
+            <Field.Label>Project</Field.Label>
+            <Select.Root
+              collection={projectCollection}
+              value={projectId ? [projectId] : []}
+              onValueChange={(e) => setProjectId(e.value[0])}
+              disabled={isProjectLocked}
+            >
+              <Select.HiddenSelect />
+              <Select.Control>
+                <Select.Trigger borderColor={bc}>
+                  <Select.ValueText placeholder="Select project" />
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  {!isProjectLocked && <Select.ClearTrigger />}
+                  <Select.Indicator />
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content>
+                  {projectCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+
+            </Select.Root>
+          </Field.Root>
+          <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost" onClick={handleNewProject}>
+            <Plus size={16} />
+          </IconButton>
+        </HStack>
+        <HStack gap={4} mb={4}>
+          <Field.Root required>
+            <Field.Label>Latitude</Field.Label>
+            <Input
+              type="number"
+              step="0.000001"
+              value={Number.isFinite(latitude) ? latitude : ""} // show empty if NaN
+              borderColor={bc}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLatitude(val === "" ? Number.NaN : parseFloat(val));
+              }}
+            />
+          </Field.Root>
+          <Field.Root required>
+            <Field.Label>Longitude</Field.Label>
+            <Input
+              type="number"
+              step="0.000001"
+              value={Number.isFinite(longitude) ? longitude : ""}
+              borderColor={bc}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLongitude(val === "" ? Number.NaN : parseFloat(val));
+              }}
+            />
+          </Field.Root>
+          <Box marginTop={"auto"}>
+            <IconButton
+              aria-label="coordinates-map"
+              variant="outline"
+              borderColor={"black"}
+              onClick={(e) => {
+                e.preventDefault();
+                setMapOpen(true);
+              }}
+            >
+              <Map/>
+            </IconButton>
+          </Box>
+        </HStack>
+
+        {/* Map dialog (MapLibre) */}
+        <Dialog.Root open={isMapOpen} onOpenChange={(o) => !o && setMapOpen(false)} size="xl">
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content border="2px solid" maxW="90vw" w="900px">
+                <Dialog.Header>
+                  <Dialog.Title>Select Location</Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <IconButton aria-label="Close" variant="ghost" onClick={() => setMapOpen(false)}>
+                      <X size={16} />
+                    </IconButton>
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+                <Dialog.Body>
+                  <MapPicker
+                    lat={Number.isFinite(latitude) && !(latitude === 0 && longitude === 0) ? latitude : null}
+                    lon={Number.isFinite(longitude) && !(latitude === 0 && longitude === 0) ? longitude : null}
+                    defaultCenter={TORONTO}
+                    onPick={(la, lo) => {
+                      setLatitude(+la.toFixed(6));
+                      setLongitude(+lo.toFixed(6));
+                    }}
+                    height={400}
+                  />
+                  <Flex mt={3} gap={3} align="center" justify="flex-end">
+                    <Button
+                      onClick={() => {
+                        setLatitude(TORONTO[0]);
+                        setLongitude(TORONTO[1]);
+                      }}
+                      variant="surface"
+                    >
+                      Center on Toronto
+                    </Button>
+                    <Button onClick={() => setMapOpen(false)}>Done</Button>
+                  </Flex>
+                </Dialog.Body>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+        <Field.Root required mb={4}>
+          <Field.Label>Frequency</Field.Label>
           <Select.Root
-            collection={projectCollection}
-            value={projectId ? [projectId] : []}
-            onValueChange={(e) => setProjectId(e.value[0])}
-            disabled={isProjectLocked}
+            collection={frequencyCollection}
+            value={frequency ? [frequency] : []}
+            onValueChange={(e) => setFrequency(e.value[0])}
           >
             <Select.HiddenSelect />
             <Select.Control>
               <Select.Trigger borderColor={bc}>
-                <Select.ValueText placeholder="Select project" />
+                <Select.ValueText placeholder="Select frequency" />
               </Select.Trigger>
               <Select.IndicatorGroup>
-                {!isProjectLocked && <Select.ClearTrigger />}
                 <Select.Indicator />
               </Select.IndicatorGroup>
             </Select.Control>
             <Select.Positioner>
               <Select.Content>
-                {projectCollection.items.map((item) => (
+                {frequencyCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
                     {item.label}
                   </Select.Item>
                 ))}
               </Select.Content>
             </Select.Positioner>
-
           </Select.Root>
         </Field.Root>
-        <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost" onClick={handleNewProject}>
-          <Plus size={16} />
-        </IconButton>
-      </HStack>
-      <HStack gap={4} mb={4}>
-        <Field.Root required>
-          <Field.Label>Latitude</Field.Label>
-          <Input
-            type="number"
-            step="0.000001"
-            value={Number.isFinite(latitude) ? latitude : ""} // show empty if NaN
-            borderColor={bc}
-            onChange={(e) => {
-              const val = e.target.value;
-              setLatitude(val === "" ? Number.NaN : parseFloat(val));
-            }}
-          />
-        </Field.Root>
-        <Field.Root required>
-          <Field.Label>Longitude</Field.Label>
-          <Input
-            type="number"
-            step="0.000001"
-            value={Number.isFinite(longitude) ? longitude : ""}
-            borderColor={bc}
-            onChange={(e) => {
-              const val = e.target.value;
-              setLongitude(val === "" ? Number.NaN : parseFloat(val));
-            }}
-          />
-        </Field.Root>
-        <Box marginTop={"auto"}>
-          <IconButton
-            aria-label="coordinates-map"
-            variant="outline"
-            borderColor={"black"}
-            onClick={(e) => {
-              e.preventDefault();
-              setMapOpen(true);
-            }}
+        <Field.Root justifyItems={"center"}>
+          <Flex gap="2">
+          <Field.Label>Active</Field.Label>
+          <Switch.Root
+            checked={active === 1}
+            onCheckedChange={({ checked }) => setActive(checked? 1 : 0)}
           >
-            <Map/>
-          </IconButton>
-        </Box>
-      </HStack>
-
-      {/* Map dialog (MapLibre) */}
-      <Dialog.Root open={isMapOpen} onOpenChange={(o) => !o && setMapOpen(false)} size="xl">
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content border="2px solid" maxW="90vw" w="900px">
-              <Dialog.Header>
-                <Dialog.Title>Select Location</Dialog.Title>
-                <Dialog.CloseTrigger asChild>
-                  <IconButton aria-label="Close" variant="ghost" onClick={() => setMapOpen(false)}>
-                    <X size={16} />
-                  </IconButton>
-                </Dialog.CloseTrigger>
-              </Dialog.Header>
-              <Dialog.Body>
-                <MapPicker
-                  lat={Number.isFinite(latitude) && !(latitude === 0 && longitude === 0) ? latitude : null}
-                  lon={Number.isFinite(longitude) && !(latitude === 0 && longitude === 0) ? longitude : null}
-                  defaultCenter={TORONTO}
-                  onPick={(la, lo) => {
-                    setLatitude(+la.toFixed(6));
-                    setLongitude(+lo.toFixed(6));
-                  }}
-                  height={400}
-                />
-                <Flex mt={3} gap={3} align="center" justify="flex-end">
-                  <Button
-                    onClick={() => {
-                      setLatitude(TORONTO[0]);
-                      setLongitude(TORONTO[1]);
-                    }}
-                    variant="surface"
-                  >
-                    Center on Toronto
-                  </Button>
-                  <Button onClick={() => setMapOpen(false)}>Done</Button>
-                </Flex>
-              </Dialog.Body>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
-      <Field.Root required mb={4}>
-        <Field.Label>Frequency</Field.Label>
-        <Select.Root
-          collection={frequencyCollection}
-          value={frequency ? [frequency] : []}
-          onValueChange={(e) => setFrequency(e.value[0])}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText placeholder="Select frequency" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {frequencyCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
-      <Field.Root justifyItems={"center"}>
-        <Flex gap="2">
-        <Field.Label>Active</Field.Label>
-        <Switch.Root
-          checked={active === 1}
-          onCheckedChange={({ checked }) => setActive(checked? 1 : 0)}
-        >
-          <Switch.HiddenInput />
-          <Switch.Control _checked={{ bg: 'green.400' }}>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Root>
-        </Flex>
-      </Field.Root>
-      <Dialog.Footer>
-        <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>Cancel</Button>
-        <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
-      </Dialog.Footer>
+            <Switch.HiddenInput />
+            <Switch.Control _checked={{ bg: 'green.400' }}>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch.Root>
+          </Flex>
+        </Field.Root>
+        <Dialog.Footer>
+          <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>Cancel</Button>
+          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+        </Dialog.Footer>
+      </form>
       <ProjectCreateModal isOpen={isCreateOpen} onClose={() => { setCreateOpen(false);}} />
-    </form>
+    </>
   );
 }
 
