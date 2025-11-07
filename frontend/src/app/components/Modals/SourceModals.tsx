@@ -26,6 +26,16 @@ import { ProjectCreateModal } from "./ProjectModals";
 import { LocationCreateModal } from "./LocationModals";
 import { listDistinctRootDirectories } from "@/services/sources";
 
+interface BaseSourceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: (s: Source) => void;
+  onEdited?: (s: Source) => void;
+  onDeleted?: (id: string) => void;
+  projectId?: string;
+  source?: Source;
+}
+
 const INTERVAL_OPTIONS = [
   { label: "5 minutes",  value: "5min"  },
   { label: "10 minutes", value: "10min" },
@@ -932,19 +942,19 @@ function SourceForm({
 // ----------------------
 // CreateSourceModal
 // ----------------------
-export function SourceCreateModal({
-  isOpen,
-  onClose,
-  projectId,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  projectId?: string;
-}) {
+export function SourceCreateModal({ isOpen, onClose, onCreated, projectId }: BaseSourceModalProps) {
   const handleCreate = async (payload: SourcePayload) => {
-    await createSource(payload);
-    toaster.create({ description: "Source created", type: "success" });
-    onClose();
+    try {
+      const created = await createSource(payload);
+      toaster.create({description: "Source created successfully", type: "success" });
+      onCreated?.(created);
+      onClose();
+    } catch (err) {
+      toaster.create({
+        description: `Failed to create Source: ${err instanceof Error ? err.message : String(err)}`,
+        type: "error",
+      });
+    }
   };
 
   return (
@@ -979,20 +989,37 @@ export function SourceCreateModal({
 // ----------------------
 // EditSourceModal
 // ----------------------
-export function SourceEditModal({
-  isOpen,
-  onClose,
-  source,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  source?: Source;
-}) {
+export function SourceEditModal({ isOpen, onClose, source, onEdited }: BaseSourceModalProps) {
   const handleUpdate = async (payload: SourcePayload) => {
     if (!source) return;
-    await updateSource(String(source.id), payload);
-    toaster.create({ description: "Source updated", type: "success" });
-    onClose();
+
+    const changedPayload: SourcePayload = {};
+    if (payload.mon_loc_id !== source.mon_loc_id) changedPayload.mon_loc_id = payload.mon_loc_id;
+    if (payload.source_name !== source.source_name) changedPayload.source_name = payload.source_name;
+    if (payload.source_type !== source.source_type) changedPayload.source_type = payload.source_type;
+    if (payload.file_type !== source.file_type) changedPayload.file_type = payload.file_type;
+    if (payload.file_keyword !== source.file_keyword) changedPayload.file_keyword = payload.file_keyword;
+    if (payload.folder_path !== source.folder_path) changedPayload.folder_path = payload.folder_path;
+    if (payload.root_directory !== source.root_directory) changedPayload.root_directory = payload.root_directory;
+    if (payload.active !== source.active) changedPayload.active = payload.active;
+    if (payload.config !== source.config) changedPayload.config = payload.config;
+
+    if (Object.keys(changedPayload).length === 0) {
+      toaster.create({ description: "No changes detected.", type: "info" });
+      return;
+    }
+
+    try {
+      const edited = await updateSource(source.id, payload);
+      toaster.create({ description: "Source updated successfully", type: "success" });
+      onEdited?.(edited);
+      onClose();
+    } catch (err) {
+      toaster.create({
+        description: `Failed to update Source: ${err instanceof Error ? err.message : String(err)}`,
+        type: "error",
+      });    
+    }
   };
 
   return (
@@ -1027,30 +1054,27 @@ export function SourceEditModal({
 // ----------------------
 // DeleteSourceModal
 // ----------------------
-export function SourceDeleteModal({
-  isOpen,
-  onClose,
-  source,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  source?: Source;
-}) {
+export function SourceDeleteModal({ isOpen, onClose, source, onDeleted }: BaseSourceModalProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
   const handleDelete = async () => {
     if (!source) return;
-    await deleteSource(String(source.id));
-    toaster.create({ description: "Source deleted", type: "success" });
-    onClose();
-
-    // if on detail page, go back, otherwise refresh
-    const detailRoute = /^\/sources\/[^\/]+$/;
-    if (detailRoute.test(pathname)) {
-      router.back();
-    } else {
-      router.refresh();
+    try {
+      await deleteSource(source.id);
+      toaster.create({ description: "Source deleted successfully", type: "success" });
+      onClose();
+      const detailRoute = /^\/sources\/[^\/]+$/;
+      if (detailRoute.test(pathname)) {
+        router.back();
+      } else {
+        onDeleted?.(source.id);
+      }
+    } catch (err) {
+      toaster.create({
+        description: `Failed to delete Source: ${err instanceof Error ? err.message : String(err)}`,
+        type: "error",
+      });
     }
   };
 

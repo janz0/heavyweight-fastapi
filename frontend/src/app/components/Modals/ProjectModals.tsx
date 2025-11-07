@@ -18,6 +18,9 @@ import type { Project, ProjectPayload } from '@/types/project';
 interface BaseProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreated?: (p: Project) => void;
+  onEdited?: (p: Project) => void;
+  onDeleted?: (id: string) => void;
   project?: Project;
 }
 
@@ -133,18 +136,17 @@ function ProjectForm({
 // ==============================
 // ProjectCreateModal
 // ==============================
-export function ProjectCreateModal({ isOpen, onClose }: BaseProjectModalProps) {
-  const router = useRouter();
+export function ProjectCreateModal({ isOpen, onClose, onCreated }: BaseProjectModalProps) {
 
   const handleCreate = async (payload: ProjectPayload) => {
     try {
-      await createProject(payload);
+      const created = await createProject(payload);
       toaster.create({ description: 'Project created successfully', type: 'success' });
+      onCreated?.(created);
       onClose();
-      router.refresh();
     } catch (err) {
       toaster.create({
-        description: `Failed to create project: ${err instanceof Error ? err.message : String(err)}`,
+        description: `Failed to create Project: ${err instanceof Error ? err.message : String(err)}`,
         type: 'error',
       });
     }
@@ -177,19 +179,18 @@ export function ProjectCreateModal({ isOpen, onClose }: BaseProjectModalProps) {
 // ==============================
 // ProjectEditModal
 // ==============================
-export function ProjectEditModal({ isOpen, onClose, project }: BaseProjectModalProps) {
-  const router = useRouter();
+export function ProjectEditModal({ isOpen, onClose, project, onEdited }: BaseProjectModalProps) {
 
   const handleUpdate = async (payload: ProjectPayload) => {
     if (!project) return;
     try {
-      await updateProject(project.id, payload);
+      const edited = await updateProject(project.id, payload);
       toaster.create({ description: 'Project updated successfully', type: 'success' });
+      onEdited?.(edited);
       onClose();
-      router.refresh();
     } catch (err) {
       toaster.create({
-        description: `Failed to update project: ${err instanceof Error ? err.message : String(err)}`,
+        description: `Failed to update Project: ${err instanceof Error ? err.message : String(err)}`,
         type: 'error',
       });
     }
@@ -222,7 +223,7 @@ export function ProjectEditModal({ isOpen, onClose, project }: BaseProjectModalP
 // ==============================
 // ProjectDeleteModal
 // ==============================
-export function ProjectDeleteModal({ isOpen, onClose, project }: BaseProjectModalProps) {
+export function ProjectDeleteModal({ isOpen, onClose, project, onDeleted }: BaseProjectModalProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -237,11 +238,11 @@ export function ProjectDeleteModal({ isOpen, onClose, project }: BaseProjectModa
       if (detailRoute.test(pathname)) {
         router.back();
       } else {
-        router.refresh();
+        onDeleted?.(project.id);
       }
     } catch (err) {
       toaster.create({
-        description: `Delete failed: ${err instanceof Error ? err.message : String(err)}`,
+        description: `Failed to delete Project: ${err instanceof Error ? err.message : String(err)}`,
         type: 'error',
       });
     }

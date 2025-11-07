@@ -7,6 +7,7 @@ export interface Column {
 export const projectColumns: Column[] = [
   { key: "project_name", label: "Project" },
   { key: "project_number", label: "Number" },
+  { key: "description", label: "Description" },
   { key: "start_date", label: "Start Date" },
   { key: "end_date", label: "End Date" },
   { key: "locations_count", label: "Locations" },

@@ -27,7 +27,7 @@ interface Props {
 export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
-  const sensors = initialSensors;
+  const [items, setItems] = useState<MonitoringSensor[]>(initialSensors);
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
@@ -59,16 +59,36 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={sensorColumns} color={color} data={sensors} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="sensors"/>
+        <DataTable columns={sensorColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="sensors"/>
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
       
-      <SensorCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); } } />
-      <SensorEditModal isOpen={isEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isDelOpen} sensor={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />
+      <SensorCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); }}
+        onCreated={(created) => {
+          setItems(prev => [created, ...prev]);
+        }}
+      />
+      <SensorEditModal
+        isOpen={isEditOpen}
+        sensor={selectedSensor}
+        onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }}
+        onEdited={(edited) => {
+          setItems(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SensorDeleteModal
+        isOpen={isDelOpen}
+        sensor={toDelete}
+        onClose={() => { setToDelete(undefined); setDelOpen(false); }}
+        onDeleted={(id) => {
+          setItems(prev => prev.filter(s => s.id !== id));
+        }}
+      />
     </Box>
   );
 }

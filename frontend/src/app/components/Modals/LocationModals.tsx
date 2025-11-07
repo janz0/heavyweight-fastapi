@@ -13,7 +13,6 @@ import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { X, Plus } from "lucide-react";
 
-
 // Location Components
 import { createLocation, updateLocation, deleteLocation } from "@/services/locations";
 import type { Location, LocationPayload } from "@/types/location";
@@ -22,6 +21,16 @@ import type { Location, LocationPayload } from "@/types/location";
 import { listProjects } from "@/services/projects";
 import type { Project } from "@/types/project";
 import { ProjectCreateModal } from "./ProjectModals";
+
+interface BaseLocationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: (l: Location) => void;
+  onEdited?: (l: Location) => void;
+  onDeleted?: (id: string) => void;
+  projectId?: string;
+  location?: Location;
+}
 
 const FREQUENCY_ITEMS = [
   { label: "Real Time", value: "real time"},
@@ -322,19 +331,16 @@ function LocationForm({
 // ==============================
 // LocationCreateModal
 // ==============================
-export function LocationCreateModal({
-  isOpen,
-  onClose,
-  projectId,
-}: { isOpen: boolean; onClose: () => void; projectId?: string }) {
+export function LocationCreateModal({ isOpen, onClose, onCreated, projectId }: BaseLocationModalProps) {
   const handleCreate = async (payload: LocationPayload) => {
     try {
-      await createLocation(payload);
+      const created = await createLocation(payload);
       toaster.create({ description: "Location created successfully", type: "success" });
+      onCreated?.(created);
       onClose();
     } catch (err) {
       toaster.create({
-        description: `Create failed: ${(err as Error).message}`,
+        description: `Failed to create Location: ${err instanceof Error ? err.message : String(err)}`,
         type: "error",
       });
     }
@@ -367,11 +373,7 @@ export function LocationCreateModal({
 // ==============================
 // LocationEditModal
 // ==============================
-export function LocationEditModal({
-  isOpen,
-  onClose,
-  location,
-}: { isOpen: boolean; onClose: () => void; location?: Location }) {
+export function LocationEditModal({ isOpen, onClose, location, onEdited }:  BaseLocationModalProps) {
   const handleUpdate = async (payload: LocationPayload) => {
     if (!location) return;
 
@@ -390,12 +392,13 @@ export function LocationEditModal({
     }
 
     try {
-      await updateLocation(location.id, changedPayload);
+      const edited = await updateLocation(location.id, changedPayload);
       toaster.create({ description: "Location updated successfully", type: "success" });
+      onEdited?.(edited);
       onClose();
     } catch (err) {
       toaster.create({
-        description: `Update failed: ${(err as Error).message}`,
+        description: `Failed to update Location: ${err instanceof Error ? err.message : String(err)}`,
         type: "error",
       });
     }
@@ -428,11 +431,7 @@ export function LocationEditModal({
 // ==============================
 // LocationDeleteModal
 // ==============================
-export function LocationDeleteModal({
-  isOpen,
-  onClose,
-  location,
-}: { isOpen: boolean; onClose: () => void; location?: Location }) {
+export function LocationDeleteModal({ isOpen, onClose, location, onDeleted }: BaseLocationModalProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -446,7 +445,7 @@ export function LocationDeleteModal({
       if (detailRoute.test(pathname)) {
         router.back();
       } else {
-        router.refresh();
+        onDeleted?.(location.id);
       }
     } catch (err) {
       toaster.create({

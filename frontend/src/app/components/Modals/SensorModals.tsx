@@ -20,6 +20,16 @@ import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
 import type { MonitoringGroup } from "@/types/monitoringGroup";
 import { listMonitoringGroups } from "@/services/monitoringGroups";
 
+interface BaseSensorModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: (s: MonitoringSensor) => void;
+  onEdited?: (s: MonitoringSensor) => void;
+  onDeleted?: (id: string) => void;
+  projectId?: string;
+  sensor?: MonitoringSensor;
+}
+
 // ==============================
 // Shared Form Component
 // ==============================
@@ -260,15 +270,16 @@ function SensorForm({
 // ==============================
 // SensorCreateModal
 // ==============================
-export function SensorCreateModal({ isOpen, onClose, projectId }: { isOpen: boolean; onClose: () => void; projectId?: string;}) {
+export function SensorCreateModal({ isOpen, onClose, onCreated, projectId }: BaseSensorModalProps) {
   const handleCreate = async (payload: MonitoringSensorPayload) => {
     try {
-      await createSensor(payload);
+      const created = await createSensor(payload);
       toaster.create({ description: "Sensor created successfully", type: "success" });
+      onCreated?.(created);
       onClose();
     } catch (err) {
       toaster.create({
-        description: `Create failed: ${(err as Error).message}`,
+        description: `Failed to create Sensor: ${err instanceof Error ? err.message : String(err)}`,
         type: "error",
       });
     }
@@ -301,44 +312,39 @@ export function SensorCreateModal({ isOpen, onClose, projectId }: { isOpen: bool
 // ==============================
 // SensorEditModal
 // ==============================
-export function SensorEditModal({ isOpen, onClose, sensor }: { isOpen: boolean; onClose: () => void; sensor?: MonitoringSensor; }) {
+export function SensorEditModal({ isOpen, onClose, sensor, onEdited }: BaseSensorModalProps) {
  const handleUpdate = async (payload: MonitoringSensorPayload) => {
     if (!sensor) return;
-    
+  
     // Compare each field with initial sensor data
     const changedPayload: MonitoringSensorPayload = {};
 
-    if (payload.mon_source_id !== sensor.mon_source_id) {
-      changedPayload.mon_source_id = payload.mon_source_id;
+    if (payload.mon_source_id !== sensor.mon_source_id) changedPayload.mon_source_id = payload.mon_source_id;
+    if (Object.prototype.hasOwnProperty.call(payload, "sensor_group_id")) {
+      const a = payload.sensor_group_id;
+      const b = sensor.sensor_group_id;
+      const bothEmpty = (a === '' || a == null) && (b === '' || b == null);
+      if (!bothEmpty && a !== b) {
+        changedPayload.sensor_group_id = a;
+      }
     }
-    if ((payload.sensor_group_id || undefined) !== sensor.sensor_group_id) {
-      changedPayload.sensor_group_id = payload.sensor_group_id;
-    }
-    if (payload.sensor_name !== sensor.sensor_name) {
-      changedPayload.sensor_name = payload.sensor_name;
-    }
-    if (payload.sensor_type !== sensor.sensor_type) {
-      changedPayload.sensor_type = payload.sensor_type;
-    }
-    if (payload.active !== sensor.active) {
-      changedPayload.active = payload.active;
-    }
-
+    if (payload.sensor_name !== sensor.sensor_name) changedPayload.sensor_name = payload.sensor_name;
+    if (payload.sensor_type !== sensor.sensor_type) changedPayload.sensor_type = payload.sensor_type;
+    if (payload.active !== sensor.active) changedPayload.active = payload.active;
+    console.log(changedPayload);
     if (Object.keys(changedPayload).length === 0) {
-      toaster.create({
-        description: "No changes detected.",
-        type: "info",
-      });
+      toaster.create({ description: "No changes detected.", type: "info" });
       return;
     }
 
     try {
-      await updateSensor(sensor.id, changedPayload);
+      const edited = await updateSensor(sensor.id, changedPayload);
       toaster.create({ description: "Sensor updated successfully", type: "success" });
+      onEdited?.(edited);
       onClose();
     } catch (err) {
       toaster.create({
-        description: `Update failed: ${(err as Error).message}`,
+        description: `Failed to update Sensor: ${err instanceof Error ? err.message : String(err)}`,
         type: "error",
       });
     }
@@ -371,7 +377,7 @@ export function SensorEditModal({ isOpen, onClose, sensor }: { isOpen: boolean; 
 // ==============================
 // SensorDeleteModal
 // ==============================
-export function SensorDeleteModal({ isOpen, onClose, sensor }: { isOpen: boolean; onClose: () => void; sensor?: MonitoringSensor; }) {
+export function SensorDeleteModal({ isOpen, onClose, sensor, onDeleted }: BaseSensorModalProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -387,11 +393,11 @@ export function SensorDeleteModal({ isOpen, onClose, sensor }: { isOpen: boolean
       if (detailRoute.test(pathname)) {
         router.back();
       } else {
-        router.refresh();
+        onDeleted?.(sensor.id);
       }
     } catch (err) {
       toaster.create({
-        description: `Delete failed: ${(err as Error).message}`,
+        description: `Failed to delete Sensor: ${err instanceof Error ? err.message : String(err)}`,
         type: "error",
       });
     }

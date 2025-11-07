@@ -24,8 +24,8 @@ interface Props {
 export default function ProjectsPageClient({ projects: initialProjects }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
-  const projects = initialProjects;
-  
+  const [items, setItems] = useState<Project[]>(initialProjects);
+
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDelOpen, setDelOpen] = useState(false);
@@ -56,15 +56,35 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={projectColumns} color={color} data={projects} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="projects" />
+        <DataTable columns={projectColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="projects" />
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
-      <ProjectCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedProject(undefined); setCreateOpen(false);}} />
-      <ProjectEditModal isOpen={isEditOpen} project={selectedProject} onClose={() => { setSelectedProject(undefined); setEditOpen(false); }} />
-      <ProjectDeleteModal isOpen={isDelOpen} project={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />
+      <ProjectCreateModal 
+        isOpen={isCreateOpen} 
+        onClose={() => { setSelectedProject(undefined); setCreateOpen(false);}}
+        onCreated={(created) => {
+          setItems(prev => [created, ...prev]);
+        }}
+      />
+      <ProjectEditModal
+        isOpen={isEditOpen}
+        project={selectedProject}
+        onClose={() => { setSelectedProject(undefined); setEditOpen(false); }}
+        onEdited={(edited) => {
+          setItems(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+        }}
+      />
+      <ProjectDeleteModal
+        isOpen={isDelOpen}
+        project={toDelete}
+        onClose={() => { setToDelete(undefined); setDelOpen(false);}}
+        onDeleted={(id) => {
+          setItems(prev => prev.filter(p => p.id !== id));
+        }}
+        />
     </Box>
   );
 }

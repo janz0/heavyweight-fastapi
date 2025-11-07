@@ -26,7 +26,7 @@ interface Props {
 export default function LocationsPageClient({ locations: initialLocations }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
-  const locations = initialLocations;
+  const [items, setItems] = useState<Location[]>(initialLocations);
 
   // useState CRUD
   const [isCreateOpen, setCreateOpen] = useState(false);
@@ -58,15 +58,35 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="locations"/>
+        <DataTable columns={locationColumns} color={"blue.600"} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="locations"/>
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
-      <LocationCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedLocation(undefined); setCreateOpen(false);}} />
-      <LocationEditModal isOpen={isEditOpen} location={selectedLocation} onClose={() => { setSelectedLocation(undefined); setEditOpen(false); }} />
-      <LocationDeleteModal isOpen={isDelOpen} onClose={() => { setToDelete(undefined); setDelOpen(false); }} location={toDelete} />
+      <LocationCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => { setSelectedLocation(undefined); setCreateOpen(false);}}
+        onCreated={(created) => {
+          setItems(prev => [created, ...prev]);
+        }}
+      />
+      <LocationEditModal
+        isOpen={isEditOpen}
+        location={selectedLocation}
+        onClose={() => { setSelectedLocation(undefined); setEditOpen(false); }}
+        onEdited={(edited) => {
+          setItems(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l));
+        }}
+      />
+      <LocationDeleteModal
+        isOpen={isDelOpen}
+        onClose={() => { setToDelete(undefined); setDelOpen(false); }}
+        location={toDelete}
+        onDeleted={(id) => {
+          setItems(prev => prev.filter(l => l.id !== id));
+        }}
+      />
     </Box>
   );
 }
