@@ -28,6 +28,7 @@ interface BaseLocationModalProps {
   onCreated?: (l: Location) => void;
   onEdited?: (l: Location) => void;
   onDeleted?: (id: string) => void;
+  onDuplicated?: (l: Location) => void;
   projectId?: string;
   location?: Location;
 }
@@ -474,6 +475,48 @@ export function LocationDeleteModal({ isOpen, onClose, location, onDeleted }: Ba
               <Button colorScheme="gray" onClick={onClose}>Cancel</Button>
               <Button colorScheme="red" onClick={handleDelete}>Delete</Button>
             </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+export function LocationDuplicateModal({ isOpen, onClose, location, onDuplicated }: BaseLocationModalProps) {
+  const handleDuplicate = async (payload: LocationPayload) => {
+    const duplicated = await createLocation(payload);
+    toaster.create({ description: 'Location created successfully', type: 'success' });
+    onDuplicated?.(duplicated);
+    onClose();
+  };
+
+  // prefill; often you’ll clear name/number
+  const cloneData: Location | undefined = location
+    ? { ...location, loc_name: '', loc_number: '' }
+    : undefined;
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
+      <Portal>
+        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Positioner>
+          <Dialog.Content border="2px solid" zIndex={1200}>
+            <Dialog.Header>
+              <Dialog.Title>Duplicate Location</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
+                  <X size={16} />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <LocationForm
+                onSubmit={handleDuplicate}
+                onClose={onClose}
+                initialData={cloneData}
+                submitLabel="Create"
+              />
+            </Dialog.Body>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

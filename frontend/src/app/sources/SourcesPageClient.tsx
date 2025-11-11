@@ -24,7 +24,7 @@ interface Props {
 export default function SourcesPageClient({ sources: initialSources }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
-  const sources = initialSources;
+  const [items, setItems] = useState<Source[]>(initialSources);
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
@@ -59,16 +59,43 @@ export default function SourcesPageClient({ sources: initialSources }: Props) {
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={sourcesColumns} color={color} data={sources} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="sources" />
+        <DataTable columns={sourcesColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="sources" />
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
-      <SourceCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedSource(undefined); setCreateOpen(false); } } />
-      <SourceEditModal isOpen={isEditOpen} source={selectedSource} onClose={() => { setSelectedSource(undefined); setEditOpen(false); }} />
-      <SourceDeleteModal isOpen={isDelOpen} source={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />
-      <SourceDuplicateModal isOpen={isDupOpen} source={duplicateSource} onClose={() => {setDuplicateSource(undefined); setDupOpen(false); }}/>
+      <SourceCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => { setSelectedSource(undefined); setCreateOpen(false); } }
+        onCreated={(created) => {
+          setItems(prev => [created, ...prev]);
+        }}
+      />
+      <SourceEditModal
+        isOpen={isEditOpen}
+        source={selectedSource}
+        onClose={() => { setSelectedSource(undefined); setEditOpen(false); }}
+        onEdited={(edited) => {
+          setItems(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SourceDeleteModal
+        isOpen={isDelOpen}
+        source={toDelete}
+        onClose={() => { setToDelete(undefined); setDelOpen(false); }}
+        onDeleted={(id) => {
+          setItems(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SourceDuplicateModal 
+        isOpen={isDupOpen}
+        source={duplicateSource}
+        onClose={() => {setDuplicateSource(undefined); setDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setItems(prev => [duplicated, ...prev]);
+        }}
+      />
     </Box>
   );
 }

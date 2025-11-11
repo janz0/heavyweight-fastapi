@@ -14,14 +14,16 @@ def create_location(
     payload: schemas.LocationCreate,
     db: Session = Depends(get_db),
 ):
-    return services.create_location(db, payload)
+    created = services.create_location(db, payload)
+    refreshed = selectors.get_location(db, created.id) or created
+    return services.enrich_location(refreshed)
 
 @router.get("/{loc_id}", response_model=schemas.Location)
 def get_location(loc_id: UUID, db: Session = Depends(get_db)):
     obj = selectors.get_location(db, loc_id)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
-    return obj
+    return services.enrich_location(obj)
 
 @router.get("/", response_model=List[schemas.Location])
 def list_locations(
@@ -40,7 +42,7 @@ def get_location_by_name(
     location = services.get_location_by_name(db, location_name)
     if not location:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
-    return location
+    return services.enrich_location(location)
 
 @router.get(
     "/{loc_id}/sensors",
@@ -72,10 +74,12 @@ def update_location(
     payload: schemas.LocationUpdate,
     db: Session = Depends(get_db),
 ):
-    obj = services.update_location(db, loc_id, payload)
-    if not obj:
+    updated = services.update_location(db, loc_id, payload)
+    if not updated:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
-    return obj
+    
+    refreshed = selectors.get_location(db, loc_id) or updated
+    return services.enrich_location(refreshed)
 
 @router.delete("/{loc_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_location(loc_id: UUID, db: Session = Depends(get_db)):

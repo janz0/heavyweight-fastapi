@@ -26,6 +26,7 @@ interface BaseSensorModalProps {
   onCreated?: (s: MonitoringSensor) => void;
   onEdited?: (s: MonitoringSensor) => void;
   onDeleted?: (id: string) => void;
+  onDuplicated?: (s: MonitoringSensor) => void;
   projectId?: string;
   sensor?: MonitoringSensor;
 }
@@ -422,6 +423,55 @@ export function SensorDeleteModal({ isOpen, onClose, sensor, onDeleted }: BaseSe
               <Button colorScheme="gray" onClick={onClose}>Cancel</Button>
               <Button colorScheme="red" onClick={handleDelete}>Delete</Button>
             </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+export function SensorDuplicateModal({ isOpen, onClose, sensor, onDuplicated }: BaseSensorModalProps) {
+  const handleDuplicate = async (payload: MonitoringSensorPayload) => {
+    const duplicated = await createSensor(payload);
+    toaster.create({ description: 'Sensor created successfully', type: 'success' });
+    onDuplicated?.(duplicated);
+    onClose();
+  };
+
+  // If you want the source to remain the same AND stay editable, you can
+  // unlock the select by blanking mon_source_id on the clone:
+  const cloneData: MonitoringSensor | undefined = sensor
+    ? {
+        ...sensor,
+        sensor_name: '',
+        // comment this line if you prefer to lock the source
+        // and keep the same source selected
+        mon_source_id: '',
+      }
+    : undefined;
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="md">
+      <Portal>
+        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Positioner>
+          <Dialog.Content border="2px solid">
+            <Dialog.Header>
+              <Dialog.Title>Duplicate Sensor</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
+                  <X size={16} />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <SensorForm
+                onSubmit={handleDuplicate}
+                onClose={onClose}
+                initialData={cloneData}
+                submitLabel="Create"
+              />
+            </Dialog.Body>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

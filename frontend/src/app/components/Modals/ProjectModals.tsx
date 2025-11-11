@@ -21,6 +21,7 @@ interface BaseProjectModalProps {
   onCreated?: (p: Project) => void;
   onEdited?: (p: Project) => void;
   onDeleted?: (id: string) => void;
+  onDuplicated?: (p: Project) => void;
   project?: Project;
 }
 
@@ -48,6 +49,7 @@ function ProjectForm({
   const [startDate, setStartDate] = useState(initialData?.start_date || today);
   const [endDate, setEndDate] = useState(initialData?.end_date || '');
   const [active, setActive] = useState(initialData?.active || 1);
+  const router = useRouter();
 
   useEffect(() => {
     if (initialData) {
@@ -80,6 +82,7 @@ function ProjectForm({
     if (endDate) payload.end_date = endDate;
 
     await onSubmit(payload);
+    router.refresh();
   };
 
   return (
@@ -270,6 +273,48 @@ export function ProjectDeleteModal({ isOpen, onClose, project, onDeleted }: Base
               <Button onClick={onClose}>Cancel</Button>
               <Button onClick={handleConfirm}>Delete</Button>
             </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+export function ProjectDuplicateModal({ isOpen, onClose, project, onDuplicated }: BaseProjectModalProps) {
+  const handleDuplicate = async (payload: ProjectPayload) => {
+    const duplicated = await createProject(payload);
+    toaster.create({ description: 'Project created successfully', type: 'success' });
+    onDuplicated?.(duplicated);
+    onClose();
+  };
+
+  // prefill, but clear name/number
+  const cloneData: Project | undefined = project
+    ? { ...project, project_name: '', project_number: '' }
+    : undefined;
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
+      <Portal>
+        <Dialog.Positioner>
+          <Dialog.Backdrop onClick={onClose} zIndex={1500} />
+          <Dialog.Content border="2px solid" zIndex={1600}>
+            <Dialog.Header>
+              <Dialog.Title>Duplicate Project</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
+                  <X size={16} />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <ProjectForm
+                onSubmit={handleDuplicate}
+                onClose={onClose}
+                initialData={cloneData}
+                submitLabel="Create"
+              />
+            </Dialog.Body>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

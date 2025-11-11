@@ -32,6 +32,7 @@ interface BaseSourceModalProps {
   onCreated?: (s: Source) => void;
   onEdited?: (s: Source) => void;
   onDeleted?: (id: string) => void;
+  onDuplicated?: (s: Source) => void;
   projectId?: string;
   source?: Source;
 }
@@ -567,7 +568,7 @@ function SourceForm({
           }}/>
         </Field.Root>
 
-        <Field.Root required mb={4}>
+        <Field.Root mb={4}>
           <Field.Label>Root Directory</Field.Label>
           <Combobox.Root
             collection={rootsCollection}
@@ -821,7 +822,7 @@ function SourceForm({
               size="2xs"
               bg="transparent"
               color="bg.inverted"
-            ><Maximize2 size="sm" onClick={openFullscreen}></Maximize2></IconButton>
+            ><Maximize2 onClick={openFullscreen}></Maximize2></IconButton>
           </Flex>
 
           {/* Fullscreen editor */}
@@ -1013,6 +1014,7 @@ export function SourceEditModal({ isOpen, onClose, source, onEdited }: BaseSourc
       const edited = await updateSource(source.id, payload);
       toaster.create({ description: "Source updated successfully", type: "success" });
       onEdited?.(edited);
+      console.log(edited);
       onClose();
     } catch (err) {
       toaster.create({
@@ -1107,18 +1109,11 @@ export function SourceDeleteModal({ isOpen, onClose, source, onDeleted }: BaseSo
 // ----------------------
 // DuplicateSourceModal
 // ----------------------
-export function SourceDuplicateModal({
-  isOpen,
-  onClose,
-  source,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  source?: Source;
-}) {
+export function SourceDuplicateModal({ isOpen, onClose, source, onDuplicated }: BaseSourceModalProps) {
   const handleDuplicate = async (payload: SourcePayload) => {
-    await createSource(payload); // same service as create
-    toaster.create({ description: "Source duplicated", type: "success" });
+    const duplicated = await createSource(payload);
+    toaster.create({ description: "Source created successfully", type: "success" });
+    onDuplicated?.(duplicated);
     onClose();
   };
 
