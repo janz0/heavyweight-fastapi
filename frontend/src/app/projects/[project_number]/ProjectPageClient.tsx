@@ -385,7 +385,8 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
       />
       <ProjectDeleteModal
         isOpen={isProjDelOpen}
-        project={project} onClose={() => {setProjDelOpen(false); }}
+        project={project}
+        onClose={() => {setProjDelOpen(false); }}
       />
       <LocationCreateModal
         isOpen={isLocCreateOpen}

@@ -21,6 +21,6 @@ export default async function LocationPage({ params }: PageProps) {
     listMonitoringGroups(location.id),
   ]);
   return (
-    <LocationPageClient location={location} initialSources={initialSources} initialSensors={initialSensors} initialGroups={initialGroups}/>
+    <LocationPageClient initialLocation={location} initialSources={initialSources} initialSensors={initialSensors} initialGroups={initialGroups}/>
   );
 }

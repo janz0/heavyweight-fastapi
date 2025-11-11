@@ -8,7 +8,6 @@ import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
 import type { Source } from '@/types/source';
-//import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 import DataTable from '@/app/components/DataTable';
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/components/Modals/SourceModals';
@@ -25,16 +24,19 @@ import { Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
 
 
 interface LocationPageClientProps {
-  location: Location;
+  initialLocation: Location;
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
   initialGroups: MonitoringGroup[];
 }
 
-export default function LocationPageClient({ location, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
+export default function LocationPageClient({ initialLocation, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
   const { colorMode } = useColorMode();
   const text = colorMode === "light" ? "gray.800" : "gray.200";
   const [activeTab, setActiveTab] = useState<'sources'|'sensors'|'groups'>('sources');
+  const [location, setLocation] = useState<Location>(initialLocation);
+  const [sources, setSources] = useState<Source[]>(initialSources);
+  const [sensors, setSensors] = useState<MonitoringSensor[]>(initialSensors);
 
   // Source Variables
   const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
@@ -390,11 +392,11 @@ export default function LocationPageClient({ location, initialSources, initialSe
         </Button>
       </HStack>
       {activeTab === 'sources' && (
-        <DataTable columns={sourcesColumns} color={"purple.600"} data={initialSources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} name={activeTab} />
+        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} name={activeTab} />
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={activeTab} />
+        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={activeTab} />
       )}
 
       {activeTab === 'groups' && (
@@ -406,17 +408,66 @@ export default function LocationPageClient({ location, initialSources, initialSe
       >
         Add Checklist
       </Button>
-      <SourceCreateModal isOpen={isSrcCreateOpen} onClose={() => { setSrcCreateOpen(false); setSelectedSource(undefined);  } } />
-      <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSrcEditOpen(false); setSelectedSource(undefined);  }} />
-      <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcDelOpen(false); setSrcToDelete(undefined);  }} />
-      <SensorCreateModal isOpen={isSenCreateOpen} onClose={() => { setSenCreateOpen(false); setSelectedSensor(undefined);  } } />
-      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSenEditOpen(false); setSelectedSensor(undefined);  }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenDelOpen(false); setSenToDelete(undefined);  }} />
+      <LocationEditModal
+        isOpen={isLocEditOpen}
+        location={location}
+        onClose={() => { setLocEditOpen(false); }}
+        onEdited={(edited) => setLocation(edited)}
+      />
+      <LocationDeleteModal
+        isOpen={isLocDelOpen}
+        location={location}
+        onClose={() => { setLocDelOpen(false); }}
+      />
+      <SourceCreateModal
+        isOpen={isSrcCreateOpen}
+        onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } }
+        onCreated={(created) => {
+          setSources(prev => [created, ...prev]);
+        }}
+      />
+      <SourceEditModal 
+        isOpen={isSrcEditOpen}
+        source={selectedSource}
+        onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }}
+        onEdited={(edited) => {
+          setSources(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SourceDeleteModal
+        isOpen={isSrcDelOpen}
+        source={srcToDelete}
+        onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }}
+        onDeleted={(id) => {
+          setSources(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SensorCreateModal
+        isOpen={isSenCreateOpen}
+        onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } }
+        onCreated={(created) => {
+          setSensors(prev => [created, ...prev]);
+        }}
+      />
+      <SensorEditModal
+        isOpen={isSenEditOpen}
+        sensor={selectedSensor}
+        onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }}
+        onEdited={(edited) => {
+          setSensors(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SensorDeleteModal
+        isOpen={isSenDelOpen}
+        sensor={senToDelete}
+        onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }}
+        onDeleted={(id) => {
+          setSensors(prev => prev.filter(s => s.id !== id));
+        }}
+      />
       <MonitoringGroupCreateModal isOpen={isGrpCreateOpen} onClose={() => setGrpCreateOpen(false)} locationId={location.id} />
       <MonitoringGroupEditModal isOpen={isGrpEditOpen} group={selectedGroup} onClose={() => { setGrpEditOpen(false); setSelectedGroup(undefined); }}/>
       <MonitoringGroupDeleteModal isOpen={isGrpDelOpen} group={grpToDelete} onClose={() => { setGrpDelOpen(false); setGrpToDelete(undefined); }}/>
-      <LocationEditModal isOpen={isLocEditOpen} location={location} onClose={() => { setLocEditOpen(false); }} />
-      <LocationDeleteModal isOpen={isLocDelOpen} location={location} onClose={() => { setLocDelOpen(false); }} />
       <ChecklistCreateModal
         isOpen={isChecklistModalOpen}
         onClose={() => setChecklistModalOpen(false)}
