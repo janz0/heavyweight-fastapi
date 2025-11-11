@@ -494,6 +494,22 @@ export default function DataTable<T extends { id: string; }>({
                         </Table.Cell>
                       );
                     }
+                    if (col.key === "details.project_name") {
+                      const pn = getNestedValue(item, "details.project_number");
+                      const href = typeof pn === "string" ? `/projects/${pn}` : "#";
+                      return (
+                        <Table.Cell key={col.key} className="table-cell" textAlign="left" textDecor="underline">
+                          <Link href={href} aria-disabled={typeof pn !== "string"}>{String(value)}</Link>
+                        </Table.Cell>
+                      );
+                    }
+                    if (col.key === "details.loc_name" || col.key === "details.mon_source_name") {
+                      return (
+                        <Table.Cell key={col.key} className="table-cell" textAlign="left" textDecor="underline">
+                          <Link href={`/${col.label.toLowerCase() + "s"}/${value}`}>{String(value)}</Link>
+                        </Table.Cell>
+                      );
+                    }
                     if (col.key === "config") {
                       const cfg = parseConfig(value);
                       const rowTitle =

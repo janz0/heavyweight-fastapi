@@ -25,8 +25,8 @@ class LocationUpdate(BaseModel):
     active: Optional[int] = None
 
 class LocationMetadata(BaseModel):
-    project_number: Optional[str] = None
     project_name: str
+    project_number: Optional[str] = None
 
 class Location(LocationBase):
     id: UUID

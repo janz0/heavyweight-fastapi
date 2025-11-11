@@ -14,7 +14,8 @@ export interface Location {
   last_inspected: string | null; //ISON timestamp
   
   details?: {
-    project_name?: string;
+    project_name: string;
+    project_number?: string;
   };
 }
 

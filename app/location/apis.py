@@ -42,7 +42,7 @@ def get_location_by_name(
     location = services.get_location_by_name(db, location_name)
     if not location:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Location not found")
-    return services.enrich_location(location)
+    return location
 
 @router.get(
     "/{loc_id}/sensors",
