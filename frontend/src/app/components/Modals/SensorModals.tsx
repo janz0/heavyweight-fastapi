@@ -60,7 +60,7 @@ function SensorForm({
   const [sensorType, setSensorType] = useState(initialData?.sensor_type ?? "");
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const fixedSourceId = initialData?.mon_source_id;
-  const isSourceLocked = Boolean(fixedSourceId);
+  const isSourceLocked = Boolean(fixedSourceId && submitLabel == 'Create');
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
   const [isCreateSourceOpen, setCreateSourceOpen] = useState(false);
   const handleNewSource = () => { setCreateSourceOpen(true); };
@@ -458,15 +458,10 @@ export function SensorDuplicateModal({ isOpen, onClose, sensor, onDuplicated }: 
     onClose();
   };
 
-  // If you want the source to remain the same AND stay editable, you can
-  // unlock the select by blanking mon_source_id on the clone:
   const cloneData: MonitoringSensor | undefined = sensor
     ? {
         ...sensor,
         sensor_name: '',
-        // comment this line if you prefer to lock the source
-        // and keep the same source selected
-        mon_source_id: '',
       }
     : undefined;
 
@@ -489,7 +484,7 @@ export function SensorDuplicateModal({ isOpen, onClose, sensor, onDuplicated }: 
                 onSubmit={handleDuplicate}
                 onClose={onClose}
                 initialData={cloneData}
-                submitLabel="Create"
+                submitLabel="Duplicate"
               />
             </Dialog.Body>
           </Dialog.Content>

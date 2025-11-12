@@ -72,9 +72,9 @@ function SourceForm({
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
   const fixedProjectId = initialProjectId ?? initialData?.details?.project_id;
-  const isProjectLocked = Boolean(fixedProjectId);
+  const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
   const fixedLocationId = initialData?.mon_loc_id;
-  const isLocationLocked = Boolean(fixedLocationId);
+  const isLocationLocked = Boolean(fixedLocationId && submitLabel == 'Create');
   const [knownRoots, setKnownRoots] = useState<string[]>([]);
 
   useEffect(() => {
@@ -1144,7 +1144,7 @@ export function SourceDuplicateModal({ isOpen, onClose, source, onDuplicated }: 
                 onSubmit={handleDuplicate}
                 onClose={onClose}
                 initialData={cloneData as Source}
-                submitLabel="Create"
+                submitLabel="Duplicate"
               />
             </Dialog.Body>
           </Dialog.Content>

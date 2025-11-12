@@ -65,7 +65,7 @@ function LocationForm({
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
   const fixedProjectId = initialProjectId ?? initialData?.project_id;
-  const isProjectLocked = Boolean(fixedProjectId);
+  const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
   const TORONTO: [number, number] = [43.6532, -79.3832];
 
   const [isMapOpen, setMapOpen] = useState(false);
@@ -524,7 +524,6 @@ export function LocationDuplicateModal({ isOpen, onClose, location, onDuplicated
     onClose();
   };
 
-  // prefill; often you’ll clear name/number
   const cloneData: Location | undefined = location
     ? { ...location, loc_name: '', loc_number: '' }
     : undefined;
@@ -548,7 +547,7 @@ export function LocationDuplicateModal({ isOpen, onClose, location, onDuplicated
                 onSubmit={handleDuplicate}
                 onClose={onClose}
                 initialData={cloneData}
-                submitLabel="Create"
+                submitLabel="Duplicate"
               />
             </Dialog.Body>
           </Dialog.Content>

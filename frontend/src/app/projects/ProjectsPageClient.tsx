@@ -13,7 +13,7 @@ import { useColorMode } from "@/app/src/components/ui/color-mode";
 import DataTable from "@/app/components/DataTable";
 
 // Services + Types
-import { ProjectCreateModal, ProjectDeleteModal, ProjectEditModal } from "../components/Modals/ProjectModals";
+import { ProjectCreateModal, ProjectDeleteModal, ProjectEditModal, ProjectDuplicateModal } from "../components/Modals/ProjectModals";
 import type { Project } from "@/types/project";
 import { projectColumns } from "@/types/columns";
 
@@ -29,6 +29,8 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDelOpen, setDelOpen] = useState(false);
+  const [isDupOpen, setDupOpen] = useState(false);
+  const [duplicateProject, setDuplicateProject] = useState<Project | undefined>();
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [toDelete, setToDelete] = useState<Project | undefined>();
 
@@ -40,6 +42,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
   const handleNew = () => { setSelectedProject(undefined); setCreateOpen(true); };
   const handleEdit = (p: Project) => { setSelectedProject(p); setEditOpen(true); };
   const handleDelete = (p: Project) => { setToDelete(p); setDelOpen(true); };
+  const handleDuplicate = (p: Project) => {setDuplicateProject(p); setDupOpen(true); };
 
   // Hydration
   useEffect(() => {
@@ -56,7 +59,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={projectColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="projects" />
+        <DataTable columns={projectColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="projects" />
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
@@ -84,7 +87,15 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
         onDeleted={(id) => {
           setItems(prev => prev.filter(p => p.id !== id));
         }}
-        />
+      />
+      <ProjectDuplicateModal
+        isOpen={isDupOpen}
+        project={duplicateProject}
+        onClose={() => { setDuplicateProject(undefined); setDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setItems(prev => [duplicated, ...prev]);
+        }}
+      />
     </Box>
   );
 }

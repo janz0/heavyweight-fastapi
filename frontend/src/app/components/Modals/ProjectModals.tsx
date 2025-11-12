@@ -312,7 +312,6 @@ export function ProjectDuplicateModal({ isOpen, onClose, project, onDuplicated }
     onClose();
   };
 
-  // prefill, but clear name/number
   const cloneData: Project | undefined = project
     ? { ...project, project_name: '', project_number: '' }
     : undefined;

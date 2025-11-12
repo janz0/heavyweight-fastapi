@@ -58,7 +58,7 @@ def get_monitoring_sensor_by_name(
     obj = services.get_monitoring_sensor_by_name(db, sensor_name)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sensor not found")
-    return services.enrich_sensor(obj)
+    return obj
 
 @router.patch("/{sensor_id}", response_model=schemas.MonitoringSensor)
 def update_monitoring_sensor(
