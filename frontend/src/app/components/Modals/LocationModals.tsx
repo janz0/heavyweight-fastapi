@@ -153,11 +153,23 @@ function LocationForm({
       <form id="location-form" onSubmit={handleSubmit}>
         <Field.Root required mb={4}>
           <Field.Label>Location Name</Field.Label>
-          <Input value={locName} borderColor={bc} onChange={(e) => setLocName(e.target.value)} />
+          <Input value={locName} borderColor={bc} onChange={(e) => setLocName(e.target.value)}
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
+          />
         </Field.Root>
         <Field.Root mb={4}>
           <Field.Label>Location Number</Field.Label>
-          <Input value={locNumber} placeholder="Optional" borderColor={bc} onChange={(e) => setLocNumber(e.target.value)} />
+          <Input value={locNumber} placeholder="Optional" borderColor={bc} onChange={(e) => setLocNumber(e.target.value)}
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
+          />
         </Field.Root>
         <HStack>
           <Field.Root required mb={4}>
@@ -167,6 +179,12 @@ function LocationForm({
               value={projectId ? [projectId] : []}
               onValueChange={(e) => setProjectId(e.value[0])}
               disabled={isProjectLocked}
+              rounded="sm"
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
             >
               <Select.HiddenSelect />
               <Select.Control>
@@ -206,6 +224,11 @@ function LocationForm({
                 const val = e.target.value;
                 setLatitude(val === "" ? Number.NaN : parseFloat(val));
               }}
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
             />
           </Field.Root>
           <Field.Root required>
@@ -218,6 +241,11 @@ function LocationForm({
               onChange={(e) => {
                 const val = e.target.value;
                 setLongitude(val === "" ? Number.NaN : parseFloat(val));
+              }}
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
               }}
             />
           </Field.Root>
@@ -284,6 +312,12 @@ function LocationForm({
             collection={frequencyCollection}
             value={frequency ? [frequency] : []}
             onValueChange={(e) => setFrequency(e.value[0])}
+            rounded="sm"
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
           >
             <Select.HiddenSelect />
             <Select.Control>

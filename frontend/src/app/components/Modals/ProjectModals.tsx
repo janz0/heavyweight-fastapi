@@ -89,12 +89,24 @@ function ProjectForm({
     <form id="project-form" onSubmit={handleSubmit}>
       <Field.Root required mb={4}>
         <Field.Label>Project Name</Field.Label>
-        <Input value={projectName} borderColor={bc} onChange={(e) => setProjectName(e.target.value)} />
+        <Input value={projectName} borderColor={bc} onChange={(e) => setProjectName(e.target.value)}
+          _focusWithin={{
+            outline: "2px solid",
+            outlineColor: "var(--chakra-colors-blue-400)",
+            outlineOffset: "2px",
+          }}
+        />
       </Field.Root>
 
       <Field.Root mb={4}>
         <Field.Label>Project Number</Field.Label>
-        <Input placeholder="Optional" value={projectNumber} borderColor={bc} onChange={(e) => setProjectNumber(e.target.value)} />
+        <Input placeholder="Optional" value={projectNumber} borderColor={bc} onChange={(e) => setProjectNumber(e.target.value)}
+          _focusWithin={{
+            outline: "2px solid",
+            outlineColor: "var(--chakra-colors-blue-400)",
+            outlineOffset: "2px",
+          }}
+        />
       </Field.Root>
 
       <Field.Root required mb={4}>
@@ -105,11 +117,23 @@ function ProjectForm({
       <HStack gap={4} mb={4}>
         <Field.Root required>
           <Field.Label>Start Date</Field.Label>
-          <Input type="date" value={startDate} borderColor={bc} onChange={(e) => setStartDate(e.target.value)} />
+          <Input type="date" value={startDate} borderColor={bc} onChange={(e) => setStartDate(e.target.value)}
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
+          />
         </Field.Root>
         <Field.Root>
           <Field.Label>End Date</Field.Label>
-          <Input type="date" value={endDate} borderColor={bc} onChange={(e) => setEndDate(e.target.value)} />
+          <Input type="date" value={endDate} borderColor={bc} onChange={(e) => setEndDate(e.target.value)}
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
+          />
         </Field.Root>
       </HStack>
 

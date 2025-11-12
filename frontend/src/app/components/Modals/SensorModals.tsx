@@ -161,6 +161,12 @@ function SensorForm({
               value={monSourceId ? [monSourceId] : []}
               onValueChange={(e) => setMonSourceId(e.value[0])}
               disabled={isSourceLocked}
+              rounded="sm"
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
             >
               <Select.HiddenSelect />
               <Select.Control>
@@ -195,6 +201,12 @@ function SensorForm({
               value={sensorGroupId ? [sensorGroupId] : []}
               onValueChange={(e) => setSensorGroupId(e.value[0])}
               disabled={!monSourceId || !sources[0]}
+              rounded="sm"
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
             >
               <Select.HiddenSelect />
               <Select.Control>
@@ -227,6 +239,11 @@ function SensorForm({
             value={sensorName}
             borderColor={bc}
             onChange={(e) => setSensorName(e.target.value)}
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
           />
         </Field.Root>
 
@@ -236,6 +253,11 @@ function SensorForm({
             value={sensorType}
             borderColor={bc}
             onChange={(e) => setSensorType(e.target.value)}
+            _focusWithin={{
+              outline: "2px solid",
+              outlineColor: "var(--chakra-colors-blue-400)",
+              outlineOffset: "2px",
+            }}
           />
         </Field.Root>
 
@@ -258,9 +280,7 @@ function SensorForm({
           <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button colorScheme="blue" type="submit">
-            {submitLabel}
-          </Button>
+          <Button type="submit">{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <SourceCreateModal isOpen={isCreateSourceOpen} onClose={() => { setCreateSourceOpen(false); } } />
