@@ -234,6 +234,13 @@ html[style*="color-scheme: dark"] .breadcrumb:hover {
   border-color: #A6A6A6;
 }
 
+.add-button {
+  border-radius: 0.375rem;
+  box-shadow: small;
+  background-color: orange;
+  color: black;
+}
+
 .button-hover {
   cursor: pointer;
   padding: 4px;

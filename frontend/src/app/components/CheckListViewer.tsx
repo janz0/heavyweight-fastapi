@@ -69,7 +69,12 @@ async function getExpandedChecklist(checklistId: string): Promise<ExpandedCheckl
   ) as Promise<ExpandedChecklist>;
 }
 
-export default function ChecklistViewer({ locationId }: { locationId: string }) {
+type ChecklistViewerProps = {
+  locationId: string;
+  onChecklistCountChange?: (count: number) => void;
+};
+
+export default function ChecklistViewer({ locationId, onChecklistCountChange }: ChecklistViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [data, setData]       = useState<ExpandedChecklist | null>(null);
@@ -93,6 +98,9 @@ export default function ChecklistViewer({ locationId }: { locationId: string }) 
         const list = await listChecklistsByLocation(locationId);
         if (!live) return;
 
+        // 👉 tell parent how many checklists we have
+        onChecklistCountChange?.(list.length);
+
         if (!list.length) {
           setData(null);
           return;
@@ -100,7 +108,7 @@ export default function ChecklistViewer({ locationId }: { locationId: string }) 
 
         // 2) pick latest (defensive) and expand
         list.sort((a, b) => +new Date(b.performed_at) - +new Date(a.performed_at));
-        const expUrl = `${process.env.NEXT_PUBLIC_API_BASE ?? ""}checklists/${list[0].id}/expanded`;
+        const expUrl = `${process.env.NEXT_PUBLIC_API_URL ?? ""}checklists/${list[0].id}/expanded`;
         setLastUrl(expUrl);
         const expanded = await getExpandedChecklist(list[0].id);
         if (!live) return;
@@ -113,6 +121,8 @@ export default function ChecklistViewer({ locationId }: { locationId: string }) 
           setError("Failed to load checklist");
         }
         setData(null);
+        // in an error case you can optionally say "0" to the parent:
+        onChecklistCountChange?.(0);
       } finally {
         if (live) {
           setLoading(false);
@@ -120,7 +130,7 @@ export default function ChecklistViewer({ locationId }: { locationId: string }) 
       }
     })();
     return () => { live = false; };
-  }, [locationId]);
+  }, [locationId, onChecklistCountChange]);
 
   // Map responses by template_item_id (works if responses is [])
   const responseMap = useMemo(() => {
@@ -165,7 +175,7 @@ export default function ChecklistViewer({ locationId }: { locationId: string }) 
   const categories  = data.categories ?? [];
 
   return (
-    <Box p={4} h="100%" overflow="auto">
+    <Box p={4}>
       <HStack justify="space-between" align="baseline" mb={2}>
         <Heading size="sm">{data.template_name}</Heading>
         <Badge>
@@ -182,16 +192,16 @@ export default function ChecklistViewer({ locationId }: { locationId: string }) 
       )}
 
       {noResponses && (
-        <Box mb={4} p={3} borderWidth="1px" borderRadius="md" bg="bg.subtle">
-          <Text fontSize="sm">No responses recorded yet. Showing template questions.</Text>
+        <Box mb={2} p={3} borderWidth="1px" borderRadius="md" bg="bg.subtle">
+          <Text fontSize="sm">No responses recorded yet.</Text>
         </Box>
       )}
 
-      <VStack align="stretch" gap={4}>
+      <VStack align="stretch" gap={2}>
         {categories.map(cat => {
           const items = cat.items ?? [];
           return (
-            <Box key={cat.id} borderWidth="1px" borderRadius="md" p={3}>
+            <Box key={cat.id} borderWidth="1px" borderRadius="md" p={3} bg="bg.subtle">
               <Heading size="xs" mb={2}>{cat.title}</Heading>
               <VStack align="stretch" gap={2}>
                 {items.map(item => {

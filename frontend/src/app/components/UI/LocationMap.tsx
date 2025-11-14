@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
-import { Box } from "@chakra-ui/react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
+import { Box, HStack, IconButton, Text } from "@chakra-ui/react";
 
 // 1) Import styles & components from react-map-gl/maplibre
 import Map, { Marker as MapMarker, NavigationControl } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { LocateFixed } from "lucide-react";
 
 interface LocationMapProps {
   lat: number;
@@ -29,6 +30,7 @@ export function LocationMap({
   imageCoordinates,
 }: LocationMapProps) {
   const mapRef = useRef<MapRef>(null);
+  const [showLabel, setShowLabel] = useState(false);
 
   // Add/refresh the raster image overlay on load
   const onMapLoad = useCallback(() => {
@@ -53,14 +55,23 @@ export function LocationMap({
     }
   }, [siteImageUrl, imageCoordinates]);
 
+  const handleRecenter = () => {
+    const rawMap = mapRef.current?.getMap();
+    if (!rawMap) return;
+
+    rawMap.flyTo({
+      center: [lon, lat],
+      zoom: rawMap.getZoom(), // or 13 if you want a fixed zoom
+      duration: 800,
+    });
+  };
+
   // Keep map centered if the coordinates change
   useEffect(() => {
     if (!mapRef.current) return;
     const rawMap = mapRef.current.getMap();
     rawMap.easeTo({ center: [lon, lat], duration: 400 });
   }, [lat, lon]);
-
-  const fmt = (n: number) => n.toFixed(6);
 
   return (
     <Box h="100%">
@@ -86,7 +97,6 @@ export function LocationMap({
           anchor="bottom"
           draggable={false}
         >
-          {/* simple styled dot (same vibe as your picker) */}
           <div
             style={{
               width: 16,
@@ -96,28 +106,49 @@ export function LocationMap({
               border: "2px solid white",
               boxShadow: "0 0 0 2px rgba(0,0,0,0.25)",
             }}
-            title={"Lat: " + lat.toString() + "\nLon: " + lat.toString()}
+            title={"Lat: " + lat.toString() + "\nLon: " + lon.toString()}
           />
         </MapMarker>
 
-        {/* Coordinate badge */}
-        <div
-          style={{
-            position: "absolute",
-            left: 12,
-            bottom: 12,
-            padding: "6px 10px",
-            borderRadius: 8,
-            background: "rgba(0,0,0,0.65)",
-            color: "white",
-            fontSize: 12,
-            lineHeight: 1.2,
-            backdropFilter: "blur(2px)",
-          }}
-        >
-          <div><strong>Lat:</strong> {fmt(lat)}</div>
-          <div><strong>Lon:</strong> {fmt(lon)}</div>
-        </div>
+        <HStack
+          position="absolute"
+          left={2}
+          bottom={2}
+          borderRadius="full"
+          zIndex={10}
+          bg={showLabel ? "white" : "none"}
+          transition="background 300ms ease"
+          outlineStyle={"solid"}
+          outlineWidth={"1px"}
+          outline={showLabel ? "solid 1px" : "none"}
+          onMouseEnter={() => setShowLabel(true)}
+          onMouseLeave={() => setShowLabel(false)}>
+          <IconButton
+            aria-label="Recenter map"
+            size="xs"
+            variant="outline"
+            outline="black solid 1px"
+            color="black"
+            bg="white"
+            borderRadius="full"
+            onClick={handleRecenter}
+            zIndex={15}
+          >
+            <LocateFixed size={14} />
+          </IconButton>
+          <Text
+            opacity={showLabel ? 1 : 0}
+            display="block"
+            overflow="hidden"
+            whiteSpace="nowrap"
+            w={showLabel ? "70px" : "0"}
+            ml={showLabel ? 1 : 0}
+            transition="opacity 200ms ease, width 300ms ease, margin-left 900ms ease"
+            pointerEvents={"none"}
+          >
+            Re-center
+          </Text>
+        </HStack>
       </Map>
     </Box>
   );

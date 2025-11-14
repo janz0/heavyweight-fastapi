@@ -15,8 +15,8 @@ import { ProjectEditModal, ProjectDeleteModal } from '@/app/components/Modals/Pr
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal, SourceDuplicateModal } from '@/app/components/Modals/SourceModals';
 import { Source } from '@/types/source';
 import { MonitoringSensor } from '@/types/sensor';
-import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/components/Modals/SensorModals';
-import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from '@/app/components/Modals/LocationModals';
+import { SensorCreateModal, SensorEditModal, SensorDeleteModal, SensorDuplicateModal } from '@/app/components/Modals/SensorModals';
+import { LocationCreateModal, LocationDeleteModal, LocationEditModal, LocationDuplicateModal } from '@/app/components/Modals/LocationModals';
 import { Location } from '@/types/location';
 import { locationColumns, sourcesColumns, sensorColumns } from '@/types/columns';
 
@@ -106,11 +106,14 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
   const [isLocCreateOpen, setLocCreateOpen] = useState(false);
   const [isLocEditOpen, setLocEditOpen] = useState(false);
   const [isLocDelOpen, setLocDelOpen] = useState(false);
+  const [isLocDupOpen, setLocDupOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | undefined>();
   const [locToDelete, setLocToDelete] = useState<Location | undefined>();
+  const [locToDup, setLocToDup] = useState<Location | undefined>();
   const handleNewLocation = () => { setSelectedLocation(undefined); setLocCreateOpen(true); };
   const handleEditLocation = (l: Location) => { setSelectedLocation(l); setLocEditOpen(true); };
   const handleDeleteLocation = (l: Location) => { setLocToDelete(l); setLocDelOpen(true); };
+  const handleDuplicateLocation = (l: Location) => { setLocToDup(l); setLocDupOpen(true); };
 
   // Source Variables
   const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
@@ -129,11 +132,14 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
   const [isSenCreateOpen, setSenCreateOpen] = useState(false);
   const [isSenEditOpen, setSenEditOpen] = useState(false);
   const [isSenDelOpen, setSenDelOpen] = useState(false);
+  const [isSenDupOpen, setSenDupOpen] = useState(false);
   const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
   const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
+  const [senToDup, setSenToDup] = useState<MonitoringSensor | undefined>();
   const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
   const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
+  const handleDuplicateSensor = (s: MonitoringSensor) => { setSenToDup(s); setSenDupOpen(true); };
 
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
@@ -365,7 +371,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
 
       {/* ←––––– CONTENT PANELS –––––→ */}
       {activeTab === 'locations' && (
-        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNewLocation} onEdit={handleEditLocation} onDelete={handleDeleteLocation} name={activeTab} />
+        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNewLocation} onEdit={handleEditLocation} onDelete={handleDeleteLocation} onDuplicate={handleDuplicateLocation} name={activeTab} />
       )}
 
       {activeTab === 'sources' && (
@@ -373,7 +379,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={activeTab} />
+        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} onDuplicate={handleDuplicateSensor} name={activeTab} />
       )}
 
       {/* Wizards */}
@@ -411,6 +417,14 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
         location={locToDelete}
         onDeleted={(id) => {
           setLocations(prev => prev.filter(l => l.id !== id));
+        }}
+      />
+      <LocationDuplicateModal
+        isOpen={isLocDupOpen}
+        location={locToDup}
+        onClose={() => { setSelectedLocation(undefined); setLocDupOpen(false);}}
+        onDuplicated={(duplicated) => {
+          setLocations(prev => [duplicated, ...prev]);
         }}
       />
       <SourceCreateModal
@@ -469,6 +483,14 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
         onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }}
         onDeleted={(id) => {
           setSensors(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SensorDuplicateModal
+        isOpen={isSenDupOpen}
+        sensor={senToDup}
+        onClose={() => { setSenToDup(undefined); setSenDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setSensors(prev => [duplicated, ...prev]);
         }}
       />
     </Box>
