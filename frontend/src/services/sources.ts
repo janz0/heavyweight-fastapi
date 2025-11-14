@@ -93,3 +93,14 @@ export async function deleteSource(sourceId: string): Promise<void> {
     throw new Error(`Delete Source failed (${res.status}): ${text}`);
   }
 }
+
+export async function listDistinctRootDirectories(): Promise<string[]> {
+  const sources = await listSources(); // returns Source[]
+  return Array.from(
+    new Set(
+      sources
+        .map(s => s.root_directory?.trim())
+        .filter((x): x is string => !!x)
+    )
+  ).sort();
+}

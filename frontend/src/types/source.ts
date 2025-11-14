@@ -21,7 +21,7 @@ export interface Source {
     loc_number?: string;
     loc_name:    string;
     project_id: string;
-    project_number?: string;
+    project_number: string;
     project_name: string;
   };
 }

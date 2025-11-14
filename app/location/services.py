@@ -48,8 +48,8 @@ def enrich_location(location: Location) -> dict:
     details = None
     if location.project:
         details = schemas.LocationMetadata(
-            project_id = location.project.id,
             project_name = location.project.project_name,
+            project_number = location.project.project_number,
         )
     location_dict = dict(location.__dict__)
     location_dict["details"] = details

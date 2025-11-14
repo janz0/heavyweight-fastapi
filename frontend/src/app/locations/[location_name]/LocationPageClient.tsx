@@ -8,51 +8,61 @@ import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
 import type { Source } from '@/types/source';
-//import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 import DataTable from '@/app/components/DataTable';
-import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/components/Modals/SourceModals';
-import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/components/Modals/SensorModals';
+import { SourceCreateModal, SourceEditModal, SourceDeleteModal, SourceDuplicateModal } from '@/app/components/Modals/SourceModals';
+import { SensorCreateModal, SensorEditModal, SensorDeleteModal, SensorDuplicateModal } from '@/app/components/Modals/SensorModals';
 import { MonitoringGroupCreateModal, MonitoringGroupEditModal, MonitoringGroupDeleteModal } from '@/app/components/Modals/MonitoringGroupModals';
-import { listMonitoringGroups } from '@/services/monitoringGroups';
 import type { MonitoringGroup } from '@/types/monitoringGroup';
 import { LocationEditModal, LocationDeleteModal } from '../../components/Modals/LocationModals';
 import ChecklistViewer from '@/app/components/CheckListViewer';
 import { LocationMap } from '@/app/components/UI/LocationMap';
 import { ChecklistCreateModal } from '@/app/components/Modals/ChecklistCreateModal';
 import { sourcesColumns, sensorColumns, groupColumns } from '@/types/columns';
+import { Tooltip } from '@/app/src/components/ui/tooltip';
+import { Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
+
 
 interface LocationPageClientProps {
-  location: Location;
+  initialLocation: Location;
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
   initialGroups: MonitoringGroup[];
 }
 
-export default function LocationPageClient({ location, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
+export default function LocationPageClient({ initialLocation, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
   const { colorMode } = useColorMode();
   const text = colorMode === "light" ? "gray.800" : "gray.200";
   const [activeTab, setActiveTab] = useState<'sources'|'sensors'|'groups'>('sources');
+  const [location, setLocation] = useState<Location>(initialLocation);
+  const [sources, setSources] = useState<Source[]>(initialSources);
+  const [sensors, setSensors] = useState<MonitoringSensor[]>(initialSensors);
 
   // Source Variables
   const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
   const [isSrcEditOpen, setSrcEditOpen] = useState(false);
   const [isSrcDelOpen, setSrcDelOpen] = useState(false);
+  const [isSrcDupOpen, setSrcDupOpen] = useState(false);
   const [selectedSource, setSelectedSource] = useState<Source | undefined>();
   const [srcToDelete, setSrcToDelete] = useState<Source | undefined>();
+  const [srcToDup, setSrcToDup] = useState<Source | undefined>();
   const handleNewSource = () => { setSelectedSource(undefined); setSrcCreateOpen(true); };
   const handleEditSource = (s: Source) => { setSelectedSource(s); setSrcEditOpen(true); };
   const handleDeleteSource = (s: Source) => { setSrcToDelete(s); setSrcDelOpen(true); };
+  const handleDuplicateSource = (s: Source) => { setSrcToDup(s); setSrcDupOpen(true); };
 
   // Sensor Variables
   const [isSenCreateOpen, setSenCreateOpen] = useState(false);
   const [isSenEditOpen, setSenEditOpen] = useState(false);
   const [isSenDelOpen, setSenDelOpen] = useState(false);
+  const [isSenDupOpen, setSenDupOpen] = useState(false);
   const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
   const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
+  const [senToDup, setSenToDup] = useState<MonitoringSensor | undefined>();
   const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
   const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
+  const handleDuplicateSensor = (s: MonitoringSensor) => { setSenToDup(s); setSenDupOpen(true); };
   
   const [isLocEditOpen, setLocEditOpen] = useState(false);
   const [isLocDelOpen, setLocDelOpen] = useState(false);
@@ -64,22 +74,70 @@ export default function LocationPageClient({ location, initialSources, initialSe
   const [isGrpDelOpen, setGrpDelOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<MonitoringGroup | undefined>();
   const [grpToDelete, setGrpToDelete] = useState<MonitoringGroup | undefined>();
-  const [locationGroups, setLocationGroups] = useState<MonitoringGroup[]>([])
   const handleNewGrp = () => (setGrpCreateOpen(true));
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
   const [isPopoverOpen, setPopoverOpen] = useState(false);
+
+  // Map controls
+  const [isMapCollapsed, setMapCollapsed] = useState(false);
+  const [isMapMaximized, setMapMaximized] = useState(false);
+  const [mapHeight, setMapHeight] = useState<number>(400);
+  const [prevMapHeight, setPrevMapHeight] = useState<number>(400);
+
+  // Checklist controls
+  const [isChecklistCollapsed, setChecklistCollapsed] = useState(false);
+  const [isChecklistMaximized, setChecklistMaximized] = useState(false);
   const [isChecklistModalOpen, setChecklistModalOpen] = useState(false);
+  const [hasChecklists, setHasChecklists] = useState<boolean | null>(null);
 
+  // initialize map height to ~50% viewport (client-side)
   useEffect(() => {
-    listMonitoringGroups(location.id)
-      .then(setLocationGroups)
-      .catch(err => {
-        console.error("Could not load groups:", err)
-      })
-  }, [location.id])
-  console.log(locationGroups);
+    const h = Math.round(window.innerHeight * 0.5);
+    setMapHeight(h);
+    setPrevMapHeight(h);
+  }, []);
 
+  const setMapHeightSmooth = (next: number) => {
+    requestAnimationFrame(() => setMapHeight(next));
+  };
+
+  const minimizeMap = () => {
+    if (!isMapCollapsed) {
+      setPrevMapHeight(mapHeight || 400);
+      setMapCollapsed(true);
+      setMapMaximized(false);
+      setMapHeightSmooth(0);
+      
+    }
+  };
+  const restoreMap = () => {
+    setMapCollapsed(false);
+    setMapMaximized(false);
+    setMapHeightSmooth(prevMapHeight || 400);
+  };
+  const maximizeMap = () => {
+    setPrevMapHeight(mapHeight || 400);
+    setMapCollapsed(false);
+    setMapMaximized(true);
+    setChecklistMaximized(false);
+    setMapHeightSmooth(Math.round(window.innerHeight * 0.7));
+  };
+
+  const minimizeChecklist = () => {
+    setChecklistCollapsed(true);
+    setChecklistMaximized(false);
+  };
+  const restoreChecklist = () => {
+    setChecklistCollapsed(false);
+    setChecklistMaximized(false);
+  };
+  const maximizeChecklist = () => {
+    setChecklistCollapsed(false);
+    setChecklistMaximized(true);
+    // hide map while checklist is maximized
+    setMapMaximized(false);
+  };
   function formatDate(dateString?: string | null) {
     if (!dateString) return '—';
     const date = new Date(dateString);
@@ -90,6 +148,8 @@ export default function LocationPageClient({ location, initialSources, initialSe
     }).format(date);
   }
 
+  const COLLAPSED_RAIL = 80;
+  const MAP_EASE = "320ms ease-in-out"; // same both ways
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
@@ -166,25 +226,182 @@ export default function LocationPageClient({ location, initialSources, initialSe
           </Flex>
         </Box>
       </Flex>
-      <HStack mb={3} h="50vh" align="stretch">
-        <Box className="bg-card" w="160vw" overflow={"hidden"}>
+      <Flex
+        mb={3}
+        align="stretch"
+        gap={3}
+        direction={isMapMaximized || isChecklistMaximized ? "column" : "row"}
+        overflow={"hidden"}
+        h={`${mapHeight}px + 10px)`}
+        minH={`42px`}
+      >
+        {/* Map panel */}
+        <Box
+          className="bg-card"
+          position="relative"
+          flex="1 1 auto"
+          minW={0}
+          h="100%"
+          overflow="hidden"
+          display={isChecklistMaximized ? "none" : "block"}
+        >
+          <Box
+            position="absolute"
+            top={0}
+            right={0}
+            w="20%"
+            h="50px"
+            opacity={0}
+            _hover={{ opacity: 1 }}
+            zIndex={1}
+          >
+            {/* map controls (top-right) */}
+            <Flex position="absolute" top={1} right={1} gap={1} _focusWithin={{ opacity: 1 }}>
+              {isMapCollapsed ? (
+                <Tooltip content="Restore map">
+                  <IconButton aria-label="Restore map" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
+                    <ChevronDown />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Tooltip content="Minimize map">
+                  <IconButton aria-label="Minimize map" size="xs" bg="bg.subtle" variant="ghost" onClick={minimizeMap}>
+                    <ChevronUp />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {!isMapMaximized ? (
+                <Tooltip content="Maximize map">
+                  <IconButton aria-label="Maximize map" size="xs" bg="bg.subtle" variant="ghost" onClick={maximizeMap}>
+                    <Maximize2 />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Tooltip content="Restore map size">
+                  <IconButton aria-label="Restore map size" size="xs" bg="bg.subtle" variant="ghost" onClick={restoreMap}>
+                    <Minimize2 />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Flex>
+          </Box>
+          <Box
+            minH="10px"
+            h={`${mapHeight}px`}
+            overflow="hidden"
+            aria-hidden={isMapCollapsed ? "true" : "false"}
+            style={{
+              opacity: isMapCollapsed ? 0 : 1,
+              visibility: isMapCollapsed ? "hidden" : "visible",
+              transition: `height ${MAP_EASE}, opacity 220ms ease,
+                 visibility 0ms linear ${isMapCollapsed ? "220ms" : "420ms"}`
+            }}
+          >
             <LocationMap
               lat={location.lat}
               lon={location.lon}
-              siteImageUrl="/your-site-photo.jpg" // or location.site_image if you store it
+              siteImageUrl='@/app/logoRWH.png'
               imageCoordinates={[
                 [location.lon - 0.01, location.lat - 0.01],
                 [location.lon + 0.01, location.lat - 0.01],
                 [location.lon + 0.01, location.lat + 0.01],
                 [location.lon - 0.01, location.lat + 0.01],
               ]}
-              initialMarkers={[[location.lon, location.lat]]}
             />
+          </Box>
         </Box>
-        <Box className='bg-card' w="full">
-          <ChecklistViewer locationId={location.id} />
+
+        {/* Checklist panel */}
+        <Box
+          className="bg-card"
+          position="relative"
+          flexShrink={0}
+          flexGrow={0}
+          flexBasis={isMapMaximized ? "0px" : isChecklistCollapsed ? `${COLLAPSED_RAIL}px` : "25%"}
+          transition={"flex-basis 0.5s ease-in-out, min-height 0.5s ease-in-out"}
+          minW={"100px"}
+          minH={isChecklistCollapsed || isMapMaximized ? "0px" : "250px"}
+          display={isMapMaximized ? "none" : "block"}
+        >
+          <Box
+            position="absolute"
+            top={1}
+            right={3}
+            w={isChecklistCollapsed ? "auto" : "400px"}
+            h="20px"
+            bg="transparent"
+            opacity={0}
+            _hover={{ opacity: 1 }}
+            zIndex={1}
+          >
+            {/* checklist controls (top-right) */}
+            <Flex position="absolute" top={1} right={1} gap={1} zIndex={1}>
+              {isChecklistCollapsed ? (
+                <Tooltip content="Restore checklist">
+                  <IconButton aria-label="Restore checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={restoreChecklist}>
+                    <ChevronDown />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Tooltip content="Minimize checklist">
+                  <IconButton aria-label="Minimize checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={minimizeChecklist}>
+                    <ChevronUp />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {!isChecklistMaximized ? (
+                <Tooltip content="Maximize checklist">
+                  <IconButton aria-label="Maximize checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={maximizeChecklist}>
+                    <Maximize2 />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Tooltip content="Restore checklist width">
+                  <IconButton aria-label="Restore checklist width" size="xs" variant="ghost" bg="bg.subtle" onClick={restoreChecklist}>
+                    <Minimize2 />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Flex>
+          </Box>
+          <Box
+            position="absolute"
+            inset={0}
+            mb={4}
+            opacity={isChecklistCollapsed ? 0 : 1}
+            transform={isChecklistCollapsed ? "translateX(8px)" : "translateX(0)"}
+            transition={
+              isChecklistCollapsed
+                ? "opacity 320ms ease, transform 600ms ease"
+                : "opacity 700ms ease 720ms, transform 660ms ease 400ms"
+            }
+            pointerEvents={isChecklistCollapsed ? "none" : "auto"}
+            aria-hidden={isChecklistCollapsed ? "true" : "false"}
+          >
+            <Box overflow="hidden" overflowY={"auto"} h="100%">
+              {hasChecklists === false ? (
+                <Flex h="100%" align="center" justify="center">
+                  <Button
+                    className="add-button"
+                    onClick={() => setChecklistModalOpen(true)}
+                    size={{base: "sm", lg:"md"}}
+                  >
+                    Add checklist
+                  </Button>
+                </Flex>
+              ) : (
+                // NORMAL STATE
+                <Box>
+                  <ChecklistViewer
+                    locationId={location.id}
+                    onChecklistCountChange={(count) => setHasChecklists(count > 0)}
+                  />
+                </Box>
+              )}
+            </Box>
+          </Box>
         </Box>
-      </HStack>
+      </Flex>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <HStack mb={4} gap={4} justifyContent={"center"}>
         <Button
@@ -225,33 +442,92 @@ export default function LocationPageClient({ location, initialSources, initialSe
         </Button>
       </HStack>
       {activeTab === 'sources' && (
-        <DataTable columns={sourcesColumns} color={"purple.600"} data={initialSources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} name={activeTab} />
+        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} onDuplicate={handleDuplicateSource} name={activeTab} />
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={activeTab} />
+        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} onDuplicate={handleDuplicateSensor} name={activeTab} />
       )}
 
       {activeTab === 'groups' && (
         <DataTable columns={groupColumns} data={initialGroups} onCreate={handleNewGrp} onEdit={handleEditGroup} onDelete={handleDeleteGroup} name={activeTab} />
       )}
-      <Button
-        colorScheme="yellow"
-        onClick={() => setChecklistModalOpen(true)}
-      >
-        Add Checklist
-      </Button>
-      <SourceCreateModal isOpen={isSrcCreateOpen} onClose={() => { setSrcCreateOpen(false); setSelectedSource(undefined);  } } />
-      <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSrcEditOpen(false); setSelectedSource(undefined);  }} />
-      <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcDelOpen(false); setSrcToDelete(undefined);  }} />
-      <SensorCreateModal isOpen={isSenCreateOpen} onClose={() => { setSenCreateOpen(false); setSelectedSensor(undefined);  } } />
-      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSenEditOpen(false); setSelectedSensor(undefined);  }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenDelOpen(false); setSenToDelete(undefined);  }} />
+      <LocationEditModal
+        isOpen={isLocEditOpen}
+        location={location}
+        onClose={() => { setLocEditOpen(false); }}
+        onEdited={(edited) => setLocation(edited)}
+      />
+      <LocationDeleteModal
+        isOpen={isLocDelOpen}
+        location={location}
+        onClose={() => { setLocDelOpen(false); }}
+      />
+      <SourceCreateModal
+        isOpen={isSrcCreateOpen}
+        onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } }
+        onCreated={(created) => {
+          setSources(prev => [created, ...prev]);
+        }}
+      />
+      <SourceEditModal 
+        isOpen={isSrcEditOpen}
+        source={selectedSource}
+        onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }}
+        onEdited={(edited) => {
+          setSources(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SourceDeleteModal
+        isOpen={isSrcDelOpen}
+        source={srcToDelete}
+        onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }}
+        onDeleted={(id) => {
+          setSources(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SourceDuplicateModal 
+        isOpen={isSrcDupOpen}
+        source={srcToDup}
+        onClose={() => {setSrcToDup(undefined); setSrcDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setSources(prev => [duplicated, ...prev]);
+        }}
+      />
+      <SensorCreateModal
+        isOpen={isSenCreateOpen}
+        onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } }
+        onCreated={(created) => {
+          setSensors(prev => [created, ...prev]);
+        }}
+      />
+      <SensorEditModal
+        isOpen={isSenEditOpen}
+        sensor={selectedSensor}
+        onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }}
+        onEdited={(edited) => {
+          setSensors(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SensorDeleteModal
+        isOpen={isSenDelOpen}
+        sensor={senToDelete}
+        onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }}
+        onDeleted={(id) => {
+          setSensors(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SensorDuplicateModal
+        isOpen={isSenDupOpen}
+        sensor={senToDup}
+        onClose={() => { setSenToDup(undefined); setSenDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setSensors(prev => [duplicated, ...prev]);
+        }}
+      />
       <MonitoringGroupCreateModal isOpen={isGrpCreateOpen} onClose={() => setGrpCreateOpen(false)} locationId={location.id} />
       <MonitoringGroupEditModal isOpen={isGrpEditOpen} group={selectedGroup} onClose={() => { setGrpEditOpen(false); setSelectedGroup(undefined); }}/>
       <MonitoringGroupDeleteModal isOpen={isGrpDelOpen} group={grpToDelete} onClose={() => { setGrpDelOpen(false); setGrpToDelete(undefined); }}/>
-      <LocationEditModal isOpen={isLocEditOpen} location={location} onClose={() => { setLocEditOpen(false); }} />
-      <LocationDeleteModal isOpen={isLocDelOpen} location={location} onClose={() => { setLocDelOpen(false); }} />
       <ChecklistCreateModal
         isOpen={isChecklistModalOpen}
         onClose={() => setChecklistModalOpen(false)}

@@ -12,24 +12,28 @@ import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
 
 // Services + Types
 import { ProjectEditModal, ProjectDeleteModal } from '@/app/components/Modals/ProjectModals';
-import { SourceCreateModal, SourceEditModal, SourceDeleteModal } from '@/app/components/Modals/SourceModals';
+import { SourceCreateModal, SourceEditModal, SourceDeleteModal, SourceDuplicateModal } from '@/app/components/Modals/SourceModals';
 import { Source } from '@/types/source';
 import { MonitoringSensor } from '@/types/sensor';
-import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from '@/app/components/Modals/SensorModals';
-import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from '@/app/components/Modals/LocationModals';
+import { SensorCreateModal, SensorEditModal, SensorDeleteModal, SensorDuplicateModal } from '@/app/components/Modals/SensorModals';
+import { LocationCreateModal, LocationDeleteModal, LocationEditModal, LocationDuplicateModal } from '@/app/components/Modals/LocationModals';
 import { Location } from '@/types/location';
 import { locationColumns, sourcesColumns, sensorColumns } from '@/types/columns';
 
 interface Props {
-  project: Project;
+  initialProject: Project;
   initialLocations: Location[];
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
 }
 
-export default function ProjectsPageClient({ project, initialLocations, initialSources, initialSensors, }: Props) {
+export default function ProjectsPageClient({ initialProject, initialLocations, initialSources, initialSensors, }: Props) {
   const { colorMode } = useColorMode();
   const [activeTab, setActiveTab] = useState<'locations'|'sources'|'sensors'>('locations');
+  const [project, setProject] = useState<Project>(initialProject);
+  const [locations, setLocations] = useState<Location[]>(initialLocations);
+  const [sources, setSources] = useState<Source[]>(initialSources);
+  const [sensors, setSensors] = useState<MonitoringSensor[]>(initialSensors);
 
   // derive theme tokens
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
@@ -102,31 +106,40 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
   const [isLocCreateOpen, setLocCreateOpen] = useState(false);
   const [isLocEditOpen, setLocEditOpen] = useState(false);
   const [isLocDelOpen, setLocDelOpen] = useState(false);
+  const [isLocDupOpen, setLocDupOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | undefined>();
   const [locToDelete, setLocToDelete] = useState<Location | undefined>();
+  const [locToDup, setLocToDup] = useState<Location | undefined>();
   const handleNewLocation = () => { setSelectedLocation(undefined); setLocCreateOpen(true); };
   const handleEditLocation = (l: Location) => { setSelectedLocation(l); setLocEditOpen(true); };
   const handleDeleteLocation = (l: Location) => { setLocToDelete(l); setLocDelOpen(true); };
+  const handleDuplicateLocation = (l: Location) => { setLocToDup(l); setLocDupOpen(true); };
 
   // Source Variables
   const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
   const [isSrcEditOpen, setSrcEditOpen] = useState(false);
   const [isSrcDelOpen, setSrcDelOpen] = useState(false);
+  const [isSrcDupOpen, setSrcDupOpen] = useState(false);
   const [selectedSource, setSelectedSource] = useState<Source | undefined>();
   const [srcToDelete, setSrcToDelete] = useState<Source | undefined>();
+  const [srcToDup, setSrcToDup] = useState<Source | undefined>();
   const handleNewSource = () => { setSelectedSource(undefined); setSrcCreateOpen(true); };
   const handleEditSource = (s: Source) => { setSelectedSource(s); setSrcEditOpen(true); };
   const handleDeleteSource = (s: Source) => { setSrcToDelete(s); setSrcDelOpen(true); };
+  const handleDuplicateSource = (s: Source) => { setSrcToDup(s); setSrcDupOpen(true); };
 
   // Sensor Variables
   const [isSenCreateOpen, setSenCreateOpen] = useState(false);
   const [isSenEditOpen, setSenEditOpen] = useState(false);
   const [isSenDelOpen, setSenDelOpen] = useState(false);
+  const [isSenDupOpen, setSenDupOpen] = useState(false);
   const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
   const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
+  const [senToDup, setSenToDup] = useState<MonitoringSensor | undefined>();
   const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
   const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
+  const handleDuplicateSensor = (s: MonitoringSensor) => { setSenToDup(s); setSenDupOpen(true); };
 
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
@@ -358,29 +371,128 @@ export default function ProjectsPageClient({ project, initialLocations, initialS
 
       {/* ←––––– CONTENT PANELS –––––→ */}
       {activeTab === 'locations' && (
-        <DataTable columns={locationColumns} color={"blue.600"} data={initialLocations} onCreate={handleNewLocation} onEdit={handleEditLocation} onDelete={handleDeleteLocation} name={activeTab} />
+        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNewLocation} onEdit={handleEditLocation} onDelete={handleDeleteLocation} onDuplicate={handleDuplicateLocation} name={activeTab} />
       )}
 
       {activeTab === 'sources' && (
-        <DataTable columns={sourcesColumns} color={"purple.600"} data={initialSources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} name={activeTab} />
+        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} onDuplicate={handleDuplicateSource} name={activeTab} />
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={activeTab} />
+        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} onDuplicate={handleDuplicateSensor} name={activeTab} />
       )}
 
       {/* Wizards */}
-      <ProjectEditModal isOpen={isProjEditOpen} project={project} onClose={() => { setProjEditOpen(false); }} />
-      <ProjectDeleteModal isOpen={isProjDelOpen} project={project} onClose={() => {setProjDelOpen(false); }} />
-      <LocationCreateModal isOpen={isLocCreateOpen} projectId={project.id} onClose={() => { setSelectedLocation(undefined); setLocCreateOpen(false);}} />
-      <LocationEditModal isOpen={isLocEditOpen} location={selectedLocation} onClose={() => { setSelectedLocation(undefined); setLocEditOpen(false); }} />
-      <LocationDeleteModal isOpen={isLocDelOpen} onClose={() => { setLocToDelete(undefined); setLocDelOpen(false); }} location={locToDelete} />
-      <SourceCreateModal isOpen={isSrcCreateOpen} projectId={project.id} onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } } />
-      <SourceEditModal isOpen={isSrcEditOpen} source={selectedSource} onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }} />
-      <SourceDeleteModal isOpen={isSrcDelOpen} source={srcToDelete} onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }} />
-      <SensorCreateModal isOpen={isSenCreateOpen} projectId={project.id} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
-      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }} />
+      <ProjectEditModal
+        isOpen={isProjEditOpen}
+        project={project}
+        onClose={() => { setProjEditOpen(false); }}
+        onEdited={(edited) => setProject(edited)}
+      />
+      <ProjectDeleteModal
+        isOpen={isProjDelOpen}
+        project={project}
+        onClose={() => {setProjDelOpen(false); }}
+      />
+      <LocationCreateModal
+        isOpen={isLocCreateOpen}
+        projectId={project.id}
+        onClose={() => { setSelectedLocation(undefined); setLocCreateOpen(false);}}
+        onCreated={(created) => {
+          setLocations(prev => [created, ...prev]);
+        }}
+      />
+      <LocationEditModal
+        isOpen={isLocEditOpen}
+        location={selectedLocation}
+        projectId={project.id}
+        onClose={() => { setSelectedLocation(undefined); setLocEditOpen(false); }}
+        onEdited={(edited) => {
+          setLocations(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l ));
+        }}
+      />
+      <LocationDeleteModal 
+        isOpen={isLocDelOpen}
+        onClose={() => { setLocToDelete(undefined); setLocDelOpen(false); }}
+        location={locToDelete}
+        onDeleted={(id) => {
+          setLocations(prev => prev.filter(l => l.id !== id));
+        }}
+      />
+      <LocationDuplicateModal
+        isOpen={isLocDupOpen}
+        location={locToDup}
+        onClose={() => { setSelectedLocation(undefined); setLocDupOpen(false);}}
+        onDuplicated={(duplicated) => {
+          setLocations(prev => [duplicated, ...prev]);
+        }}
+      />
+      <SourceCreateModal
+        isOpen={isSrcCreateOpen}
+        projectId={project.id}
+        onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } }
+        onCreated={(created) => {
+          setSources(prev => [created, ...prev]);
+        }}
+      />
+      <SourceEditModal 
+        isOpen={isSrcEditOpen}
+        source={selectedSource}
+        projectId={project.id}
+        onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }}
+        onEdited={(edited) => {
+          setSources(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SourceDeleteModal
+        isOpen={isSrcDelOpen}
+        source={srcToDelete}
+        onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }}
+        onDeleted={(id) => {
+          setSources(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SourceDuplicateModal 
+        isOpen={isSrcDupOpen}
+        source={srcToDup}
+        onClose={() => {setSrcToDup(undefined); setSrcDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setSources(prev => [duplicated, ...prev]);
+        }}
+      />
+      <SensorCreateModal
+        isOpen={isSenCreateOpen}
+        projectId={project.id}
+        onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } }
+        onCreated={(created) => {
+          setSensors(prev => [created, ...prev]);
+        }}
+      />
+      <SensorEditModal
+        isOpen={isSenEditOpen}
+        sensor={selectedSensor}
+        projectId={project.id}
+        onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }}
+        onEdited={(edited) => {
+          setSensors(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SensorDeleteModal
+        isOpen={isSenDelOpen}
+        sensor={senToDelete}
+        onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }}
+        onDeleted={(id) => {
+          setSensors(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SensorDuplicateModal
+        isOpen={isSenDupOpen}
+        sensor={senToDup}
+        onClose={() => { setSenToDup(undefined); setSenDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setSensors(prev => [duplicated, ...prev]);
+        }}
+      />
     </Box>
   );
 }

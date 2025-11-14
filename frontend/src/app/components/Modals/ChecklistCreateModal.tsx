@@ -88,19 +88,26 @@ export function ChecklistCreateModal({
                     collection={templateCollection}
                     value={templateId ? [templateId] : []}
                     onValueChange={(e) => setTemplateId(e.value[0])}
+                    rounded="sm"
+                    _focusWithin={{
+                      outline: "2px solid",
+                      outlineColor: "var(--chakra-colors-blue-400)",
+                      outlineOffset: "2px",
+                    }}
                   >
                     <Select.HiddenSelect />
                     <Select.Control>
                       <Select.Trigger>
                         <Select.ValueText placeholder="Select template" />
+                        <Select.Indicator />
                       </Select.Trigger>
-                      <Select.Indicator />
                     </Select.Control>
+
                     <Select.Positioner>
                       <Select.Content>
-                        {templates.map((tpl) => (
-                          <Select.Item key={tpl.id} item={{ label: "placeholder", value: tpl.id }}>
-                            Placeholder
+                        {templateCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item}>
+                            <Select.ItemText>{item.label}</Select.ItemText>
                           </Select.Item>
                         ))}
                       </Select.Content>
@@ -109,7 +116,13 @@ export function ChecklistCreateModal({
                 </Field.Root>
                 <Field.Root mb={4}>
                   <Field.Label>Notes</Field.Label>
-                  <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+                  <Input value={notes} onChange={(e) => setNotes(e.target.value)}
+                    _focusWithin={{
+                      outline: "2px solid",
+                      outlineColor: "var(--chakra-colors-blue-400)",
+                      outlineOffset: "2px",
+                    }}
+                  />
                 </Field.Root>
               </Dialog.Body>
               <Dialog.Footer>

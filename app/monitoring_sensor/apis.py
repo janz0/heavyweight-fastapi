@@ -18,15 +18,17 @@ def create_monitoring_sensor(
     existing = selectors.get_sensor_by_source_and_name(db, payload.mon_source_id, payload.sensor_name)
     if existing:
         response.status_code = status.HTTP_200_OK
-        return existing
+        return services.enrich_sensor(existing)
     try:
-        return services.create_monitoring_sensor(db, payload)
+        created = services.create_monitoring_sensor(db, payload)
+        refreshed = selectors.get_monitoring_sensor(db, created.id) or created
+        return services.enrich_sensor(refreshed)
     except IntegrityError:
         db.rollback()
         obj = selectors.get_sensor_by_source_and_name(db, payload.mon_source_id, payload.sensor_name)
         if obj:
             response.status_code = status.HTTP_200_OK
-            return obj
+            return services.enrich_sensor(obj)
         raise
 
 @router.get("/", response_model=List[schemas.MonitoringSensor])
@@ -64,10 +66,12 @@ def update_monitoring_sensor(
     payload: schemas.MonitoringSensorUpdate,
     db: Session = Depends(get_db),
 ):
-    obj = services.update_monitoring_sensor(db, sensor_id, payload)
-    if not obj:
+    updated = services.update_monitoring_sensor(db, sensor_id, payload)
+    if not updated:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
-    return services.enrich_sensor(obj)
+    
+    refreshed = selectors.get_monitoring_sensor(db, sensor_id) or updated
+    return services.enrich_sensor(refreshed)
 
 @router.delete("/{sensor_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):

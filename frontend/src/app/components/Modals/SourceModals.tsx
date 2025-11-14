@@ -6,8 +6,8 @@ import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
-import { Button, CloseButton, createListCollection, Dialog, Field, Flex, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
-import { X } from "lucide-react";
+import { Button, CloseButton, Combobox, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
+import { X, Plus } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { Maximize2 } from "lucide-react";
@@ -22,6 +22,20 @@ import { listLocations } from "@/services/locations";
 import type { Source, SourcePayload } from "@/types/source";
 import type { Project } from "@/types/project";
 import type { Location } from "@/types/location";
+import { ProjectCreateModal } from "./ProjectModals";
+import { LocationCreateModal } from "./LocationModals";
+import { listDistinctRootDirectories } from "@/services/sources";
+
+interface BaseSourceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: (s: Source) => void;
+  onEdited?: (s: Source) => void;
+  onDeleted?: (id: string) => void;
+  onDuplicated?: (s: Source) => void;
+  projectId?: string;
+  source?: Source;
+}
 
 const INTERVAL_OPTIONS = [
   { label: "5 minutes",  value: "5min"  },
@@ -58,9 +72,30 @@ function SourceForm({
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
   const fixedProjectId = initialProjectId ?? initialData?.details?.project_id;
-  const isProjectLocked = Boolean(fixedProjectId);
+  const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
   const fixedLocationId = initialData?.mon_loc_id;
-  const isLocationLocked = Boolean(fixedLocationId);
+  const isLocationLocked = Boolean(fixedLocationId && submitLabel == 'Create');
+  const [knownRoots, setKnownRoots] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const roots = await listDistinctRootDirectories(); // or the fallback
+        setKnownRoots(roots);
+      } catch (e) {
+        console.error(e);
+        // non-fatal; user can still type a new path
+      }
+    })();
+  }, []);
+
+  const rootsCollection = useMemo(
+    () =>
+      createListCollection({
+        items: knownRoots.map(r => ({ label: r, value: r })),
+      }),
+    [knownRoots]
+  );
 
   const router = useRouter();
   const editMode = Boolean(initialData);
@@ -110,10 +145,14 @@ function SourceForm({
   });
   const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
   const [rootDirectory, setRootDir] = useState(initialData?.root_directory || "");
+  const [typedRoot, setTypedRoot] = useState(initialData?.root_directory || "");
+  const ignoreEmptyOnBlurRef = React.useRef(false);
+  const manualClearRef = React.useRef(false);
   const stripOuterBraces = (s: string) => {
     const t = (s ?? "").trim();
     return t.startsWith("{") && t.endsWith("}") ? t.slice(1, -1).trim() : t;
   };
+
   const deindentOneLevel = (s: string) =>
   (s ?? "")
     .split("\n")
@@ -318,6 +357,12 @@ function SourceForm({
     []
   );
 
+  const [isCreateProjectOpen, setCreateProjectOpen] = useState(false);
+  const handleNewProject = () => { setCreateProjectOpen(true); };
+
+  const [isCreateLocationOpen, setCreateLocationOpen] = useState(false);
+  const handleNewLocation = () => { setCreateLocationOpen(true); };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const res = validateInner(configInnerText);
@@ -383,333 +428,534 @@ function SourceForm({
   const isPlainObject = (v: unknown): v is Record<string, unknown> =>
     typeof v === "object" && v !== null && !Array.isArray(v);
   return (
-    <form id="source-form" onSubmit={handleSubmit}>
-      {/* Project */}
-      <Field.Root required mb={4}>
-        <Field.Label>Project</Field.Label>
-        <Select.Root
-          collection={projectCollection}
-          value={projectIds}
-          onValueChange={e => setProjectIds(e.value)}
-          disabled={isProjectLocked}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText placeholder="Select project" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {!isProjectLocked && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {projectCollection.items.map(item => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
+    <>
+      <form id="source-form" onSubmit={handleSubmit}>
+        {/* Project */}
+        <HStack>
+          <Field.Root required mb={4}>
+            <Field.Label>Project</Field.Label>
+            <Select.Root
+              collection={projectCollection}
+              value={projectIds}
+              onValueChange={e => setProjectIds(e.value)}
+              disabled={isProjectLocked}
+              rounded="sm"
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
+            >
+              <Select.HiddenSelect />
+              <Select.Control>
+                <Select.Trigger borderColor={bc}>
+                  <Select.ValueText placeholder="Select project" />
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  {!isProjectLocked && <Select.ClearTrigger />}
+                  <Select.Indicator />
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  mt="-1px"
+                  borderWidth="1px"
+                  borderColor={bc}
+                  rounded="sm"
+                  shadow="md"
+                  overflowY="auto"
+                  w="100%">
+                  {projectCollection.items.map(item => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Field.Root>
+          <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost" onClick={handleNewProject}>
+            <Plus />
+          </IconButton>
+        </HStack>
 
-      {/* Location */}
-      <Field.Root required mb={4}>
-        <Field.Label>Location</Field.Label>
-        <Select.Root
-          collection={locationCollection}
-          value={locationIds}
-          onValueChange={e => setLocationIds(e.value)}
-          disabled={isLocationLocked || !projectIds[0]}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText
-                placeholder={
-                  !projectIds[0] ? "Select a project first" : "Select location"
-                }
-              />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              {!isLocationLocked && <Select.ClearTrigger />}
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {locationCollection.items.map(item => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
-
-      {/* Other fields */}
-      <Field.Root required mb={4}>
-        <Field.Label>Source Name</Field.Label>
-        <Input value={sourceName} borderColor={bc} onChange={e => setSourceName(e.target.value)} />
-      </Field.Root>
-
-      <Field.Root required mb={4}>
-        <Field.Label>Folder Path</Field.Label>
-        <Input value={folderPath} borderColor={bc} onChange={e => setFolderPath(e.target.value)} />
-      </Field.Root>
-
-      <Field.Root required mb={4}>
-        <Field.Label>Root Directory</Field.Label>
-        <Input value={rootDirectory} borderColor={bc} onChange={e => setRootDir(e.target.value)} />
-      </Field.Root>
-
-      <Field.Root mb={4}>
-        <Field.Label>File Keyword</Field.Label>
-        <Input
-          placeholder="Optional"
-          value={fileKeyword}
-          borderColor={bc}
-          onChange={e => setFileKeyword(e.target.value)}
-        />
-      </Field.Root>
-
-      <Field.Root mb={4}>
-        <Field.Label>File Type</Field.Label>
-        <Select.Root
-          collection={fileTypesCollection}
-          value={fileType ? [fileType] : []}
-          onValueChange={e => setFileType(e.value[0] ?? "")}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText
-                placeholder="Optional"
-              />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.ClearTrigger />
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {fileTypesCollection.items.map((item) => (
-                <Select.Item key={item} item={item}>
-                  {item}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
-
-      <Field.Root mb={4}>
-        <Field.Label>Source Type</Field.Label>
-        <Select.Root
-          collection={sourceTypesCollection}
-          value={sourceType ? [sourceType] : []}
-          onValueChange={e => setSourceType(e.value[0] ?? "")}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc}>
-              <Select.ValueText
-                placeholder="Optional"
-              />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.ClearTrigger />
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {sourceTypesCollection.items.map((item) => (
-                <Select.Item key={item} item={item}>
-                  {item}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
-      <Field.Root mb={4}>
-        <Field.Label>Config</Field.Label>
-        <Flex align="center" gap={2} position="relative" w="100%">
-          <Textarea
-            ref={textRef}
-            className={`config-textarea ${jsonErrLoc ? 'has-error' : ''}`}
-            borderColor={jsonErrLoc ? 'red.400' : bc}
-            w="100%"
-            placeholder={`"sn_map": {
-  "x1": "IPI-N05-05",
-  "x2": "IPI-N11-12",
-  "x3": "IPI-N02-05",
-  "x4": "IPI-N11-04",
-  "x5": "IPI-N08-03"
-},
-"notes": "",
-"threshold": 5`}
-            minH="120px"
-            fontFamily="mono"
-            value={configInnerText}
-            onChange={(e) => {
-              setConfigInnerText(stripOuterBraces(e.target.value));
-              if (configError) setConfigError(null);
-              if (jsonErrLoc) setJsonErrLoc(null); // clear error highlight on edit
-            }}
-            onBlur={applyConfigInnerText}
-          />
-          {jsonErrLoc && (
-            <style jsx global>{`
-              /* Customize selection highlight when the textarea has an error */
-              .config-textarea.has-error::selection {
-                background: var(--chakra-colors-red-600);
-                color: white;
-              }
-              /* Some browsers (Firefox) also support ::-moz-selection */
-              .config-textarea.has-error::-moz-selection {
-                background: var(--chakra-colors-red-600);
-                color: white;
-              }
-            `}</style>
-          )}
-          {(configError || jsonErrLoc) && (
-            <Field.ErrorText>
-              {jsonErrLoc
-                ? `Invalid JSON at line ${jsonErrLoc.line}, column ${jsonErrLoc.column}: ${configError ?? "Syntax error"}`
-                : configError}
-            </Field.ErrorText>
-          )}
-          <IconButton
-            position="absolute"
-            right="4"
-            top="0"
-            aria-label="Fullscreen editor"
-            size="2xs"
-            bg="transparent"
-            color="bg.inverted"
-          ><Maximize2 size="sm" onClick={openFullscreen}></Maximize2></IconButton>
-        </Flex>
-
-        {/* Fullscreen editor */}
-        <Dialog.Root open={isConfigOpen} onOpenChange={() => setConfigOpen(false)}>
-          <Portal>
-            <Dialog.Backdrop />
-            <Dialog.Positioner>
-              <Dialog.Content maxW="30vw" maxH="80vh">
-                <Dialog.Header>
-                  <Dialog.CloseTrigger asChild>
-                    <IconButton aria-label="Close" variant="ghost" onClick={() => setConfigOpen(false)}>
-                      <X size={16} />
-                    </IconButton>
-                  </Dialog.CloseTrigger>
-                </Dialog.Header>
-                <Dialog.Body maxH="100vh" w="100%" overflowY="auto">
-                  <JsonEditor
-                    data={effectiveConfig}
-                    setData={(data) => {
-                      // accept `unknown` as required by the lib, then narrow:
-                      if (!isPlainObject(data)) {
-                        setConfig({});
-                        return;
-                      }
-                      // keep everything except "interval" (which is controlled by the select)
-                      const rest = Object.fromEntries(
-                        Object.entries(data).filter(([k]) => k !== "interval")
-                      );
-                      setConfig(rest);
-                    }}
-                    restrictEdit={lockRootAndKeys}
-                    restrictDelete={lockRootAndKeys}
-                    rootName="Config"
-                    defaultValue=""
+        {/* Location */}
+        <HStack>
+          <Field.Root required mb={4}>
+            <Field.Label>Location</Field.Label>
+            <Select.Root
+              collection={locationCollection}
+              value={locationIds}
+              onValueChange={e => setLocationIds(e.value)}
+              disabled={isLocationLocked || !projectIds[0]}
+              rounded="sm"
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
+            >
+              <Select.HiddenSelect />
+              <Select.Control>
+                <Select.Trigger borderColor={bc}>
+                  <Select.ValueText
+                    placeholder={
+                      !projectIds[0] ? "Select a project first" : "Select location"
+                    }
                   />
-                </Dialog.Body>
-                <Dialog.Footer>
-                  <Button onClick={() => setConfigOpen(false)}>Save</Button>
-                </Dialog.Footer>
-              </Dialog.Content>
-            </Dialog.Positioner>
-          </Portal>
-        </Dialog.Root>
-      </Field.Root>
-      <Field.Root required mb={4}>
-        <Field.Label>Interval</Field.Label>
-        <Select.Root
-          collection={intervalCollection}
-          value={interval ? [interval] : []}
-          onValueChange={e => setInterval(e.value[0])}
-        >
-          <Select.HiddenSelect />
-          <Select.Control>
-            <Select.Trigger borderColor={bc} >
-              <Select.ValueText placeholder="Select interval" />
-            </Select.Trigger>
-            <Select.IndicatorGroup>
-              <Select.ClearTrigger />
-              <Select.Indicator />
-            </Select.IndicatorGroup>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {INTERVAL_OPTIONS.map(opt => (
-                <Select.Item key={opt.value} item={opt}>
-                  {opt.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-      </Field.Root>
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  {!isLocationLocked && <Select.ClearTrigger />}
+                  <Select.Indicator />
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  mt="-1px"
+                  borderWidth="1px"
+                  borderColor={bc}
+                  rounded="sm"
+                  shadow="md"
+                  overflowY="auto"
+                  w="100%"
+                >
+                  {locationCollection.items.map(item => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Field.Root>
+          <IconButton mt="auto" mb={4} aria-label="New Location" outline="solid thin" variant="ghost" onClick={() => {
+              if (!projectIds[0]) {
+                toaster.create({ description: "Select a project first", type: "info" });
+                return;
+              }
+              handleNewLocation();
+            }}
+            disabled={!projectIds[0] || isLocationLocked}
+            title={
+              !projectIds[0]
+                ? "Select a project first"
+                : isLocationLocked
+                ? "Location is locked for this source"
+                : "New location"
+            }
+            >
+            <Plus />
+          </IconButton>
+        </HStack>
 
-      <Field.Root justifyItems={"center"}>
-        <Flex gap="2">
-        <Field.Label>Active</Field.Label>
-        <Switch.Root
-          checked={active}
-          onCheckedChange={({ checked }) => setActive(checked)}
-        >
-          <Switch.HiddenInput />
-          <Switch.Control _checked={{ bg: 'green.400' }}>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Root>
-        </Flex>
-      </Field.Root>
+        {/* Other fields */}
+        <Field.Root required mb={4}>
+          <Field.Label>Source Name</Field.Label>
+          <Input value={sourceName} borderColor={bc} onChange={e => setSourceName(e.target.value)} _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+          }}/>
+        </Field.Root>
 
-      <Dialog.Footer>
-        <Button mr={3} type="button" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          {submitLabel}
-        </Button>
-      </Dialog.Footer>
-    </form>
+        <Field.Root required mb={4}>
+          <Field.Label >Folder Path</Field.Label>
+          <Input value={folderPath} borderColor={bc} onChange={e => setFolderPath(e.target.value)}
+          _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+          }}/>
+        </Field.Root>
+
+        <Field.Root mb={4}>
+          <Field.Label>Root Directory</Field.Label>
+          <Combobox.Root
+            collection={rootsCollection}
+            inputValue={typedRoot}
+            onInputValueChange={({ inputValue }) => {
+              if (inputValue === "" && ignoreEmptyOnBlurRef.current) return;
+              setTypedRoot(inputValue);
+            }}
+            value={knownRoots.includes(rootDirectory) ? [rootDirectory] : []}
+            onValueChange={(e) => {
+              const v = e.value[0] ?? "";
+              setRootDir(v);
+              setTypedRoot(v);
+            }}
+            openOnClick
+            positioning={{ sameWidth: true, gutter: 0 }}
+          >
+            <Combobox.Control 
+              h="2.5rem"
+              minH="unset"
+              borderWidth="1px"
+              borderColor={bc}
+              rounded="sm"
+              display="flex"
+              _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+              }}
+            >
+              <Combobox.Input
+                placeholder="Type or select a root dir (e.g. /mnt/data)"
+                flex="1"
+                h="100%"
+                w="100%"
+                minH="unset"
+                px="2"
+                border="none"
+                _focus={{ outline: "none" }}
+                onBlur={() => {
+                  const v = typedRoot.trim();
+                  if (v) setRootDir(v);       // commit free text on blur
+                  ignoreEmptyOnBlurRef.current = true; // ignore the next "" change
+                  // clear the guard on the next tick
+                  setTimeout(() => { ignoreEmptyOnBlurRef.current = false; }, 0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const v = typedRoot.trim();
+                    if (v && !knownRoots.includes(v)) {
+                      setRootDir(v);
+                    }
+                  }
+                }}
+              />
+              <Combobox.IndicatorGroup>
+                {typedRoot && (
+                  <Combobox.ClearTrigger
+                    onClick={() => {
+                      manualClearRef.current = true;
+                      setRootDir("");
+                      setTypedRoot("");
+                    }}
+                  />
+                )}
+                
+                <Combobox.Trigger />
+              </Combobox.IndicatorGroup>
+            </Combobox.Control>
+            <Combobox.Positioner>
+              <Combobox.Content
+                mt="7px"
+                borderWidth="1px"
+                borderColor={bc}
+                rounded="sm"
+                shadow="md"
+                overflowY="auto"
+                w="100%"
+              >
+                {rootsCollection.items.map((item) => (
+                  <Combobox.Item key={item.value} item={item}>
+                    <Combobox.ItemText>{item.label}</Combobox.ItemText>
+                  </Combobox.Item>
+                ))}
+              </Combobox.Content>
+            </Combobox.Positioner>
+          </Combobox.Root>
+        </Field.Root>
+
+        <Field.Root mb={4}>
+          <Field.Label>File Keyword</Field.Label>
+          <Input
+            placeholder="Optional"
+            value={fileKeyword}
+            borderColor={bc}
+            onChange={e => setFileKeyword(e.target.value)}
+            _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+            }}
+          />
+        </Field.Root>
+
+        <Field.Root mb={4}>
+          <Field.Label>File Type</Field.Label>
+          <Select.Root
+            collection={fileTypesCollection}
+            value={fileType ? [fileType] : []}
+            onValueChange={e => setFileType(e.value[0] ?? "")}
+            rounded="sm"
+            _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+          }}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc}>
+                <Select.ValueText
+                  placeholder="Optional"
+                />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.ClearTrigger />
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content
+                mt="-1px"
+                borderWidth="1px"
+                borderColor={bc}
+                rounded="sm"
+                shadow="md"
+                overflowY="auto"
+                w="100%"
+              >
+                {fileTypesCollection.items.map((item) => (
+                  <Select.Item key={item} item={item}>
+                    {item}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+
+        <Field.Root mb={4}>
+          <Field.Label>Source Type</Field.Label>
+          <Select.Root
+            collection={sourceTypesCollection}
+            value={sourceType ? [sourceType] : []}
+            onValueChange={e => setSourceType(e.value[0] ?? "")}
+            rounded="sm"
+            _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+          }}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc}>
+                <Select.ValueText
+                  placeholder="Optional"
+                />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.ClearTrigger />
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content
+                mt="-1px"
+                borderWidth="1px"
+                borderColor={bc}
+                rounded="sm"
+                shadow="md"
+                overflowY="auto"
+                w="100%"
+              >
+                {sourceTypesCollection.items.map((item) => (
+                  <Select.Item key={item} item={item}>
+                    {item}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+        <Field.Root mb={4}>
+          <Field.Label>Config</Field.Label>
+          <Flex align="center" gap={2} position="relative" w="100%" rounded="sm" _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+          }}>
+            <Textarea
+              ref={textRef}
+              className={`config-textarea ${jsonErrLoc ? 'has-error' : ''}`}
+              borderColor={jsonErrLoc ? 'red.400' : bc}
+              w="100%"
+              placeholder={`"sn_map": {
+    "x1": "IPI-N05-05",
+    "x2": "IPI-N11-12",
+    "x3": "IPI-N02-05",
+    "x4": "IPI-N11-04",
+    "x5": "IPI-N08-03"
+  },
+  "notes": "",
+  "threshold": 5`}
+              minH="120px"
+              fontFamily="mono"
+              value={configInnerText}
+              onChange={(e) => {
+                setConfigInnerText(stripOuterBraces(e.target.value));
+                if (configError) setConfigError(null);
+                if (jsonErrLoc) setJsonErrLoc(null); // clear error highlight on edit
+              }}
+              onBlur={applyConfigInnerText}
+            />
+            {jsonErrLoc && (
+              <style jsx global>{`
+                /* Customize selection highlight when the textarea has an error */
+                .config-textarea.has-error::selection {
+                  background: var(--chakra-colors-red-600);
+                  color: white;
+                }
+                /* Some browsers (Firefox) also support ::-moz-selection */
+                .config-textarea.has-error::-moz-selection {
+                  background: var(--chakra-colors-red-600);
+                  color: white;
+                }
+              `}</style>
+            )}
+            {(configError || jsonErrLoc) && (
+              <Field.ErrorText>
+                {jsonErrLoc
+                  ? `Invalid JSON at line ${jsonErrLoc.line}, column ${jsonErrLoc.column}: ${configError ?? "Syntax error"}`
+                  : configError}
+              </Field.ErrorText>
+            )}
+            <IconButton
+              position="absolute"
+              right="4"
+              top="0"
+              aria-label="Fullscreen editor"
+              size="2xs"
+              bg="transparent"
+              color="bg.inverted"
+            ><Maximize2 onClick={openFullscreen}></Maximize2></IconButton>
+          </Flex>
+
+          {/* Fullscreen editor */}
+          <Dialog.Root open={isConfigOpen} onOpenChange={() => setConfigOpen(false)}>
+            <Portal>
+              <Dialog.Backdrop />
+              <Dialog.Positioner>
+                <Dialog.Content maxW="30vw" maxH="80vh">
+                  <Dialog.Header>
+                    <Dialog.CloseTrigger asChild>
+                      <IconButton aria-label="Close" variant="ghost" onClick={() => setConfigOpen(false)}>
+                        <X size={16} />
+                      </IconButton>
+                    </Dialog.CloseTrigger>
+                  </Dialog.Header>
+                  <Dialog.Body maxH="100vh" w="100%" overflowY="auto">
+                    <JsonEditor
+                      data={effectiveConfig}
+                      setData={(data) => {
+                        // accept `unknown` as required by the lib, then narrow:
+                        if (!isPlainObject(data)) {
+                          setConfig({});
+                          return;
+                        }
+                        // keep everything except "interval" (which is controlled by the select)
+                        const rest = Object.fromEntries(
+                          Object.entries(data).filter(([k]) => k !== "interval")
+                        );
+                        setConfig(rest);
+                      }}
+                      restrictEdit={lockRootAndKeys}
+                      restrictDelete={lockRootAndKeys}
+                      rootName="Config"
+                      defaultValue=""
+                    />
+                  </Dialog.Body>
+                  <Dialog.Footer>
+                    <Button onClick={() => setConfigOpen(false)}>Save</Button>
+                  </Dialog.Footer>
+                </Dialog.Content>
+              </Dialog.Positioner>
+            </Portal>
+          </Dialog.Root>
+        </Field.Root>
+        <Field.Root required mb={4}>
+          <Field.Label>Interval</Field.Label>
+          <Select.Root
+            collection={intervalCollection}
+            value={interval ? [interval] : []}
+            onValueChange={e => setInterval(e.value[0])}
+            rounded="sm"
+            _focusWithin={{
+                outline: "2px solid",
+                outlineColor: "var(--chakra-colors-blue-400)",
+                outlineOffset: "2px",
+          }}
+          >
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger borderColor={bc} >
+                <Select.ValueText placeholder="Select interval" />
+              </Select.Trigger>
+              <Select.IndicatorGroup>
+                <Select.ClearTrigger />
+                <Select.Indicator />
+              </Select.IndicatorGroup>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content
+                mt="-1px"
+                borderWidth="1px"
+                borderColor={bc}
+                rounded="sm"
+                shadow="md"
+                overflowY="auto"
+                w="100%"
+              >
+                {INTERVAL_OPTIONS.map(opt => (
+                  <Select.Item key={opt.value} item={opt}>
+                    {opt.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Field.Root>
+
+        <Field.Root justifyItems={"center"}>
+          <Flex gap="2">
+          <Field.Label>Active</Field.Label>
+          <Switch.Root
+            checked={active}
+            onCheckedChange={({ checked }) => setActive(checked)}
+          >
+            <Switch.HiddenInput />
+            <Switch.Control _checked={{ bg: 'green.400' }}>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch.Root>
+          </Flex>
+        </Field.Root>
+
+        <Dialog.Footer>
+          <Button mr={3} type="button" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit">
+            {submitLabel}
+          </Button>
+        </Dialog.Footer>
+      </form>
+      <ProjectCreateModal isOpen={isCreateProjectOpen} onClose={() => { setCreateProjectOpen(false);}} />
+      <LocationCreateModal projectId={projectIds[0]} isOpen={isCreateLocationOpen} onClose={() => { setCreateLocationOpen(false);}} />
+    </>
   );
 }
 
 // ----------------------
 // CreateSourceModal
 // ----------------------
-export function SourceCreateModal({
-  isOpen,
-  onClose,
-  projectId,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  projectId?: string;
-}) {
+export function SourceCreateModal({ isOpen, onClose, onCreated, projectId }: BaseSourceModalProps) {
   const handleCreate = async (payload: SourcePayload) => {
-    await createSource(payload);
-    toaster.create({ description: "Source created", type: "success" });
-    onClose();
+    try {
+      const created = await createSource(payload);
+      toaster.create({description: "Source created successfully", type: "success" });
+      onCreated?.(created);
+      onClose();
+    } catch (err) {
+      toaster.create({
+        description: `Failed to create Source: ${err instanceof Error ? err.message : String(err)}`,
+        type: "error",
+      });
+    }
   };
 
   return (
@@ -744,20 +990,38 @@ export function SourceCreateModal({
 // ----------------------
 // EditSourceModal
 // ----------------------
-export function SourceEditModal({
-  isOpen,
-  onClose,
-  source,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  source?: Source;
-}) {
+export function SourceEditModal({ isOpen, onClose, source, onEdited }: BaseSourceModalProps) {
   const handleUpdate = async (payload: SourcePayload) => {
     if (!source) return;
-    await updateSource(String(source.id), payload);
-    toaster.create({ description: "Source updated", type: "success" });
-    onClose();
+
+    const changedPayload: SourcePayload = {};
+    if (payload.mon_loc_id !== source.mon_loc_id) changedPayload.mon_loc_id = payload.mon_loc_id;
+    if (payload.source_name !== source.source_name) changedPayload.source_name = payload.source_name;
+    if (payload.source_type !== source.source_type) changedPayload.source_type = payload.source_type;
+    if (payload.file_type !== source.file_type) changedPayload.file_type = payload.file_type;
+    if (payload.file_keyword !== source.file_keyword) changedPayload.file_keyword = payload.file_keyword;
+    if (payload.folder_path !== source.folder_path) changedPayload.folder_path = payload.folder_path;
+    if (payload.root_directory !== source.root_directory) changedPayload.root_directory = payload.root_directory;
+    if (payload.active !== source.active) changedPayload.active = payload.active;
+    if (payload.config !== source.config) changedPayload.config = payload.config;
+
+    if (Object.keys(changedPayload).length === 0) {
+      toaster.create({ description: "No changes detected.", type: "info" });
+      return;
+    }
+
+    try {
+      const edited = await updateSource(source.id, payload);
+      toaster.create({ description: "Source updated successfully", type: "success" });
+      onEdited?.(edited);
+      console.log(edited);
+      onClose();
+    } catch (err) {
+      toaster.create({
+        description: `Failed to update Source: ${err instanceof Error ? err.message : String(err)}`,
+        type: "error",
+      });    
+    }
   };
 
   return (
@@ -792,30 +1056,27 @@ export function SourceEditModal({
 // ----------------------
 // DeleteSourceModal
 // ----------------------
-export function SourceDeleteModal({
-  isOpen,
-  onClose,
-  source,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  source?: Source;
-}) {
+export function SourceDeleteModal({ isOpen, onClose, source, onDeleted }: BaseSourceModalProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
   const handleDelete = async () => {
     if (!source) return;
-    await deleteSource(String(source.id));
-    toaster.create({ description: "Source deleted", type: "success" });
-    onClose();
-
-    // if on detail page, go back, otherwise refresh
-    const detailRoute = /^\/sources\/[^\/]+$/;
-    if (detailRoute.test(pathname)) {
-      router.back();
-    } else {
-      router.refresh();
+    try {
+      await deleteSource(source.id);
+      toaster.create({ description: "Source deleted successfully", type: "success" });
+      onClose();
+      const detailRoute = /^\/sources\/[^\/]+$/;
+      if (detailRoute.test(pathname)) {
+        router.back();
+      } else {
+        onDeleted?.(source.id);
+      }
+    } catch (err) {
+      toaster.create({
+        description: `Failed to delete Source: ${err instanceof Error ? err.message : String(err)}`,
+        type: "error",
+      });
     }
   };
 
@@ -848,18 +1109,11 @@ export function SourceDeleteModal({
 // ----------------------
 // DuplicateSourceModal
 // ----------------------
-export function SourceDuplicateModal({
-  isOpen,
-  onClose,
-  source,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  source?: Source;
-}) {
+export function SourceDuplicateModal({ isOpen, onClose, source, onDuplicated }: BaseSourceModalProps) {
   const handleDuplicate = async (payload: SourcePayload) => {
-    await createSource(payload); // same service as create
-    toaster.create({ description: "Source duplicated", type: "success" });
+    const duplicated = await createSource(payload);
+    toaster.create({ description: "Source created successfully", type: "success" });
+    onDuplicated?.(duplicated);
     onClose();
   };
 
@@ -890,7 +1144,7 @@ export function SourceDuplicateModal({
                 onSubmit={handleDuplicate}
                 onClose={onClose}
                 initialData={cloneData as Source}
-                submitLabel="Create"
+                submitLabel="Duplicate"
               />
             </Dialog.Body>
           </Dialog.Content>

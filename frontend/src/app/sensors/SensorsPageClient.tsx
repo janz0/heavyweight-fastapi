@@ -15,7 +15,7 @@ import DataTable from "@/app/components/DataTable";
 
 // Services + Types
 import type { MonitoringSensor } from "@/types/sensor";
-import { SensorCreateModal, SensorEditModal, SensorDeleteModal } from "../components/Modals/SensorModals";
+import { SensorCreateModal, SensorEditModal, SensorDeleteModal, SensorDuplicateModal } from "../components/Modals/SensorModals";
 import { sensorColumns } from "@/types/columns";
 // Register chart components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
@@ -27,11 +27,13 @@ interface Props {
 export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
-  const sensors = initialSensors;
+  const [items, setItems] = useState<MonitoringSensor[]>(initialSensors);
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDelOpen, setDelOpen] = useState(false);
+  const [isDupOpen, setDupOpen] = useState(false);
+  const [duplicateSensor, setDuplicateSensor] = useState<MonitoringSensor | undefined>();
   const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
   const [toDelete, setToDelete] = useState<MonitoringSensor | undefined>();
 
@@ -43,6 +45,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   const handleNew = () => { setSelectedSensor(undefined); setCreateOpen(true); };
   const handleEdit = (s: MonitoringSensor) => { setSelectedSensor(s); setEditOpen(true); }
   const handleDelete = (s: MonitoringSensor) => { setToDelete(s); setDelOpen(true); }
+  const handleDuplicate = (s: MonitoringSensor) => { setDuplicateSensor(s); setDupOpen(true); }
 
   // Hydration
   useEffect(() => {
@@ -59,16 +62,44 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={sensorColumns} color={color} data={sensors} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="sensors"/>
+        <DataTable columns={sensorColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="sensors"/>
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
       
-      <SensorCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); } } />
-      <SensorEditModal isOpen={isEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isDelOpen} sensor={toDelete} onClose={() => { setToDelete(undefined); setDelOpen(false); }} />
+      <SensorCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); }}
+        onCreated={(created) => {
+          setItems(prev => [created, ...prev]);
+        }}
+      />
+      <SensorEditModal
+        isOpen={isEditOpen}
+        sensor={selectedSensor}
+        onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }}
+        onEdited={(edited) => {
+          setItems(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
+        }}
+      />
+      <SensorDeleteModal
+        isOpen={isDelOpen}
+        sensor={toDelete}
+        onClose={() => { setToDelete(undefined); setDelOpen(false); }}
+        onDeleted={(id) => {
+          setItems(prev => prev.filter(s => s.id !== id));
+        }}
+      />
+      <SensorDuplicateModal
+        isOpen={isDupOpen}
+        sensor={duplicateSensor}
+        onClose={() => { setDuplicateSensor(undefined); setDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setItems(prev => [duplicated, ...prev]);
+        }}
+      />
     </Box>
   );
 }

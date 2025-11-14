@@ -13,7 +13,7 @@ import { useColorMode } from "@/app/src/components/ui/color-mode";
 import DataTable from "@/app/components/DataTable";
 
 // Modals
-import { LocationCreateModal, LocationDeleteModal, LocationEditModal } from "../components/Modals/LocationModals";
+import { LocationCreateModal, LocationDeleteModal, LocationEditModal, LocationDuplicateModal } from "../components/Modals/LocationModals";
 
 // Types
 import type { Location } from "@/types/location";
@@ -26,12 +26,14 @@ interface Props {
 export default function LocationsPageClient({ locations: initialLocations }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
-  const locations = initialLocations;
+  const [items, setItems] = useState<Location[]>(initialLocations);
 
   // useState CRUD
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDelOpen, setDelOpen] = useState(false);
+  const [isDupOpen, setDupOpen] = useState(false);
+  const [duplicateLocation, setDuplicateLocation] = useState<Location | undefined>();
   const [selectedLocation, setSelectedLocation] = useState<Location | undefined>();
   const [toDelete, setToDelete] = useState<Location | undefined>();
 
@@ -42,6 +44,7 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
   const handleNew = () => { setSelectedLocation(undefined); setCreateOpen(true); };
   const handleEdit = (l: Location) => { setSelectedLocation(l); setEditOpen(true); };
   const handleDelete = (l: Location) => { setToDelete(l); setDelOpen(true); };
+  const handleDuplicate = (l: Location) => { setDuplicateLocation(l); setDupOpen(true); };
 
   // Hydration
   useEffect(() => {
@@ -58,15 +61,43 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} name="locations"/>
+        <DataTable columns={locationColumns} color={"blue.600"} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="locations"/>
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
-      <LocationCreateModal isOpen={isCreateOpen} onClose={() => { setSelectedLocation(undefined); setCreateOpen(false);}} />
-      <LocationEditModal isOpen={isEditOpen} location={selectedLocation} onClose={() => { setSelectedLocation(undefined); setEditOpen(false); }} />
-      <LocationDeleteModal isOpen={isDelOpen} onClose={() => { setToDelete(undefined); setDelOpen(false); }} location={toDelete} />
+      <LocationCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => { setSelectedLocation(undefined); setCreateOpen(false);}}
+        onCreated={(created) => {
+          setItems(prev => [created, ...prev]);
+        }}
+      />
+      <LocationEditModal
+        isOpen={isEditOpen}
+        location={selectedLocation}
+        onClose={() => { setSelectedLocation(undefined); setEditOpen(false); }}
+        onEdited={(edited) => {
+          setItems(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l));
+        }}
+      />
+      <LocationDeleteModal
+        isOpen={isDelOpen}
+        onClose={() => { setToDelete(undefined); setDelOpen(false); }}
+        location={toDelete}
+        onDeleted={(id) => {
+          setItems(prev => prev.filter(l => l.id !== id));
+        }}
+      />
+      <LocationDuplicateModal
+        isOpen={isDupOpen}
+        location={duplicateLocation}
+        onClose={() => {setDuplicateLocation(undefined); setDupOpen(false); }}
+        onDuplicated={(duplicated) => {
+          setItems(prev => [duplicated, ...prev]);
+        }}
+      />
     </Box>
   );
 }

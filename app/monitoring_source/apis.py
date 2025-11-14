@@ -13,7 +13,8 @@ router = APIRouter(prefix="/monitoring-sources", tags=["Monitoring Sources"])
 
 @router.post("/", response_model=schemas.Source, status_code=status.HTTP_201_CREATED)
 def create_source(payload: schemas.SourceCreate, db: Session = Depends(get_db)):
-    return services.create_source(db, payload)
+    src = services.create_source(db, payload)
+    return services.enrich_source(src, False, False)
 
 
 @router.get("/", response_model=List[schemas.Source])
@@ -96,7 +97,9 @@ def update_source(
     obj = services.update_source(db, source_id, payload)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Source not found")
-    return obj
+    
+    src = selectors.get_source(db, source_id)
+    return services.enrich_source(src, False, False)
 
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)

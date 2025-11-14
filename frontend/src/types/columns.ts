@@ -7,6 +7,7 @@ export interface Column {
 export const projectColumns: Column[] = [
   { key: "project_name", label: "Project" },
   { key: "project_number", label: "Number" },
+  { key: "description", label: "Description" },
   { key: "start_date", label: "Start Date" },
   { key: "end_date", label: "End Date" },
   { key: "locations_count", label: "Locations" },
@@ -41,7 +42,7 @@ export const sourcesColumns: Column[] = [
 export const sensorColumns: Column[] = [
   { key: "sensor_name",     label: "Sensor Name" },
   { key: "sensor_type",     label: "Sensor Type" },
-  { key: "mon_source_id",   label: "Source" },
+  { key: "details.mon_source_name",   label: "Source" },
   { key: "sensor_group_id", label: "Sensor Group" },
   { key: "created_at",      label: "Created" },
   { key: "last_updated",    label: "Updated" },

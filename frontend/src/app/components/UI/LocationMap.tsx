@@ -1,27 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
-import { Box, Text } from "@chakra-ui/react";
-import { Tabs, TabList, TabPanels, TabPanel, Tab } from "@chakra-ui/tabs";
+import React, { useEffect, useRef, useCallback, useState } from "react";
+import { Box, HStack, IconButton, Text } from "@chakra-ui/react";
 
 // 1) Import styles & components from react-map-gl/maplibre
-import Map, { Marker as MapMarker } from "react-map-gl/maplibre";
-import type {
-  MapLayerMouseEvent,
-  MapRef,
-  MarkerDragEvent
-} from "react-map-gl/maplibre";
-
-// 2) Import the **MapLibre-GL** type, not Mapbox-GL
+import Map, { Marker as MapMarker, NavigationControl } from "react-map-gl/maplibre";
+import type { MapRef } from "react-map-gl/maplibre";
 import type { Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-
-import {
-  GoogleMap,
-  StreetViewPanorama,
-  useJsApiLoader,
-  Marker as GMarker,
-} from "@react-google-maps/api";
+import { LocateFixed } from "lucide-react";
 
 interface LocationMapProps {
   lat: number;
@@ -34,179 +21,135 @@ interface LocationMapProps {
     [number, number],
     [number, number]
   ];
-  initialMarkers?: [number, number][];
 }
 
 export function LocationMap({
-  lat: initialLat,
-  lon: initialLon,
+  lat,
+  lon,
   siteImageUrl,
   imageCoordinates,
-  initialMarkers = [],
 }: LocationMapProps) {
-  // ─── State for markers ────────────────────────────────────────────────────
-  const [markers, setMarkers] = useState(() =>
-    initialMarkers.map(([lon, lat]) => ({ lat, lon }))
-  );
-
-  // ─── Refs ─────────────────────────────────────────────────────────────────
-  // MapRef here is the React-Map-GL wrapper.  .getMap() will return a MaplibreMap.
   const mapRef = useRef<MapRef>(null);
-  const panoRef = useRef<google.maps.StreetViewPanorama | null>(null);
+  const [showLabel, setShowLabel] = useState(false);
 
-  // ─── 1) Click handler: extract lng/lat from MapLayerMouseEvent  ───────────
-  const handleMapClick = useCallback((evt: MapLayerMouseEvent) => {
-    const { lng, lat } = evt.lngLat;
-    setMarkers((prev) => [...prev, { lat, lon: lng }]);
-  }, []);
-
-  // ─── 2) Drag-end handler: same fix for LngLat  ─────────────────────────────
-  const handleDragEnd = useCallback(
-    (evt: MarkerDragEvent, idx: number) => {
-      const { lng, lat } = evt.lngLat;
-      setMarkers((prev) =>
-        prev.map((m, i) => (i === idx ? { lat, lon: lng } : m))
-      );
-    },
-    []
-  );
-
-  // ─── 3) onLoad handler: use mapRef.current.getMap() → a MaplibreMap ────────
+  // Add/refresh the raster image overlay on load
   const onMapLoad = useCallback(() => {
-    if (!mapRef.current) {
-      // If the ref isn’t set yet, bail out
-      return;
-    }
-
-    // 3.a) getMap() returns a Maplibre-GL Map
+    if (!mapRef.current) return;
     const rawMap: MaplibreMap = mapRef.current.getMap();
 
-    // 3.b) Add your image source / layer on the **Maplibre** map
-    rawMap.addSource("site-photo", {
+    // avoid duplicate source/layer on re-mounts
+    if (!rawMap.getSource("site-photo")) {
+      rawMap.addSource("site-photo", {
         type: "image",
         url: siteImageUrl,
         coordinates: imageCoordinates,
       });
+    }
+    if (!rawMap.getLayer("site-photo-layer")) {
       rawMap.addLayer({
         id: "site-photo-layer",
         source: "site-photo",
         type: "raster",
         paint: { "raster-opacity": 0.8 },
       });
-    },
-    [siteImageUrl, imageCoordinates]
-  );
+    }
+  }, [siteImageUrl, imageCoordinates]);
 
-  // ─── Street View loader (unchanged) ───────────────────────────────────────
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_KEY || "",
-    libraries: ["streetView"],
-  });
-  const [svMarkers, setSvMarkers] = useState<{ lat: number; lng: number }[]>(
-    []
-  );
+  const handleRecenter = () => {
+    const rawMap = mapRef.current?.getMap();
+    if (!rawMap) return;
+
+    rawMap.flyTo({
+      center: [lon, lat],
+      zoom: rawMap.getZoom(), // or 13 if you want a fixed zoom
+      duration: 800,
+    });
+  };
+
+  // Keep map centered if the coordinates change
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const rawMap = mapRef.current.getMap();
+    rawMap.easeTo({ center: [lon, lat], duration: 400 });
+  }, [lat, lon]);
 
   return (
-    <Tabs variant="enclosed" colorScheme="teal">
-      <TabList>
-        <Tab>Map</Tab>
-        <Tab>Street View</Tab>
-        <Tab>Site Photo</Tab>
-      </TabList>
-      <TabPanels>
-        {/* 1. Interactive Vector Map */}
-        <TabPanel p={0}>
-          <Box h="400px">
-            <Map
-              ref={mapRef} // ← assign the MapRef here
-              initialViewState={{
-                latitude: initialLat,
-                longitude: initialLon,
-                zoom: 13,
-              }}
-              mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=jhTNNVnrTk3AjXEL4NP1"
-              style={{ width: "100%", height: "100%", borderRadius: "24px" }}
-              onClick={handleMapClick}
-              onLoad={onMapLoad}
-            >
-              {markers.map((m, i) => (
-                <MapMarker
-                  key={i}
-                  latitude={m.lat}
-                  longitude={m.lon}
-                  color="yellow"
-                  draggable
-                  onDragEnd={(e) => handleDragEnd(e, i)}
-                />
-              ))}
-            </Map>
-          </Box>
-        </TabPanel>
+    <Box h="100%">
+      <Map
+        ref={mapRef}
+        initialViewState={{
+          latitude: lat,
+          longitude: lon,
+          zoom: 13,
+          bearing: 0,
+          pitch: 0,
+        }}
+        mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+        style={{ width: "100%", height: "100%", borderRadius: "12px" }}
+        onLoad={onMapLoad}
+        // Note: no onClick = no pin-adding; marker is static and non-draggable
+      >
+        <NavigationControl position="top-left" />
 
-        {/* 2. Street-Level / 360° Imagery */}
-        <TabPanel p={0}>
-          {isLoaded ? (
-            <Box h="400px">
-              <GoogleMap
-                mapContainerStyle={{ width: "100%", height: "100%" }}
-                center={{ lat: initialLat, lng: initialLon }}
-                zoom={15}
-              >
-                <StreetViewPanorama
-                  options={{
-                    position: { lat: initialLat, lng: initialLon },
-                    visible: true,
-                  }}
-                  onLoad={(pano) => {
-                    // you can grab the panorama instance here
-                    console.log("StreetViewPanorama loaded:", pano);
-                  }}
-                  onPositionChanged={() => {
-                    const pos = panoRef.current?.getPosition();
-                    if (pos) {
-                      setSvMarkers((prev) => [
-                        ...prev,
-                        { lat: pos.lat(), lng: pos.lng() },
-                      ]);
-                    }
-                  }}
-                />
-                {svMarkers.map((m, i) => (
-                  <GMarker key={i} position={{ lat: m.lat, lng: m.lng }} />
-                ))}
-              </GoogleMap>
-            </Box>
-          ) : (
-            <Text>Loading Street View…</Text>
-          )}
-        </TabPanel>
+        <MapMarker
+          latitude={lat}
+          longitude={lon}
+          anchor="bottom"
+          draggable={false}
+        >
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              background: "#e11d48",
+              borderRadius: "50%",
+              border: "2px solid white",
+              boxShadow: "0 0 0 2px rgba(0,0,0,0.25)",
+            }}
+            title={"Lat: " + lat.toString() + "\nLon: " + lon.toString()}
+          />
+        </MapMarker>
 
-        {/* 3. Site Photo Overlay (in MapLibre) */}
-        <TabPanel p={0}>
-          <Box h="400px">
-            <Map
-              ref={mapRef} // ← reuse the same ref if you want the overlay here
-              initialViewState={{
-                latitude: initialLat,
-                longitude: initialLon,
-                zoom: 13,
-              }}
-              mapStyle="https://api.maptiler.com/maps/streets/style.json?key=YOUR_MAPTILER_KEY"
-              style={{ width: "100%", height: "100%" }}
-              onLoad={onMapLoad}
-            >
-              {markers.map((m, i) => (
-                <MapMarker
-                  key={i}
-                  latitude={m.lat}
-                  longitude={m.lon}
-                  color="yellow"
-                />
-              ))}
-            </Map>
-          </Box>
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
+        <HStack
+          position="absolute"
+          left={2}
+          bottom={2}
+          borderRadius="full"
+          zIndex={10}
+          bg={showLabel ? "white" : "none"}
+          transition="background 300ms ease"
+          outlineStyle={"solid"}
+          outlineWidth={"1px"}
+          outline={showLabel ? "solid 1px" : "none"}
+          onMouseEnter={() => setShowLabel(true)}
+          onMouseLeave={() => setShowLabel(false)}>
+          <IconButton
+            aria-label="Recenter map"
+            size="xs"
+            variant="outline"
+            outline="black solid 1px"
+            color="black"
+            bg="white"
+            borderRadius="full"
+            onClick={handleRecenter}
+            zIndex={15}
+          >
+            <LocateFixed size={14} />
+          </IconButton>
+          <Text
+            opacity={showLabel ? 1 : 0}
+            display="block"
+            overflow="hidden"
+            whiteSpace="nowrap"
+            w={showLabel ? "70px" : "0"}
+            ml={showLabel ? 1 : 0}
+            transition="opacity 200ms ease, width 300ms ease, margin-left 900ms ease"
+            pointerEvents={"none"}
+          >
+            Re-center
+          </Text>
+        </HStack>
+      </Map>
+    </Box>
   );
 }
