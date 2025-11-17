@@ -108,15 +108,14 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
   const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
   const [isSrcEditOpen, setSrcEditOpen] = useState(false);
   const [isSrcDelOpen, setSrcDelOpen] = useState(false);
-  const handleEditSource = () => { setSrcEditOpen(true); setPopoverOpen(false) };
-  const handleDeleteSource = () => { setSrcDelOpen(true); setPopoverOpen(false) };
+  const handleEditSource = () => { setSrcEditOpen(true);};
+  const handleDeleteSource = () => { setSrcDelOpen(true);};
   const [selectedField, setSelectedField] = useState<NumericField>('latitude');
   const [configViewer, setConfigViewer] = useState<{
     open: boolean;
     data: Record<string, unknown> | null;
     title?: string;
   }>({ open: false, data: null, title: undefined });
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
   // scrollbar colors
   const trackBg = useColorModeValue('gray.200', 'gray.700');
   const thumbBg = useColorModeValue('gray.600', 'gray.400');
@@ -240,7 +239,7 @@ const toggleAll = (check: boolean) => {
             bg={source.active ? "green.400" : "red.400"}
           />
           <Box display={"inline-block"}>
-            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
                   onClick={(e) => e.stopPropagation()}

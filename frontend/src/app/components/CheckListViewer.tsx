@@ -130,7 +130,7 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
       }
     })();
     return () => { live = false; };
-  }, [locationId, onChecklistCountChange]);
+  }, [locationId]);
 
   // Map responses by template_item_id (works if responses is [])
   const responseMap = useMemo(() => {

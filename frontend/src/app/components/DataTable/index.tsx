@@ -668,15 +668,16 @@ export default function DataTable<T extends { id: string; }>({
                 </Dialog.Header>
                 <Dialog.Body maxH="65vh" overflowY="auto">
                   {configViewer.data ? (
-                    <JsonEditor
-                      data={configViewer.data}
-                      setData={() => { /* read-only viewer */ }}
-                      restrictEdit={() => true}     // disallow edits
-                      restrictDelete={() => true}   // disallow deletes
-                      restrictAdd={() => true}
-                      rootName="Config"
-                      defaultValue=""
-                    />
+                      <JsonEditor
+                        data={configViewer.data}
+                        setData={() => { /* read-only viewer */ }}
+                        restrictEdit={() => true}     // disallow edits
+                        restrictDelete={() => true}   // disallow deletes
+                        restrictAdd={() => true}
+                        rootName="Config"
+                        defaultValue=""
+                        className="json-editor"
+                      />
                   ) : (
                     <Textarea readOnly value="No config available" />
                   )}

@@ -66,8 +66,8 @@ export default function LocationPageClient({ initialLocation, initialSources, in
   
   const [isLocEditOpen, setLocEditOpen] = useState(false);
   const [isLocDelOpen, setLocDelOpen] = useState(false);
-  const handleEditLocation = () => {setLocEditOpen(true); setPopoverOpen(false)};
-  const handleDeleteLocation = () => {setLocDelOpen(true); setPopoverOpen(false)};
+  const handleEditLocation = () => {setLocEditOpen(true);};
+  const handleDeleteLocation = () => {setLocDelOpen(true);};
 
   const [isGrpCreateOpen, setGrpCreateOpen] = useState(false);
   const [isGrpEditOpen, setGrpEditOpen] = useState(false);
@@ -77,7 +77,6 @@ export default function LocationPageClient({ initialLocation, initialSources, in
   const handleNewGrp = () => (setGrpCreateOpen(true));
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   // Map controls
   const [isMapCollapsed, setMapCollapsed] = useState(false);
@@ -108,7 +107,8 @@ export default function LocationPageClient({ initialLocation, initialSources, in
       setMapCollapsed(true);
       setMapMaximized(false);
       setMapHeightSmooth(0);
-      
+      if (!isChecklistCollapsed)
+        maximizeChecklist();
     }
   };
   const restoreMap = () => {
@@ -171,7 +171,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
             bg={location.active ? "green.400" : "red.400"}
           />
           <Box display={"inline-block"}>
-            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
                   onClick={(e) => e.stopPropagation()}
@@ -232,8 +232,9 @@ export default function LocationPageClient({ initialLocation, initialSources, in
         gap={3}
         direction={isMapMaximized || isChecklistMaximized ? "column" : "row"}
         overflow={"hidden"}
-        h={`${mapHeight}px + 10px)`}
+        h={isChecklistMaximized ? "100%" : `${mapHeight}px + 10px)`}
         minH={`42px`}
+        rounded={"md"}
       >
         {/* Map panel */}
         <Box
@@ -318,24 +319,24 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           flexShrink={0}
           flexGrow={0}
           flexBasis={isMapMaximized ? "0px" : isChecklistCollapsed ? `${COLLAPSED_RAIL}px` : "25%"}
-          transition={"flex-basis 0.5s ease-in-out, min-height 0.5s ease-in-out"}
+          transition={"flex-basis 0.5s ease-in-out, min-height 0.5s ease-in-out, width 0.5s ease-in-out"}
           minW={"100px"}
-          minH={isChecklistCollapsed || isMapMaximized ? "0px" : "250px"}
+          minH={isChecklistMaximized ? "70vh" : isChecklistCollapsed ? "0px" : "434px"}
           display={isMapMaximized ? "none" : "block"}
         >
           <Box
             position="absolute"
-            top={1}
-            right={3}
+            top={0}
+            right={0}
             w={isChecklistCollapsed ? "auto" : "400px"}
-            h="20px"
+            h="40px"
             bg="transparent"
             opacity={0}
             _hover={{ opacity: 1 }}
             zIndex={1}
           >
             {/* checklist controls (top-right) */}
-            <Flex position="absolute" top={1} right={1} gap={1} zIndex={1}>
+            <Flex position="absolute" top={1} right={isChecklistCollapsed ? 1 : 5} zIndex={1} transition="right 500ms ease">
               {isChecklistCollapsed ? (
                 <Tooltip content="Restore checklist">
                   <IconButton aria-label="Restore checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={restoreChecklist}>

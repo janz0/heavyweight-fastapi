@@ -14,7 +14,7 @@ export default function Sidebar() {
   const [isShrunk, setShrinkHome] = useState(false);
   const arrowColor = useColorModeValue("gray.200", "gray.700");
   const textColor = useColorModeValue("gray.600", "white");
-  const hoverBg = useColorModeValue("#dcdde0", "#2a2a2c");
+  const hoverBg = useColorModeValue("#dcdde0", "gray.600");
   const hoverArrowColor = useColorModeValue("gray.400", "gray.800");
   const hoverButton = useColorModeValue("gray.100", "black");
   const isActiveColor = useColorModeValue("rgba(194, 213, 255, 0.40)", "blue.400")
@@ -23,19 +23,19 @@ export default function Sidebar() {
   const pathname = usePathname();
   const fadeGradient = useColorModeValue(
     "linear-gradient(90deg, var(--chakra-colors-gray-200), var(--chakra-colors-gray-400))",
-    "linear-gradient(90deg, var(--chakra-colors-gray-800), var(--chakra-colors-gray-900))"
+    "linear-gradient(90deg, var(--chakra-colors-gray-700), var(--chakra-colors-gray-600))"
   );
   const isHomeActive = pathname === "/", isProjectsActive = pathname === "/projects", isLocationsActive = pathname === "/locations", isSensorsActive = pathname === "/sensors", isSourcesActive = pathname === "/sources";
   return (
-    <Box as="nav" display={{base: "none", md: "initial"}} overflow="visible" zIndex={10} borderTopLeftRadius={"lg"} bg="gray.200" _dark={{background: "gray.800"}} position="relative" _hover={isOpen ? undefined : {backgroundColor: hoverBg}} w={sidebarWidth} transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
+    <Box as="nav" display={{base: "none", md: "initial"}} overflow="visible" zIndex={10} borderTopLeftRadius={"lg"} bg="gray.200" _dark={{background: "gray.700"}} position="relative" _hover={isOpen ? undefined : {backgroundColor: hoverBg}} w={sidebarWidth} transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
       onMouseLeave={() => {setIsBoxHovered(false); setShrinkHome(false)}}
         _after={{
           content: '""',
           pos: "absolute",
           top: 0,
           bottom: 0,
-          right: "-10px",            // push into the 1-unit gap (e.g. 4px)
-          width: "10px",             // fade over 8px (4px gap + 4px bleed)
+          right: "-6px",            // push into the 1-unit gap (e.g. 4px)
+          width: "13px",             // fade over 8px (4px gap + 4px bleed)
           bg: fadeGradient,
           pointerEvents: "none",    // so it never blocks clicks
           zIndex: -1,

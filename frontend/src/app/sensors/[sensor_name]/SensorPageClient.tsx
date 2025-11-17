@@ -30,8 +30,8 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const [isSenEditOpen, setSenEditOpen] = useState(false);
   const [isSenDelOpen, setSenDelOpen] = useState(false);
-  const handleEditSensor = () => { setSenEditOpen(true); setPopoverOpen(false)};
-  const handleDeleteSensor = () => { setSenDelOpen(true); setPopoverOpen(false)};
+  const handleEditSensor = () => { setSenEditOpen(true);};
+  const handleDeleteSensor = () => { setSenDelOpen(true);};
 
   type SampleRow = {
     timestamp: string;      // ISO string
@@ -75,7 +75,6 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
   const thumbBg = useColorModeValue('gray.600', 'gray.400');
   const thumbBorder = useColorModeValue('gray.100', 'gray.800');
   const [sampleData] = useState<SampleRow[]>(() => makeSampleData());
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
@@ -97,7 +96,7 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
             bg={sensor.active ? "green.400" : "red.400"}
           />
           <Box display={"inline-block"}>
-            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
                   onClick={(e) => e.stopPropagation()}

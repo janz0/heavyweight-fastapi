@@ -27,7 +27,7 @@ export default function Navbar() {
   const { authToken, signOut } = useAuth();
   const profileRef = useRef<HTMLDivElement>(null);
   const textColor = useColorModeValue("gray.800","#eeeeee");
-  const navbgColor = useColorModeValue("rgba(230, 234, 243, 0.19)","gray.700");
+  const navbgColor = useColorModeValue("rgba(230, 234, 243, 0.19)","gray.900");
   const links = [
     {
       label: "Dashboard",
