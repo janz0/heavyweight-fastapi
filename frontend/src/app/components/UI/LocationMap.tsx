@@ -118,15 +118,13 @@ export function LocationMap({
           zIndex={10}
           bg={showLabel ? "white" : "none"}
           transition="background 300ms ease"
-          outlineStyle={"solid"}
-          outlineWidth={"1px"}
-          outline={showLabel ? "solid 1px" : "none"}
+          outline={showLabel ? "solid 1px black" : "none"}
           onMouseEnter={() => setShowLabel(true)}
           onMouseLeave={() => setShowLabel(false)}>
           <IconButton
             aria-label="Recenter map"
             size="xs"
-            variant="outline"
+            variant="solid"
             outline="black solid 1px"
             color="black"
             bg="white"
@@ -145,6 +143,7 @@ export function LocationMap({
             ml={showLabel ? 1 : 0}
             transition="opacity 200ms ease, width 300ms ease, margin-left 900ms ease"
             pointerEvents={"none"}
+            color="black"
           >
             Re-center
           </Text>

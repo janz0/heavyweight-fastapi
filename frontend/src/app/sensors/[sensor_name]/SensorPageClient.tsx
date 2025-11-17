@@ -194,7 +194,7 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
             </Table.Root>
           </Table.ScrollArea>
         </Box>
-        <Box className="bg-card" minW={0} bg="white" flex={"1 1 0%"}>
+        <Box className="bg-card" minW={0} flex={"1 1 0%"}>
           {/* --------------- */}
           {/* the actual line chart */}
           <GraphPanel

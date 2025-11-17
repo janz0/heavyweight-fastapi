@@ -412,7 +412,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           borderColor={"purple.600"}
           bg={activeTab === 'sources' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "white"}}
           w="25%"
         >
           Sources
@@ -424,7 +424,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           borderColor={"green.600"}
           bg={activeTab === 'sensors' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "white"}}
           w="25%"
         >
           Sensors
@@ -436,7 +436,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           borderColor={"black"}
           bg={activeTab === 'groups' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "white"}}
           w="25%"
         >
           Groups
