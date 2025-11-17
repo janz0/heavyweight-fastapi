@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from 'react';
-import { Box, HStack, Heading, IconButton, Table, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection, Checkbox, Dialog, Textarea } from '@chakra-ui/react';
-import { useColorMode, useColorModeValue } from '@/app/src/components/ui/color-mode';
+import { Box, HStack, Heading, IconButton, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection, Checkbox, Dialog, Textarea } from '@chakra-ui/react';
+import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Source } from '@/types/source';
 import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
 import { SourceEditModal, SourceDeleteModal } from '../../components/Modals/SourceModals';
@@ -52,7 +52,7 @@ function mulberry32(a: number) {
 function colorFromSeed(seed: string, mode: 'light' | 'dark') {
   const h = seedFromString(seed) % 360;
   const s = 65;
-  const l = mode === 'light' ? 45 : 60;
+  const l = mode === 'light' ? 45 : 70;
   return `hsl(${h} ${s}% ${l}%)`;
 }
 
@@ -116,10 +116,6 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
     data: Record<string, unknown> | null;
     title?: string;
   }>({ open: false, data: null, title: undefined });
-  // scrollbar colors
-  const trackBg = useColorModeValue('gray.200', 'gray.700');
-  const thumbBg = useColorModeValue('gray.600', 'gray.400');
-  const thumbBorder = useColorModeValue('gray.100', 'gray.800');
   const { labels, perSensor } = useMemo(() => {
     const points = 30;
     const stepMinutes = 2;
@@ -157,40 +153,73 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
 
     return { labels, perSensor };
   }, [initialSensors]);
-const datasets = useMemo(
-  () =>
-    initialSensors.map((s, idx) => {
-      const key = String(s.id ?? s.sensor_name ?? idx);
-      const series = perSensor[key];
-      return {
-        label: s.sensor_name,
-        data: series ? series[selectedField] : [],
-        borderColor: colorFromSeed(key, colorMode), // stable color per sensor
-        backgroundColor: 'transparent',
-        tension: 0.35,
-      };
-    }),
-  [initialSensors, perSensor, selectedField, colorMode]
-);
+  const datasets = useMemo(
+    () =>
+      initialSensors.map((s, idx) => {
+        const key = String(s.id ?? s.sensor_name ?? idx);
+        const series = perSensor[key];
+        const stroke = colorFromSeed(key, colorMode);
+
+        return {
+          label: s.sensor_name,
+          data: series ? series[selectedField] : [],
+          borderColor: stroke,
+          backgroundColor:
+            colorMode === "dark"
+              ? stroke.replace("hsl", "hsla").replace("%)", "% / 0.25)") // soft fill in dark
+              : "transparent",
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHitRadius: 6,
+        };
+      }),
+    [initialSensors, perSensor, selectedField, colorMode]
+  );
   const chartRef = useRef<ChartJS<"line">>(null);
-  const chartOptions: ChartOptions<'line'> = useMemo(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: {
-        title: { display: true, text: 'Time' },
-        grid:  { display: false },
+  const chartOptions: ChartOptions<'line'> = useMemo(() => {
+    const isDark = colorMode === "dark";
+    const axisColor  = isDark ? "#E5E7EB" : "#374151";
+    const gridColor  = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(100, 100, 100, 0.08)";
+    const tooltipBg  = isDark ? "#111827" : "#F9FAFB";
+    const tooltipBorder = isDark ? "#4B5563" : "#E5E7EB";
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          title: { display: true, text: "Time", color: axisColor },
+          ticks: { color: axisColor },
+          grid:  { color: gridColor },
+        },
+        y: {
+          title: {
+            display: true,
+            text: selectedField === "latitude" ? "Latitude (°)" : "Longitude (°)",
+            color: axisColor,
+          },
+          ticks: { color: axisColor },
+          grid:  { color: gridColor },
+          beginAtZero: false,
+        },
       },
-      y: {
-        title: { display: true, text: selectedField === 'latitude' ? 'Latitude (°)' : 'Longitude (°)' },
-        beginAtZero: false,
+      plugins: {
+        legend: {
+          display: false,
+          labels: { color: axisColor },
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: tooltipBg,
+          borderColor: tooltipBorder,
+          borderWidth: 1,
+          titleColor: axisColor,
+          bodyColor: axisColor,
+        },
       },
-    },
-    plugins: {
-      legend:  { display: false },
-      tooltip: { enabled: true },
-    },
-  }), [selectedField]);
+    };
+  }, [selectedField, colorMode]);
 const [visible, setVisible] = useState<boolean[]>(() =>
   datasets.map(() => true) // start all checked
 );
@@ -310,8 +339,8 @@ const toggleAll = (check: boolean) => {
       <Box width="full" className="bg-card">
       <HStack>
         <Box width="full" h="60vh" className="bg-card">
-          <Box position="relative" h="full" /*"calc(100% - 48px)"*/ p={2} pt={14} borderWidth={2}>
-            <Box className="bg-card" bg="gray.200" position="absolute" right={"2%"} top={3} p={1} m={0}>
+          <Box position="relative" h="full" p={2} pt={14} borderWidth={2} border="none" m={0}>
+            <Box className="bg-card" bg="gray.200" _dark={{ bg: 'gray.700' }} position="absolute" right={"2%"} top={3} p={1} m={0}>
               <Select.Root collection={chart} w="150px" value={[selectedField]} 
                 onValueChange={(e) => {
                   const next = e.value[0] as NumericField; // <- first selected value
@@ -319,7 +348,7 @@ const toggleAll = (check: boolean) => {
                 }}>
                 <Select.HiddenSelect />
                 <Select.Control>
-                  <Select.Trigger h="25px" minH={0}>
+                  <Select.Trigger h="25px" minH={0} border={"none"}>
                     <Select.ValueText fontSize={12}/>
                   </Select.Trigger>
                   <Select.IndicatorGroup>
@@ -328,7 +357,7 @@ const toggleAll = (check: boolean) => {
                 </Select.Control>
                 <Portal>
                   <Select.Positioner>
-                    <Select.Content>
+                    <Select.Content >
                       {chart.items.map((c) => (
                         <Select.Item item={c} key={c.value}>
                           {c.label}
@@ -344,56 +373,7 @@ const toggleAll = (check: boolean) => {
           </Box>
         </Box>
         <Box minW="15vw" h="60vh" className="bg-card">
-          {/* Chart placeholder */}
-          {false &&
-          <Table.ScrollArea borderWidth={1} borderRadius={"sm"} height="100%" bg="blackAlpha.200" css={{
-            /* WebKit (Chrome/Safari) */
-            '&::-webkit-scrollbar': {
-              width: '8px',
-              color: trackBg,
-              background: trackBg,
-              borderRadius: "xl",
-            },
-            '&::-webkit-scrollbar-track': {
-              background: trackBg,
-              borderRadius: '2px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: thumbBg,
-              borderRadius: 'xl',
-              border: '1px solid',
-              borderColor: thumbBorder,
-            },
-            /* Firefox */
-            scrollbarColor: `${thumbBg} ${trackBg}`,
-          }}>
-            <Table.Root showColumnBorder variant="line" stickyHeader interactive>
-              <Table.Header>
-                <Table.Row bg="gray.100" _dark={{bg: "gray.700"}} fontSize={16}>
-                  <Table.ColumnHeader textAlign={"center"}>
-                    Sensor
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader textAlign={"center"}>
-                    Data
-                  </Table.ColumnHeader>
-                </Table.Row>   
-              </Table.Header>
-              <Table.Body>
-                {initialSensors.map((sensor) => (
-                  <Table.Row key={sensor.id}>
-                    <Table.Cell p={3}>
-                      {sensor.sensor_name}
-                    </Table.Cell>
-                    <Table.Cell textAlign={"right"} p={3}>
-                      15.6
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
-          </Table.ScrollArea>
-          }
-          <Box h="full" overflowY="auto" bg="bg.subtle" borderWidth={1} borderRadius="md" p={2}>
+          <Box h="100%" overflowY="auto" pb={4}>
             <Heading size="sm" mb={2}>Sensors</Heading>
             <VStack align="start" gap={1}>
               {/* Select All */}
@@ -436,59 +416,59 @@ const toggleAll = (check: boolean) => {
                 </HStack>
               ))}
             </VStack>
-            <Dialog.Root open={configViewer.open} onOpenChange={(o) => !o && setConfigViewer(prev => ({ ...prev, open: false }))}>
-              <Portal>
-                <Dialog.Backdrop />
-                <Dialog.Positioner>
-                  <Dialog.Content maxH="80vh" overflow="hidden" border="2px solid">
-                    <Dialog.Header>
-                      <Dialog.Title>Config{configViewer.title ? ` — ${configViewer.title}` : ""}</Dialog.Title>
-                      <Dialog.CloseTrigger asChild>
-                        <IconButton aria-label="Close" variant="ghost" size="xs" />
-                      </Dialog.CloseTrigger>
-                    </Dialog.Header>
-    
-                    <Dialog.Body maxH="65vh" overflowY="auto">
-                      {configViewer.data ? (
-                        <JsonEditor
-                          data={configViewer.data}
-                          setData={() => { /* read-only viewer */ }}
-                          restrictEdit={() => true}     // disallow edits
-                          restrictDelete={() => true}   // disallow deletes
-                          restrictAdd={() => true}
-                          rootName="Config"
-                          defaultValue=""
-                        />
-                      ) : (
-                        <Textarea readOnly value="No config available" />
-                      )}
-                    </Dialog.Body>
-    
-                    <Dialog.Footer display="flex" gap={2}>
-                      <Button
-                        variant="surface"
-                        onClick={async () => {
-                          try {
-                            const text = JSON.stringify(configViewer.data ?? {}, null, 2);
-                            await navigator.clipboard.writeText(text);
-                            toaster.create({ description: "Config copied to clipboard", type: "success" });
-                          } catch {
-                            toaster.create({
-                              description: "Copy failed. Your browser may have blocked clipboard access.",
-                              type: "error",
-                            });
-                          }
-                        }}
-                      >
-                        Copy JSON
-                      </Button>
-                      <Button onClick={() => setConfigViewer(prev => ({ ...prev, open: false }))}>Close</Button>
-                    </Dialog.Footer>
-                  </Dialog.Content>
-                </Dialog.Positioner>
-              </Portal>
-            </Dialog.Root>
           </Box>
+          <Dialog.Root open={configViewer.open} onOpenChange={(o) => !o && setConfigViewer(prev => ({ ...prev, open: false }))}>
+            <Portal>
+              <Dialog.Backdrop />
+              <Dialog.Positioner>
+                <Dialog.Content maxH="80vh" overflow="hidden" border="2px solid">
+                  <Dialog.Header>
+                    <Dialog.Title>Config{configViewer.title ? ` — ${configViewer.title}` : ""}</Dialog.Title>
+                    <Dialog.CloseTrigger asChild>
+                      <IconButton aria-label="Close" variant="ghost" size="xs" />
+                    </Dialog.CloseTrigger>
+                  </Dialog.Header>
+  
+                  <Dialog.Body maxH="65vh" overflowY="auto">
+                    {configViewer.data ? (
+                      <JsonEditor
+                        data={configViewer.data}
+                        setData={() => { /* read-only viewer */ }}
+                        restrictEdit={() => true}     // disallow edits
+                        restrictDelete={() => true}   // disallow deletes
+                        restrictAdd={() => true}
+                        rootName="Config"
+                        defaultValue=""
+                      />
+                    ) : (
+                      <Textarea readOnly value="No config available" />
+                    )}
+                  </Dialog.Body>
+  
+                  <Dialog.Footer display="flex" gap={2}>
+                    <Button
+                      variant="surface"
+                      onClick={async () => {
+                        try {
+                          const text = JSON.stringify(configViewer.data ?? {}, null, 2);
+                          await navigator.clipboard.writeText(text);
+                          toaster.create({ description: "Config copied to clipboard", type: "success" });
+                        } catch {
+                          toaster.create({
+                            description: "Copy failed. Your browser may have blocked clipboard access.",
+                            type: "error",
+                          });
+                        }
+                      }}
+                    >
+                      Copy JSON
+                    </Button>
+                    <Button onClick={() => setConfigViewer(prev => ({ ...prev, open: false }))}>Close</Button>
+                  </Dialog.Footer>
+                </Dialog.Content>
+              </Dialog.Positioner>
+            </Portal>
+          </Dialog.Root>
         </Box>
       </HStack>
       </Box>
