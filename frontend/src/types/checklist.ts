@@ -26,6 +26,21 @@ export interface ChecklistTemplate {
   created_at: string;       // ISO timestamp
 }
 
+export interface ChecklistTemplateCategory {
+  id: UUID;
+  template_id: UUID;
+  title: string;
+  sort_order: number;
+}
+
+export interface ChecklistTemplateItem {
+  id: UUID;
+  category_id: UUID;
+  prompt: string;
+  response_type: "yes_no" | "text";
+  sort_order: number;
+}
+
 // ─── EXPANDED CHECKLIST (with template + responses) ───────────────────
 export type ChecklistExpanded = {
   id: UUID;
