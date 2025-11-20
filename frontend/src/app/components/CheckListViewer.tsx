@@ -3,9 +3,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Box, Heading, Text, VStack, HStack, Spinner, Badge, Separator, Icon, Code, Button
+  Box, Checkbox, Heading, Text, Textarea, VStack, HStack, Spinner, Badge, Separator, Icon, Code, Button,
+  IconButton
 } from "@chakra-ui/react";
 import { CheckCircle, XCircle, NotePencil } from "phosphor-react";
+import { Eye } from "lucide-react";
 
 type UUID = string;
 
@@ -69,23 +71,39 @@ async function getExpandedChecklist(checklistId: string): Promise<ExpandedCheckl
   ) as Promise<ExpandedChecklist>;
 }
 
+async function addResponses(
+  checklistId: string,
+  responses: Array<{ template_item_id: UUID; value: boolean; comment?: string | null }>
+) {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "";
+  return safeFetchJson(`${base}checklists/${checklistId}/responses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(responses),
+  });
+}
+
 type ChecklistViewerProps = {
   locationId: string;
   onChecklistCountChange?: (count: number) => void;
 };
 
+type DraftResponse = { value: boolean; comment?: string | null };
+
 export default function ChecklistViewer({ locationId, onChecklistCountChange }: ChecklistViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [data, setData]       = useState<ExpandedChecklist | null>(null);
-
+  const [draft, setDraft] = useState<Record<string, DraftResponse>>({});
+  
   // simple debug flags (no Collapse, no extra fields on the debug object)
   const [showDebug, setShowDebug]     = useState(false);
   const [showPayload, setShowPayload] = useState(false);
   const [lastUrl, setLastUrl]         = useState<string | null>(null);
 
-  useEffect(() => {
+    useEffect(() => {
     let live = true;
+
     (async () => {
       try {
         setLoading(true);
@@ -98,15 +116,15 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
         const list = await listChecklistsByLocation(locationId);
         if (!live) return;
 
-        // 👉 tell parent how many checklists we have
         onChecklistCountChange?.(list.length);
 
         if (!list.length) {
           setData(null);
+          setDraft({});
           return;
         }
 
-        // 2) pick latest (defensive) and expand
+        // 2) pick latest and expand
         list.sort((a, b) => +new Date(b.performed_at) - +new Date(a.performed_at));
         const expUrl = `${process.env.NEXT_PUBLIC_API_URL ?? ""}checklists/${list[0].id}/expanded`;
         setLastUrl(expUrl);
@@ -114,30 +132,54 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
         if (!live) return;
 
         setData(expanded);
+        setDraft({});
       } catch (e: unknown) {
-        if (e instanceof Error) {
-          setError(e.message);
-        } else {
-          setError("Failed to load checklist");
-        }
         setData(null);
-        // in an error case you can optionally say "0" to the parent:
+        setDraft({});
         onChecklistCountChange?.(0);
+
+        if (e instanceof Error) setError(e.message);
+        else setError("Failed to load checklist");
       } finally {
-        if (live) {
-          setLoading(false);
-        }
+        if (live) setLoading(false);
       }
     })();
-    return () => { live = false; };
-  }, [locationId]);
 
-  // Map responses by template_item_id (works if responses is [])
-  const responseMap = useMemo(() => {
-    const m = new Map<string, { value: boolean; comment?: string | null }>();
-    data?.responses?.forEach(r => m.set(r.template_item_id, { value: r.value, comment: r.comment }));
-    return m;
-  }, [data?.responses]);
+    return () => { live = false; };
+  }, [locationId, onChecklistCountChange]);
+
+  const savePayload = useMemo(() => {
+    if (!data) return [];
+    return data.categories.flatMap(cat =>
+      cat.items.map(item => ({
+        checklist_id: data.id,
+        template_item_id: item.id,
+        value: draft[item.id]?.value ?? false,
+        comment: draft[item.id]?.comment ?? null,
+      }))
+    );
+  }, [data, draft]);
+
+  const handleSave = async () => {
+    if (!data) return;
+    try {
+      await addResponses(data.id, savePayload);
+      // refetch to sync
+      const fresh = await getExpandedChecklist(data.id);
+      setData(fresh);
+
+      const seeded: Record<string, DraftResponse> = {};
+      fresh.responses.forEach(r => {
+        seeded[r.template_item_id] = {
+          value: r.value,
+          comment: r.comment ?? null,
+        };
+      });
+      setDraft(seeded);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (loading) {
     return (
@@ -191,11 +233,24 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
         </HStack>
       )}
 
-      {noResponses && (
+      {noResponses ?  (
         <Box mb={2} p={3} borderWidth="1px" borderRadius="md" bg="bg.subtle">
           <Text fontSize="sm">No responses recorded yet.</Text>
         </Box>
-      )}
+      ) : <Box mb={2} p={3} borderWidth="1px" borderRadius="md" bg="bg.subtle">
+            <Text fontSize="sm" textAlign={"center"}>Last Response
+              <IconButton
+                aria-label="View last response"
+                variant="ghost"
+                size="xs"
+                onClick={() => {
+                }}
+              >
+                <Icon as={Eye} />
+              </IconButton>
+            </Text>
+        </Box>
+      }
 
       <VStack align="stretch" gap={2}>
         {categories.map(cat => {
@@ -203,25 +258,81 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
           return (
             <Box key={cat.id} borderWidth="1px" borderRadius="md" p={3} bg="bg.subtle">
               <Heading size="xs" mb={2}>{cat.title}</Heading>
-              <VStack align="stretch" gap={2}>
+
+              <VStack align="stretch" gap={3}>
                 {items.map(item => {
-                  const r = responseMap.get(item.id);
-                  const isYes = r?.value === true;
+                  const r = draft[item.id];
+                  const answered = r !== undefined;
 
                   return (
                     <Box key={item.id}>
-                      <HStack justify="space-between" align="start">
-                        <Text>{item.prompt}</Text>
-                        <HStack minW="80px" justify="flex-end">
-                          {r
-                            ? (isYes
-                                ? <HStack><Icon as={CheckCircle} /><Text>Yes</Text></HStack>
-                                : <HStack><Icon as={XCircle} /><Text>No</Text></HStack>)
-                            : <Text color="fg.muted">—</Text>}
-                        </HStack>
-                      </HStack>
+                      {item.response_type === "yes_no" ? (
+                        <HStack justify="space-between" align="center">
+                          <Checkbox.Root
+                            checked={r?.value ?? false}
+                            onCheckedChange={(e) =>
+                              setDraft(prev => ({
+                                ...prev,
+                                [item.id]: {
+                                  value: e.checked === true,
+                                  comment: prev[item.id]?.comment ?? null,
+                                },
+                              }))
+                            }
+                          >
+                            <Checkbox.HiddenInput />
+                            <Checkbox.Control />
+                          </Checkbox.Root>
 
-                      {r?.comment && (
+                          <Text
+                            flex="1"
+                            ml={2}
+                            color={answered ? "fg" : "fg.muted"}
+                            fontStyle={answered ? "normal" : "italic"}
+                          >
+                            {item.prompt}
+                          </Text>
+
+                          <HStack minW="80px" justify="flex-end">
+                            {answered ? (
+                              r?.value ? (
+                                <HStack><Icon as={CheckCircle} color="green"/><Text>Yes</Text></HStack>
+                              ) : (
+                                <HStack><Icon as={XCircle} color="red"/><Text>No</Text></HStack>
+                              )
+                            ) : (
+                              <HStack><Icon as={XCircle} color="red"/><Text>No</Text></HStack>
+                            )}
+                          </HStack>
+                        </HStack>
+                      ) : (
+                        <Box>
+                          <Text
+                            fontWeight="medium"
+                            color={answered ? "fg" : "fg.muted"}
+                            fontStyle={answered ? "normal" : "italic"}
+                          >
+                            {item.prompt}
+                          </Text>
+
+                          <Textarea
+                            mt={2}
+                            value={r?.comment ?? ""}
+                            onChange={(e) => {
+                              const text = e.target.value;
+                              setDraft(prev => ({
+                                ...prev,
+                                [item.id]: {
+                                  value: text.trim().length > 0,
+                                  comment: text,
+                                },
+                              }));
+                            }}
+                          />
+                        </Box>
+                      )}
+
+                      {r?.comment && item.response_type === "yes_no" && (
                         <Text mt={1} fontSize="sm" color="fg.muted" pl={6}>
                           {r.comment}
                         </Text>
@@ -236,6 +347,13 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
           );
         })}
       </VStack>
+
+      {/* ✅ ADD Save button */}
+      <HStack mt={4} justify="flex-end">
+        <Button onClick={handleSave} colorScheme="yellow">
+          Save Responses
+        </Button>
+      </HStack>
 
       {/* lightweight debug (no Collapse) */}
       <Box mt={4}>

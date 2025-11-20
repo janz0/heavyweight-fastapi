@@ -254,6 +254,7 @@ function LocationForm({
               aria-label="coordinates-map"
               variant="outline"
               borderColor={"black"}
+              _dark={{borderColor: "white"}}
               onClick={(e) => {
                 e.preventDefault();
                 setMapOpen(true);

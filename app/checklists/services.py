@@ -2,6 +2,7 @@
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from . import models, schemas
 
@@ -93,6 +94,9 @@ def create_responses(db: Session,
                      checklist_id: UUID,
                      reps_in: List[schemas.ChecklistResponseCreate]
                     ) -> List[models.ChecklistResponse]:
+    cl = db.query(models.Checklist).filter(models.Checklist.id == checklist_id).first()
+    if cl:
+        cl.performed_at = func.now()
     created = []
     for rep in reps_in:
         # ensure the payload has the checklist_id

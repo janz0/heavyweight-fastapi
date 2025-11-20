@@ -59,7 +59,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
   // Once authenticated, show the Navbar + whatever the page is (dashboard, etc.).
   return (
-    <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)" _dark={{background: "gray.800"}}>
+    <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)" _dark={{background: "gray.900"}}>
       <Navbar />
       <Flex flex="1" minH="0" w="100vw" pl={{md: "2"}} gap="1">
         <Sidebar />
