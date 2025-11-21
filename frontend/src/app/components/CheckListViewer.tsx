@@ -4,7 +4,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Box, Checkbox, Heading, Text, Textarea, VStack, HStack, Spinner, Badge, Separator, Icon, Code, Button,
-  IconButton
+  IconButton,
+  Portal,
+  Dialog,
+  CloseButton
 } from "@chakra-ui/react";
 import { CheckCircle, XCircle, NotePencil } from "phosphor-react";
 import { Eye } from "lucide-react";
@@ -95,13 +98,13 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
   const [error, setError]     = useState<string | null>(null);
   const [data, setData]       = useState<ExpandedChecklist | null>(null);
   const [draft, setDraft] = useState<Record<string, DraftResponse>>({});
-  
+
   // simple debug flags (no Collapse, no extra fields on the debug object)
   const [showDebug, setShowDebug]     = useState(false);
   const [showPayload, setShowPayload] = useState(false);
   const [lastUrl, setLastUrl]         = useState<string | null>(null);
-
-    useEffect(() => {
+  
+  useEffect(() => {
     let live = true;
 
     (async () => {
@@ -147,6 +150,14 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
 
     return () => { live = false; };
   }, [locationId, onChecklistCountChange]);
+
+  const responseMap = useMemo(() => {
+  const m = new Map<string, { value: boolean; comment?: string | null }>();
+  data?.responses?.forEach(r =>
+    m.set(r.template_item_id, { value: r.value, comment: r.comment ?? null })
+  );
+  return m;
+}, [data]);
 
   const savePayload = useMemo(() => {
     if (!data) return [];
@@ -239,16 +250,99 @@ export default function ChecklistViewer({ locationId, onChecklistCountChange }: 
         </Box>
       ) : <Box mb={2} p={3} borderWidth="1px" borderRadius="md" bg="bg.subtle">
             <Text fontSize="sm" textAlign={"center"}>Last Response
-              <IconButton
+              <Dialog.Root key="prev" size="md">
+                <Dialog.Trigger asChild>
+                <IconButton
                 aria-label="View last response"
                 variant="ghost"
                 size="xs"
-                onClick={() => {
-                }}
+                
               >
                 <Icon as={Eye} />
               </IconButton>
-            </Text>
+              </Dialog.Trigger>
+              <Portal>
+                <Dialog.Backdrop />
+                <Dialog.Positioner>
+                  <Dialog.Content maxH="80vh" overflow="hidden" border="2px solid">
+                    <Dialog.Header>
+                      <Box flex="1">
+                        <Dialog.Title>
+                          Last Response — {data.template_name}
+                        </Dialog.Title>
+                        <Dialog.Description mt="1" fontSize="sm" color="fg.muted">
+                          {new Intl.DateTimeFormat(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }).format(new Date(data.performed_at))}
+                        </Dialog.Description>
+                      </Box>
+                    </Dialog.Header>
+
+                    <Dialog.Body maxH="65vh" overflowY="auto">
+                      <VStack align="stretch" gap={3}>
+                        {categories.map((cat) => (
+                          <Box key={cat.id} borderWidth="1px" borderRadius="md" p={3} bg="bg.subtle">
+                            <Heading size="xs" mb={2}>
+                              {cat.title}
+                            </Heading>
+
+                            <VStack align="stretch" gap={2}>
+                              {cat.items.map((item) => {
+                                const r = responseMap.get(item.id);
+
+                                return (
+                                  <Box key={item.id}>
+                                    <HStack justify="space-between" align="start">
+                                      <Text>{item.prompt}</Text>
+                                      <HStack minW="80px" justify="flex-end">
+                                        {r ? (
+                                          r.value ? (
+                                            <HStack>
+                                              <Icon as={CheckCircle} color="green" />
+                                              <Text>Yes</Text>
+                                            </HStack>
+                                          ) : (
+                                            <HStack>
+                                              <Icon as={XCircle} color="red" />
+                                              <Text>No</Text>
+                                            </HStack>
+                                          )
+                                        ) : (
+                                          <Text color="fg.muted">—</Text>
+                                        )}
+                                      </HStack>
+                                    </HStack>
+
+                                    {r?.comment && (
+                                      <Text mt={1} fontSize="sm" color="fg.muted" pl={4}>
+                                        {r.comment}
+                                      </Text>
+                                    )}
+
+                                    <Separator my="2" />
+                                  </Box>
+                                );
+                              })}
+                            </VStack>
+                          </Box>
+                        ))}
+                      </VStack>
+                    </Dialog.Body>
+
+                    <Dialog.Footer>
+                      <Dialog.ActionTrigger asChild>
+                        <Button variant="outline">Close</Button>
+                      </Dialog.ActionTrigger>
+                    </Dialog.Footer>
+                    <Dialog.CloseTrigger asChild>
+                      <CloseButton size="sm" />
+                    </Dialog.CloseTrigger>
+                  </Dialog.Content>
+                </Dialog.Positioner>
+              </Portal>
+            </Dialog.Root>
+          </Text>
         </Box>
       }
 
