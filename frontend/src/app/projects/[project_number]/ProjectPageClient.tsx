@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Bell, ArrowCircleUp, ArrowCircleDown } from "phosphor-react";
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import DataTable from "@/app/components/DataTable";
-import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
+import { PencilSimple, Trash, Plus, Copy, DotsThreeVertical } from "phosphor-react";
 
 // Services + Types
 import { ProjectEditModal, ProjectDeleteModal } from '@/app/components/Modals/ProjectModals';
@@ -95,52 +95,6 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
     year: "2-digit",
   });
 }
-
-  // Project Variables
-  const [isProjEditOpen, setProjEditOpen] = useState(false);
-  const [isProjDelOpen, setProjDelOpen] = useState(false);
-  const handleEditProject = () => { setProjEditOpen(true);};
-  const handleDeleteProject = () => { setProjDelOpen(true);};
-
-  // Location Variables
-  const [isLocCreateOpen, setLocCreateOpen] = useState(false);
-  const [isLocEditOpen, setLocEditOpen] = useState(false);
-  const [isLocDelOpen, setLocDelOpen] = useState(false);
-  const [isLocDupOpen, setLocDupOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<Location | undefined>();
-  const [locToDelete, setLocToDelete] = useState<Location | undefined>();
-  const [locToDup, setLocToDup] = useState<Location | undefined>();
-  const handleNewLocation = () => { setSelectedLocation(undefined); setLocCreateOpen(true); };
-  const handleEditLocation = (l: Location) => { setSelectedLocation(l); setLocEditOpen(true); };
-  const handleDeleteLocation = (l: Location) => { setLocToDelete(l); setLocDelOpen(true); };
-  const handleDuplicateLocation = (l: Location) => { setLocToDup(l); setLocDupOpen(true); };
-
-  // Source Variables
-  const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
-  const [isSrcEditOpen, setSrcEditOpen] = useState(false);
-  const [isSrcDelOpen, setSrcDelOpen] = useState(false);
-  const [isSrcDupOpen, setSrcDupOpen] = useState(false);
-  const [selectedSource, setSelectedSource] = useState<Source | undefined>();
-  const [srcToDelete, setSrcToDelete] = useState<Source | undefined>();
-  const [srcToDup, setSrcToDup] = useState<Source | undefined>();
-  const handleNewSource = () => { setSelectedSource(undefined); setSrcCreateOpen(true); };
-  const handleEditSource = (s: Source) => { setSelectedSource(s); setSrcEditOpen(true); };
-  const handleDeleteSource = (s: Source) => { setSrcToDelete(s); setSrcDelOpen(true); };
-  const handleDuplicateSource = (s: Source) => { setSrcToDup(s); setSrcDupOpen(true); };
-
-  // Sensor Variables
-  const [isSenCreateOpen, setSenCreateOpen] = useState(false);
-  const [isSenEditOpen, setSenEditOpen] = useState(false);
-  const [isSenDelOpen, setSenDelOpen] = useState(false);
-  const [isSenDupOpen, setSenDupOpen] = useState(false);
-  const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
-  const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
-  const [senToDup, setSenToDup] = useState<MonitoringSensor | undefined>();
-  const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
-  const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
-  const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
-  const handleDuplicateSensor = (s: MonitoringSensor) => { setSenToDup(s); setSenDupOpen(true); };
-
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
@@ -182,12 +136,23 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
                   </Popover.Arrow>
                   <Popover.Body height="100px" p={0}>
                     <VStack gap={0} justifyContent={"center"} height="inherit">
-                      <Button variant="ghost" size="md" onClick={handleEditProject}>
-                        <PencilSimple />
-                      </Button>
-                      <Button variant="ghost" size="md" onClick={handleDeleteProject}>
-                        <Trash />
-                      </Button>
+                      <ProjectEditModal project={project}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <PencilSimple />
+                          </Button>
+                        }
+                        onEdited={(edited) => {
+                          setProject(edited);
+                        }}
+                      />
+                      <ProjectDeleteModal project={project}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <Trash />
+                          </Button>
+                        }
+                      />
                     </VStack>
                   </Popover.Body>
                 </Popover.Content>
@@ -371,128 +336,163 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
 
       {/* ←––––– CONTENT PANELS –––––→ */}
       {activeTab === 'locations' && (
-        <DataTable columns={locationColumns} color={"blue.600"} data={locations} onCreate={handleNewLocation} onEdit={handleEditLocation} onDelete={handleDeleteLocation} onDuplicate={handleDuplicateLocation} name={activeTab} />
+        <DataTable columns={locationColumns} color={"blue.600"} data={locations} name={activeTab}
+          createElement={
+            <LocationCreateModal projectId={project.id}
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              onCreated={(created) => {
+                setLocations(prev => [created, ...prev]);
+              }}
+            />
+          }
+          editElement={(item) => (
+            <LocationEditModal location={item} projectId={project.id}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <PencilSimple />
+                </Button>
+              }
+              onEdited={(edited) => {
+                setLocations(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l));
+              }}
+            />
+          )}
+          deleteElement={(item) => (
+            <LocationDeleteModal location={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Trash />
+                </Button>
+              }
+              onDeleted={(id) => {
+                setLocations(prev => prev.filter(l => l.id !== id));
+              }}
+            />
+          )}
+          duplicateElement={(item) => (
+            <LocationDuplicateModal location={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Copy />
+                </Button>
+              }
+              onDuplicated={(duplicated) => {
+                setLocations(prev => [duplicated, ...prev]);
+              }}
+            />
+          )}
+        />
       )}
 
       {activeTab === 'sources' && (
-        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} onDuplicate={handleDuplicateSource} name={activeTab} />
+        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} name={activeTab}
+          createElement={
+            <SourceCreateModal projectId={project.id}
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              onCreated={(created) => {
+                setSources(prev => [created, ...prev]);
+              }}
+            />
+          }
+          editElement={(item) => (
+            <SourceEditModal source={item} projectId={project.id}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <PencilSimple />
+                </Button>
+              }
+              onEdited={(edited) => {
+                setSources(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+              }}
+            />
+          )}
+          deleteElement={(item) => (
+            <SourceDeleteModal source={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Trash />
+                </Button>
+              }
+              onDeleted={(id) => {
+                setSources(prev => prev.filter(p => p.id !== id));
+              }}
+            />
+          )}
+          duplicateElement={(item) => (
+            <SourceDuplicateModal source={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Copy />
+                </Button>
+              }
+              onDuplicated={(duplicated) => {
+                setSources(prev => [duplicated, ...prev]);
+              }}
+            />
+          )}
+        />
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} onDuplicate={handleDuplicateSensor} name={activeTab} />
+        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} name={activeTab} 
+          createElement={
+            <SensorCreateModal projectId={project.id}
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              onCreated={(created) => {
+                setSensors(prev => [created, ...prev]);
+              }}
+            />
+          }
+          editElement={(item) => (
+            <SensorEditModal sensor={item} projectId={project.id}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <PencilSimple />
+                </Button>
+              }
+              onEdited={(edited) => {
+                setSensors(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+              }}
+            />
+          )}
+          deleteElement={(item) => (
+            <SensorDeleteModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Trash />
+                </Button>
+              }
+              onDeleted={(id) => {
+                setSensors(prev => prev.filter(p => p.id !== id));
+              }}
+            />
+          )}
+          duplicateElement={(item) => (
+            <SensorDuplicateModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Copy />
+                </Button>
+              }
+              onDuplicated={(duplicated) => {
+                setSensors(prev => [duplicated, ...prev]);
+              }}
+            />
+          )}
+        />
       )}
-
-      {/* Wizards */}
-      <ProjectEditModal
-        isOpen={isProjEditOpen}
-        project={project}
-        onClose={() => { setProjEditOpen(false); }}
-        onEdited={(edited) => setProject(edited)}
-      />
-      <ProjectDeleteModal
-        isOpen={isProjDelOpen}
-        project={project}
-        onClose={() => {setProjDelOpen(false); }}
-      />
-      <LocationCreateModal
-        isOpen={isLocCreateOpen}
-        projectId={project.id}
-        onClose={() => { setSelectedLocation(undefined); setLocCreateOpen(false);}}
-        onCreated={(created) => {
-          setLocations(prev => [created, ...prev]);
-        }}
-      />
-      <LocationEditModal
-        isOpen={isLocEditOpen}
-        location={selectedLocation}
-        projectId={project.id}
-        onClose={() => { setSelectedLocation(undefined); setLocEditOpen(false); }}
-        onEdited={(edited) => {
-          setLocations(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l ));
-        }}
-      />
-      <LocationDeleteModal 
-        isOpen={isLocDelOpen}
-        onClose={() => { setLocToDelete(undefined); setLocDelOpen(false); }}
-        location={locToDelete}
-        onDeleted={(id) => {
-          setLocations(prev => prev.filter(l => l.id !== id));
-        }}
-      />
-      <LocationDuplicateModal
-        isOpen={isLocDupOpen}
-        location={locToDup}
-        onClose={() => { setSelectedLocation(undefined); setLocDupOpen(false);}}
-        onDuplicated={(duplicated) => {
-          setLocations(prev => [duplicated, ...prev]);
-        }}
-      />
-      <SourceCreateModal
-        isOpen={isSrcCreateOpen}
-        projectId={project.id}
-        onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } }
-        onCreated={(created) => {
-          setSources(prev => [created, ...prev]);
-        }}
-      />
-      <SourceEditModal 
-        isOpen={isSrcEditOpen}
-        source={selectedSource}
-        projectId={project.id}
-        onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }}
-        onEdited={(edited) => {
-          setSources(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
-        }}
-      />
-      <SourceDeleteModal
-        isOpen={isSrcDelOpen}
-        source={srcToDelete}
-        onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }}
-        onDeleted={(id) => {
-          setSources(prev => prev.filter(s => s.id !== id));
-        }}
-      />
-      <SourceDuplicateModal 
-        isOpen={isSrcDupOpen}
-        source={srcToDup}
-        onClose={() => {setSrcToDup(undefined); setSrcDupOpen(false); }}
-        onDuplicated={(duplicated) => {
-          setSources(prev => [duplicated, ...prev]);
-        }}
-      />
-      <SensorCreateModal
-        isOpen={isSenCreateOpen}
-        projectId={project.id}
-        onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } }
-        onCreated={(created) => {
-          setSensors(prev => [created, ...prev]);
-        }}
-      />
-      <SensorEditModal
-        isOpen={isSenEditOpen}
-        sensor={selectedSensor}
-        projectId={project.id}
-        onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }}
-        onEdited={(edited) => {
-          setSensors(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
-        }}
-      />
-      <SensorDeleteModal
-        isOpen={isSenDelOpen}
-        sensor={senToDelete}
-        onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }}
-        onDeleted={(id) => {
-          setSensors(prev => prev.filter(s => s.id !== id));
-        }}
-      />
-      <SensorDuplicateModal
-        isOpen={isSenDupOpen}
-        sensor={senToDup}
-        onClose={() => { setSenToDup(undefined); setSenDupOpen(false); }}
-        onDuplicated={(duplicated) => {
-          setSensors(prev => [duplicated, ...prev]);
-        }}
-      />
     </Box>
   );
 }

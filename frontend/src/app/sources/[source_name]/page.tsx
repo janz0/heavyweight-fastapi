@@ -18,7 +18,7 @@ export default async function SourcePage({ params }: PageProps) {
 
   return (
     <SourcePageClient 
-      source={source}
+      initialSource={source}
       initialSensors={sensors}
     />
   );

@@ -11,7 +11,7 @@ import { SensorEditModal, SensorDeleteModal } from '../../components/Modals/Sens
 import GraphPanel, { GraphConfig } from "@/app/components/Graphs/GraphPanel";
 
 interface SensorPageClientProps {
-  sensor: MonitoringSensor;
+  initialSensor: MonitoringSensor;
 }
 
 // Utility to format ISO date strings to "Month day, year"
@@ -25,13 +25,10 @@ function formatDate(dateString?: string | null) {
   }).format(date);
 }
 
-export default function SensorPageClient({ sensor }: SensorPageClientProps) {
+export default function SensorPageClient({ initialSensor }: SensorPageClientProps) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const [isSenEditOpen, setSenEditOpen] = useState(false);
-  const [isSenDelOpen, setSenDelOpen] = useState(false);
-  const handleEditSensor = () => { setSenEditOpen(true);};
-  const handleDeleteSensor = () => { setSenDelOpen(true);};
+  const [sensor, setSensor] = useState<MonitoringSensor>(initialSensor);
 
   type SampleRow = {
     timestamp: string;      // ISO string
@@ -116,12 +113,23 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
                   </Popover.Arrow>
                   <Popover.Body height="100px" p={0} >
                     <VStack gap={0} justifyContent={"center"} height="inherit">
-                      <Button variant="ghost" size="md" onClick={handleEditSensor}>
-                        <PencilSimple />
-                      </Button>
-                      <Button variant="ghost" size="md" onClick={handleDeleteSensor}>
-                        <Trash />
-                      </Button>
+                      <SensorEditModal sensor={sensor}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <PencilSimple />
+                          </Button>
+                        }
+                        onEdited={(edited) => {
+                          setSensor(edited);
+                        }}
+                      />
+                      <SensorDeleteModal sensor={sensor}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <Trash />
+                          </Button>
+                        }
+                      />
                     </VStack>
                   </Popover.Body>
                 </Popover.Content>
@@ -205,8 +213,6 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
           />
         </Box>
       </HStack>
-      <SensorEditModal isOpen={isSenEditOpen} sensor={sensor} onClose={() => { setSenEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={sensor} onClose={() => { setSenDelOpen(false); }} />
     </Box>
   );
 }

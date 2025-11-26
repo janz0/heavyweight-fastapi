@@ -57,7 +57,7 @@ export default function MapPicker({
   const fmt = (n: number) => n.toFixed(6);
 
   return (
-    <div style={{ height, minHeight: 300 }}>
+    <div style={{ height, minHeight: 300 }} >
       <Map
         ref={mapRef}
         initialViewState={initial}

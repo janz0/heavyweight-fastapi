@@ -156,6 +156,10 @@ export function ChecklistCreateModal({
                         <Select.ValueText placeholder="Select template" />
                         <Select.Indicator />
                       </Select.Trigger>
+                       <Select.IndicatorGroup>
+                          <Select.ClearTrigger />
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
                     </Select.Control>
 
                     <Select.Positioner>

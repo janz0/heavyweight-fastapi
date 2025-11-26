@@ -7,22 +7,23 @@ import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
 import { Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
-import { X, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // Services + Types
 import { listSources } from "@/services/sources";
-import { SourceCreateModal } from "./SourceModals";
 import { createSensor, updateSensor, deleteSensor } from "@/services/sensors";
 import type { Source } from "@/types/source";
 import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
 import type { MonitoringGroup } from "@/types/monitoringGroup";
 import { listMonitoringGroups } from "@/services/monitoringGroups";
+import { SourceCreateModal } from "./SourceModals";
 
 interface BaseSensorModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  trigger: React.ReactElement;
+  onClose?: () => void;
   onCreated?: (s: MonitoringSensor) => void;
   onEdited?: (s: MonitoringSensor) => void;
   onDeleted?: (id: string) => void;
@@ -36,13 +37,11 @@ interface BaseSensorModalProps {
 // ==============================
 function SensorForm({
   onSubmit,
-  onClose,
   initialData,
   initialProjectId,
   submitLabel,
 }: {
   onSubmit: (payload: MonitoringSensorPayload) => Promise<void>;
-  onClose: () => void;
   initialData?: MonitoringSensor;
   initialProjectId?: string;
   submitLabel: string;
@@ -62,8 +61,6 @@ function SensorForm({
   const fixedSourceId = initialData?.mon_source_id;
   const isSourceLocked = Boolean(fixedSourceId && submitLabel == 'Create');
   const [groups, setGroups] = useState<MonitoringGroup[]>([]);
-  const [isCreateSourceOpen, setCreateSourceOpen] = useState(false);
-  const handleNewSource = () => { setCreateSourceOpen(true); };
 
   useEffect(() => {
     if (fixedProjectId)
@@ -153,137 +150,150 @@ function SensorForm({
   return (
     <>
       <form id="sensor-form" onSubmit={handleSubmit}>
-        <HStack>
+        <Dialog.Body>
+          <HStack>
+            <Field.Root required mb={4}>
+              <Field.Label>Source</Field.Label>
+              <Select.Root
+                collection={sourceCollection}
+                value={monSourceId ? [monSourceId] : []}
+                onValueChange={(e) => setMonSourceId(e.value[0])}
+                disabled={isSourceLocked}
+                rounded="sm"
+                _focusWithin={{
+                  outline: "2px solid",
+                  outlineColor: "var(--chakra-colors-blue-400)",
+                  outlineOffset: "2px",
+                }}
+              >
+                <Select.HiddenSelect />
+                <Select.Control>
+                  <Select.Trigger borderColor={bc} >
+                    <Select.ValueText placeholder="Select source" />
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    {!isSourceLocked && <Select.ClearTrigger />}
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Select.Positioner>
+                  <Select.Content>
+                    {sourceCollection.items.map((item) => (
+                      <Select.Item key={item.value} item={item}>
+                        {item.label}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Positioner>
+              </Select.Root>
+            </Field.Root>
+            <SourceCreateModal
+              trigger={
+                <IconButton mt="auto" mb={4} aria-label="New Source" outline="solid thin" variant="ghost">
+                  <Plus size={16} />
+                </IconButton>
+              }
+              onCreated={(created) => {
+                setSources(prev => [created, ...prev]);
+              }}
+            />
+          </HStack>
+          <HStack>
+            <Field.Root mb={4}>
+              <Field.Label>Sensor Group</Field.Label>
+              <Select.Root
+                collection={groupCollection}
+                value={sensorGroupId ? [sensorGroupId] : []}
+                onValueChange={(e) => setSensorGroupId(e.value[0])}
+                disabled={!monSourceId || !sources[0]}
+                rounded="sm"
+                _focusWithin={{
+                  outline: "2px solid",
+                  outlineColor: "var(--chakra-colors-blue-400)",
+                  outlineOffset: "2px",
+                }}
+              >
+                <Select.HiddenSelect />
+                <Select.Control>
+                  <Select.Trigger borderColor={bc}>
+                    <Select.ValueText placeholder={!monSourceId ? "Select a source first" : "[Optional] Select group"} />
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    {monSourceId && <Select.ClearTrigger />}
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Select.Positioner>
+                  <Select.Content>
+                    {groupCollection.items.map((item) => (
+                      <Select.Item key={item.value} item={item}>
+                        {item.label}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Positioner>
+              </Select.Root>
+            </Field.Root>
+            <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost">
+              <Plus size={16} />
+            </IconButton>
+          </HStack>
           <Field.Root required mb={4}>
-            <Field.Label>Source</Field.Label>
-            <Select.Root
-              collection={sourceCollection}
-              value={monSourceId ? [monSourceId] : []}
-              onValueChange={(e) => setMonSourceId(e.value[0])}
-              disabled={isSourceLocked}
-              rounded="sm"
+            <Field.Label>Sensor Name</Field.Label>
+            <Input
+              value={sensorName}
+              borderColor={bc}
+              onChange={(e) => setSensorName(e.target.value)}
               _focusWithin={{
                 outline: "2px solid",
                 outlineColor: "var(--chakra-colors-blue-400)",
                 outlineOffset: "2px",
               }}
-            >
-              <Select.HiddenSelect />
-              <Select.Control>
-                <Select.Trigger borderColor={bc} >
-                  <Select.ValueText placeholder="Select source" />
-                </Select.Trigger>
-                <Select.IndicatorGroup>
-                  {!isSourceLocked && <Select.ClearTrigger />}
-                  <Select.Indicator />
-                </Select.IndicatorGroup>
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content>
-                  {sourceCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      {item.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
+            />
           </Field.Root>
-          <IconButton mt="auto" mb={4} aria-label="New Source" outline="solid thin" variant="ghost" onClick={handleNewSource}>
-            <Plus size={16} />
-          </IconButton>
-        </HStack>
-        <HStack>
-          <Field.Root mb={4}>
-            <Field.Label>Sensor Group</Field.Label>
-            <Select.Root
-              collection={groupCollection}
-              value={sensorGroupId ? [sensorGroupId] : []}
-              onValueChange={(e) => setSensorGroupId(e.value[0])}
-              disabled={!monSourceId || !sources[0]}
-              rounded="sm"
+
+          <Field.Root required mb={4}>
+            <Field.Label>Sensor Type</Field.Label>
+            <Input
+              value={sensorType}
+              borderColor={bc}
+              onChange={(e) => setSensorType(e.target.value)}
               _focusWithin={{
                 outline: "2px solid",
                 outlineColor: "var(--chakra-colors-blue-400)",
                 outlineOffset: "2px",
               }}
-            >
-              <Select.HiddenSelect />
-              <Select.Control>
-                <Select.Trigger borderColor={bc}>
-                  <Select.ValueText placeholder={!monSourceId ? "Select a source first" : "[Optional] Select group"} />
-                </Select.Trigger>
-                <Select.IndicatorGroup>
-                  {monSourceId && <Select.ClearTrigger />}
-                  <Select.Indicator />
-                </Select.IndicatorGroup>
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content>
-                  {groupCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      {item.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
+            />
           </Field.Root>
-          <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost">
-            <Plus size={16} />
-          </IconButton>
-        </HStack>
-        <Field.Root required mb={4}>
-          <Field.Label>Sensor Name</Field.Label>
-          <Input
-            value={sensorName}
-            borderColor={bc}
-            onChange={(e) => setSensorName(e.target.value)}
-            _focusWithin={{
-              outline: "2px solid",
-              outlineColor: "var(--chakra-colors-blue-400)",
-              outlineOffset: "2px",
-            }}
-          />
-        </Field.Root>
 
-        <Field.Root required mb={4}>
-          <Field.Label>Sensor Type</Field.Label>
-          <Input
-            value={sensorType}
-            borderColor={bc}
-            onChange={(e) => setSensorType(e.target.value)}
-            _focusWithin={{
-              outline: "2px solid",
-              outlineColor: "var(--chakra-colors-blue-400)",
-              outlineOffset: "2px",
-            }}
-          />
-        </Field.Root>
-
-        <Field.Root justifyItems={"center"}>
-          <Flex gap="2">
-          <Field.Label>Active</Field.Label>
-          <Switch.Root
-            checked={active}
-            onCheckedChange={({ checked }) => setActive(checked)}
-          >
-            <Switch.HiddenInput />
-            <Switch.Control _checked={{ bg: 'green.400' }}>
-              <Switch.Thumb />
-            </Switch.Control>
-          </Switch.Root>
-          </Flex>
-        </Field.Root>
-
+          <Field.Root justifyItems={"center"}>
+            <Flex gap="2">
+            <Field.Label>Active</Field.Label>
+            <Switch.Root
+              checked={active}
+              onCheckedChange={({ checked }) => setActive(checked)}
+            >
+              <Switch.HiddenInput />
+              <Switch.Control _checked={{ bg: 'green.400' }}>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch.Root>
+            </Flex>
+          </Field.Root>
+        </Dialog.Body>
         <Dialog.Footer>
-          <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit">{submitLabel}</Button>
+          <Dialog.ActionTrigger asChild>
+            <Button colorScheme="gray" mr={3}>Cancel</Button>
+          </Dialog.ActionTrigger>
+          <Dialog.ActionTrigger asChild>
+            <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+          </Dialog.ActionTrigger>
         </Dialog.Footer>
       </form>
-      <SourceCreateModal isOpen={isCreateSourceOpen} onClose={() => { setCreateSourceOpen(false); } } />
+      <Dialog.CloseTrigger asChild>
+        <CloseButton size="sm" />
+      </Dialog.CloseTrigger>
+      {/*<SourceCreateModal isOpen={isCreateSourceOpen} onClose={() => { setCreateSourceOpen(false); } } />*/}
     </>
   );
 }
@@ -291,13 +301,12 @@ function SensorForm({
 // ==============================
 // SensorCreateModal
 // ==============================
-export function SensorCreateModal({ isOpen, onClose, onCreated, projectId }: BaseSensorModalProps) {
+export function SensorCreateModal({ trigger, onCreated, projectId }: BaseSensorModalProps) {
   const handleCreate = async (payload: MonitoringSensorPayload) => {
     try {
       const created = await createSensor(payload);
       toaster.create({ description: "Sensor created successfully", type: "success" });
       onCreated?.(created);
-      onClose();
     } catch (err) {
       toaster.create({
         description: `Failed to create Sensor: ${err instanceof Error ? err.message : String(err)}`,
@@ -307,22 +316,20 @@ export function SensorCreateModal({ isOpen, onClose, onCreated, projectId }: Bas
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="md">
+    <Dialog.Root size="md">
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
           <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Create Sensor</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
-              <SensorForm onSubmit={handleCreate} initialProjectId={projectId} onClose={onClose} submitLabel="Create" />
-            </Dialog.Body>
+            <SensorForm onSubmit={handleCreate} initialProjectId={projectId} submitLabel="Create" />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -333,13 +340,11 @@ export function SensorCreateModal({ isOpen, onClose, onCreated, projectId }: Bas
 // ==============================
 // SensorEditModal
 // ==============================
-export function SensorEditModal({ isOpen, onClose, sensor, onEdited }: BaseSensorModalProps) {
+export function SensorEditModal({ trigger, sensor, onEdited, projectId }: BaseSensorModalProps) {
  const handleUpdate = async (payload: MonitoringSensorPayload) => {
     if (!sensor) return;
   
-    // Compare each field with initial sensor data
     const changedPayload: MonitoringSensorPayload = {};
-
     if (payload.mon_source_id !== sensor.mon_source_id) changedPayload.mon_source_id = payload.mon_source_id;
     if (Object.prototype.hasOwnProperty.call(payload, "sensor_group_id")) {
       const a = payload.sensor_group_id;
@@ -362,7 +367,6 @@ export function SensorEditModal({ isOpen, onClose, sensor, onEdited }: BaseSenso
       const edited = await updateSensor(sensor.id, changedPayload);
       toaster.create({ description: "Sensor updated successfully", type: "success" });
       onEdited?.(edited);
-      onClose();
     } catch (err) {
       toaster.create({
         description: `Failed to update Sensor: ${err instanceof Error ? err.message : String(err)}`,
@@ -372,22 +376,20 @@ export function SensorEditModal({ isOpen, onClose, sensor, onEdited }: BaseSenso
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="md">
+    <Dialog.Root size="md">
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
           <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Edit Sensor</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
-              <SensorForm onSubmit={handleUpdate} onClose={onClose} initialData={sensor} submitLabel="Save" />
-            </Dialog.Body>
+            <SensorForm onSubmit={handleUpdate} initialData={sensor} initialProjectId={projectId} submitLabel="Save" />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -398,7 +400,7 @@ export function SensorEditModal({ isOpen, onClose, sensor, onEdited }: BaseSenso
 // ==============================
 // SensorDeleteModal
 // ==============================
-export function SensorDeleteModal({ isOpen, onClose, sensor, onDeleted }: BaseSensorModalProps) {
+export function SensorDeleteModal({ trigger, sensor, onDeleted }: BaseSensorModalProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -406,10 +408,7 @@ export function SensorDeleteModal({ isOpen, onClose, sensor, onDeleted }: BaseSe
     if (!sensor) return;
     try {
       await deleteSensor(sensor.id);
-      toaster.create({ description: "Sensor deleted successfully", type: "success" });
-      onClose();
-
-      // Refresh or go back depending on route
+      toaster.create({ description: "Sensor deleted", type: "success" });
       const detailRoute = /^\/sensors\/[^\/]+$/;
       if (detailRoute.test(pathname)) {
         router.back();
@@ -425,23 +424,32 @@ export function SensorDeleteModal({ isOpen, onClose, sensor, onDeleted }: BaseSe
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="sm">
+    <Dialog.Root size="sm">
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
           <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Delete Sensor</Dialog.Title>
               <Dialog.CloseTrigger asChild>
-                <CloseButton size="sm" onClick={onClose} />
+                <CloseButton size="sm"/>
               </Dialog.CloseTrigger>
             </Dialog.Header>
             <Dialog.Body>
               Are you sure you want to delete <strong>{sensor?.sensor_name}</strong>?
             </Dialog.Body>
             <Dialog.Footer>
-              <Button colorScheme="gray" onClick={onClose}>Cancel</Button>
-              <Button colorScheme="red" onClick={handleDelete}>Delete</Button>
+              <Dialog.ActionTrigger asChild>
+                <Button colorScheme="gray">Cancel</Button>
+              </Dialog.ActionTrigger>
+              <Dialog.ActionTrigger asChild>
+                <Button onClick={handleDelete}>Delete</Button>
+              </Dialog.ActionTrigger>
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
@@ -450,43 +458,36 @@ export function SensorDeleteModal({ isOpen, onClose, sensor, onDeleted }: BaseSe
   );
 }
 
-export function SensorDuplicateModal({ isOpen, onClose, sensor, onDuplicated }: BaseSensorModalProps) {
+export function SensorDuplicateModal({ trigger, sensor, onDuplicated }: BaseSensorModalProps) {
   const handleDuplicate = async (payload: MonitoringSensorPayload) => {
     const duplicated = await createSensor(payload);
     toaster.create({ description: 'Sensor created successfully', type: 'success' });
     onDuplicated?.(duplicated);
-    onClose();
   };
 
   const cloneData: MonitoringSensor | undefined = sensor
-    ? {
-        ...sensor,
-        sensor_name: '',
-      }
+    ? { ...sensor, sensor_name: '' }
     : undefined;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="md">
+    <Dialog.Root size="md">
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
           <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Duplicate Sensor</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
-              <SensorForm
-                onSubmit={handleDuplicate}
-                onClose={onClose}
-                initialData={cloneData}
-                submitLabel="Duplicate"
-              />
-            </Dialog.Body>
+            <SensorForm
+              onSubmit={handleDuplicate}
+              initialData={cloneData}
+              submitLabel="Duplicate"
+            />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

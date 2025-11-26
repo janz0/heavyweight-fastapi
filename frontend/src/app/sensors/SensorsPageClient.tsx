@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 
 // Chakra Imports + Icons
-import { Box, Flex, Spinner } from "@chakra-ui/react";
+import { Box, Button, Flex, Spinner } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster"
 import { useColorMode } from "@/app/src/components/ui/color-mode";
 
@@ -17,6 +17,9 @@ import DataTable from "@/app/components/DataTable";
 import type { MonitoringSensor } from "@/types/sensor";
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal, SensorDuplicateModal } from "../components/Modals/SensorModals";
 import { sensorColumns } from "@/types/columns";
+
+import { PencilSimple, Plus, Trash, Copy } from "phosphor-react";
+
 // Register chart components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
@@ -29,23 +32,9 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<MonitoringSensor[]>(initialSensors);
 
-  const [isCreateOpen, setCreateOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
-  const [isDelOpen, setDelOpen] = useState(false);
-  const [isDupOpen, setDupOpen] = useState(false);
-  const [duplicateSensor, setDuplicateSensor] = useState<MonitoringSensor | undefined>();
-  const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
-  const [toDelete, setToDelete] = useState<MonitoringSensor | undefined>();
-
   // Colors 
   const color   = "green.600"
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-
-  // Handlers
-  const handleNew = () => { setSelectedSensor(undefined); setCreateOpen(true); };
-  const handleEdit = (s: MonitoringSensor) => { setSelectedSensor(s); setEditOpen(true); }
-  const handleDelete = (s: MonitoringSensor) => { setToDelete(s); setDelOpen(true); }
-  const handleDuplicate = (s: MonitoringSensor) => { setDuplicateSensor(s); setDupOpen(true); }
 
   // Hydration
   useEffect(() => {
@@ -62,44 +51,61 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       {hydrated? (
-        <DataTable columns={sensorColumns} color={color} data={items} onCreate={handleNew} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} name="sensors"/>
+        <DataTable columns={sensorColumns} color={color} data={items} name="sensors" 
+          createElement={
+            <SensorCreateModal
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              onCreated={(created) => {
+                setItems(prev => [created, ...prev]);
+              }}
+            />
+          }
+          editElement={(item) => (
+            <SensorEditModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <PencilSimple />
+                </Button>
+              }
+              onEdited={(edited) => {
+                setItems(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+              }}
+            />
+          )}
+          deleteElement={(item) => (
+            <SensorDeleteModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Trash />
+                </Button>
+              }
+              onDeleted={(id) => {
+                setItems(prev => prev.filter(p => p.id !== id));
+              }}
+            />
+          )}
+          duplicateElement={(item) => (
+            <SensorDuplicateModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Copy />
+                </Button>
+              }
+              onDuplicated={(duplicated) => {
+                setItems(prev => [duplicated, ...prev]);
+              }}
+            />
+          )}
+        />
       ) : (
         <Flex justify="center" align="center" h="200px">
           <Spinner />
         </Flex>
       )}
-      
-      <SensorCreateModal
-        isOpen={isCreateOpen}
-        onClose={() => { setSelectedSensor(undefined); setCreateOpen(false); }}
-        onCreated={(created) => {
-          setItems(prev => [created, ...prev]);
-        }}
-      />
-      <SensorEditModal
-        isOpen={isEditOpen}
-        sensor={selectedSensor}
-        onClose={() => { setSelectedSensor(undefined); setEditOpen(false); }}
-        onEdited={(edited) => {
-          setItems(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
-        }}
-      />
-      <SensorDeleteModal
-        isOpen={isDelOpen}
-        sensor={toDelete}
-        onClose={() => { setToDelete(undefined); setDelOpen(false); }}
-        onDeleted={(id) => {
-          setItems(prev => prev.filter(s => s.id !== id));
-        }}
-      />
-      <SensorDuplicateModal
-        isOpen={isDupOpen}
-        sensor={duplicateSensor}
-        onClose={() => { setDuplicateSensor(undefined); setDupOpen(false); }}
-        onDuplicated={(duplicated) => {
-          setItems(prev => [duplicated, ...prev]);
-        }}
-      />
     </Box>
   );
 }

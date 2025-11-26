@@ -4,10 +4,10 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Box, HStack, Heading, IconButton, Text, VStack, Button, Popover, Flex, Separator, Select, Portal, createListCollection, Checkbox, Dialog, Textarea } from '@chakra-ui/react';
 import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Source } from '@/types/source';
-import { DotsThreeVertical, PencilSimple, Trash } from 'phosphor-react';
+import { DotsThreeVertical, PencilSimple, Plus, Trash, Copy } from 'phosphor-react';
 import { SourceEditModal, SourceDeleteModal } from '../../components/Modals/SourceModals';
 import { MonitoringSensor } from '@/types/sensor';
-import { SensorCreateModal, SensorDeleteModal, SensorEditModal } from '@/app/components/Modals/SensorModals';
+import { SensorCreateModal, SensorDeleteModal, SensorEditModal, SensorDuplicateModal } from '@/app/components/Modals/SensorModals';
 import DataTable from '@/app/components/DataTable';
 import { Chart as ChartJS, ChartOptions, registerables } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -19,7 +19,7 @@ import { toaster } from '@/components/ui/toaster';
 ChartJS.register(...registerables);
 
 interface Props {
-  source: Source;
+  initialSource: Source;
   initialSensors: MonitoringSensor[];
 }
 
@@ -95,21 +95,10 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
   return null;
 };
 
-export default function SourcePageClient({ source, initialSensors }: Props) {
+export default function SourcePageClient({ initialSource, initialSensors }: Props) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const [isSenCreateOpen, setSenCreateOpen] = useState(false);
-  const [isSenEditOpen, setSenEditOpen] = useState(false);
-  const [isSenDelOpen, setSenDelOpen] = useState(false);
-  const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
-  const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
-  const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
-  const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
-  const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
-  const [isSrcEditOpen, setSrcEditOpen] = useState(false);
-  const [isSrcDelOpen, setSrcDelOpen] = useState(false);
-  const handleEditSource = () => { setSrcEditOpen(true);};
-  const handleDeleteSource = () => { setSrcDelOpen(true);};
+  const [source, setSource] = useState<Source>(initialSource);
   const [selectedField, setSelectedField] = useState<NumericField>('latitude');
   const [configViewer, setConfigViewer] = useState<{
     open: boolean;
@@ -176,6 +165,7 @@ export default function SourcePageClient({ source, initialSensors }: Props) {
       }),
     [initialSensors, perSensor, selectedField, colorMode]
   );
+  const [sensors, setSensors] = useState<MonitoringSensor[]>(initialSensors);
   const chartRef = useRef<ChartJS<"line">>(null);
   const chartOptions: ChartOptions<'line'> = useMemo(() => {
     const isDark = colorMode === "dark";
@@ -288,12 +278,23 @@ const toggleAll = (check: boolean) => {
                   </Popover.Arrow>
                   <Popover.Body height="100px" p={0} >
                     <VStack gap={0} justifyContent={"center"} height="inherit">
-                      <Button variant="ghost" size="md" onClick={handleEditSource}>
-                        <PencilSimple />
-                      </Button>
-                      <Button variant="ghost" size="md" onClick={handleDeleteSource}>
-                        <Trash />
-                      </Button>
+                      <SourceEditModal source={source}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <PencilSimple />
+                          </Button>
+                        }
+                        onEdited={(edited) => {
+                          setSource(edited);
+                        }}
+                      />
+                      <SourceDeleteModal source={source}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <Trash />
+                          </Button>
+                        }
+                      />
                     </VStack>
                   </Popover.Body>
                 </Popover.Content>
@@ -473,12 +474,56 @@ const toggleAll = (check: boolean) => {
       </HStack>
       </Box>
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
-      <DataTable columns={sensorColumns} color={"green.600"} data={initialSensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} name={"sensors"}/>
-      <SourceEditModal isOpen={isSrcEditOpen} source={source} onClose={() => { setSrcEditOpen(false); }} />
-      <SourceDeleteModal isOpen={isSrcDelOpen} source={source} onClose={() => { setSrcDelOpen(false); }} />
-      <SensorCreateModal isOpen={isSenCreateOpen} projectId={source.details?.project_id} onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } } />
-      <SensorEditModal isOpen={isSenEditOpen} sensor={selectedSensor} onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={senToDelete} onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }} />
+      <DataTable columns={sensorColumns} color={"green.600"} data={sensors} name={"sensors"}
+        createElement={
+          <SensorCreateModal projectId={source.details?.project_id}
+            trigger={
+              <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                <Plus /> Add New
+              </Button>
+            }
+            onCreated={(created) => {
+              setSensors(prev => [created, ...prev]);
+            }}
+          />
+        }
+        editElement={(item) => (
+          <SensorEditModal sensor={item}
+            trigger={
+              <Button variant="ghost" size="md">
+                <PencilSimple />
+              </Button>
+            }
+            onEdited={(edited) => {
+              setSensors(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+            }}
+          />
+        )}
+        deleteElement={(item) => (
+          <SensorDeleteModal sensor={item}
+            trigger={
+              <Button variant="ghost" size="md">
+                <Trash />
+              </Button>
+            }
+            onDeleted={(id) => {
+              setSensors(prev => prev.filter(p => p.id !== id));
+            }}
+          />
+        )}
+        duplicateElement={(item) => (
+          <SensorDuplicateModal sensor={item}
+            trigger={
+              <Button variant="ghost" size="md">
+                <Copy />
+              </Button>
+            }
+            onDuplicated={(duplicated) => {
+              setSensors(prev => [duplicated, ...prev]);
+            }}
+          />
+        )}
+      />
     </Box>
   );
 }

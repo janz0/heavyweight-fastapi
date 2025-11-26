@@ -1,3 +1,5 @@
+import React from "react";
+
 // components/DataTable/types.ts
 export interface ColumnDef {
   key: string;
@@ -17,10 +19,15 @@ export interface DataTableProps<T extends { id: string; }> {
   data: T[];
   columns: ColumnDef[];
   
-  onCreate: () => void;
-  onEdit: (item: T) => void;
-  onDelete: (item: T) => void;
+  onCreate?: () => void;
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
   onDuplicate?: (item: T) => void;
+
+  createElement?: React.ReactElement;
+  editElement?: (item: T) => React.ReactNode;
+  deleteElement?: (item: T) => React.ReactNode;
+  duplicateElement?: (item: T) => React.ReactNode;
   
   selection?: {
     selectedIds: Set<string>;
