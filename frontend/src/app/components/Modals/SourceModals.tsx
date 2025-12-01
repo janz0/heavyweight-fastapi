@@ -969,22 +969,6 @@ export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalPr
   const handleUpdate = async (payload: SourcePayload) => {
     if (!source) return;
 
-    const changedPayload: SourcePayload = {};
-    if (payload.mon_loc_id !== source.mon_loc_id) changedPayload.mon_loc_id = payload.mon_loc_id;
-    if (payload.source_name !== source.source_name) changedPayload.source_name = payload.source_name;
-    if (payload.source_type !== source.source_type) changedPayload.source_type = payload.source_type;
-    if (payload.file_type !== source.file_type) changedPayload.file_type = payload.file_type;
-    if (payload.file_keyword !== source.file_keyword) changedPayload.file_keyword = payload.file_keyword;
-    if (payload.folder_path !== source.folder_path) changedPayload.folder_path = payload.folder_path;
-    if (payload.root_directory !== source.root_directory) changedPayload.root_directory = payload.root_directory;
-    if (payload.active !== source.active) changedPayload.active = payload.active;
-    if (payload.config !== source.config) changedPayload.config = payload.config;
-
-    if (Object.keys(changedPayload).length === 0) {
-      toaster.create({ description: "No changes detected.", type: "info" });
-      return;
-    }
-
     try {
       const edited = await updateSource(source.id, payload);
       toaster.create({ description: "Source updated", type: "success" });

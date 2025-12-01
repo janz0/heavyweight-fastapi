@@ -420,16 +420,25 @@ const handleApply = async () => {
       const toAdd = rightItems.filter((s) => !before.has(s.id));
       const toRemove = sensorsInAllGroups.filter((s) => !after.has(s.id));
 
-      await Promise.all([
-        // assign selected group
-        ...toAdd.map((s) =>
-          updateSensor(s.id, { sensor_group_id: selectedId })
-        ),
-        // unassign from this group
-        ...toRemove.map((s) =>
-          updateSensor(s.id, { sensor_group_id: null })
-        ),
-      ]);
+    await Promise.all([
+      // assign selected group
+      ...toAdd.map((s) => {
+        const { id, ...rest } = s;
+        return updateSensor(id, {
+          ...rest,
+          sensor_group_id: selectedId,
+        });
+      }),
+
+      // unassign from this group
+      ...toRemove.map((s) => {
+        const { id, ...rest } = s;
+        return updateSensor(id, {
+          ...rest,
+          sensor_group_id: null,
+        });
+      }),
+    ]);
 
       toaster.create({ type: "success", description: "Sensor Group Updated" });
       router.refresh();

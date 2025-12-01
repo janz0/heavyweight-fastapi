@@ -430,22 +430,8 @@ export function LocationEditModal({ trigger, location, onEdited }:  BaseLocation
   const handleUpdate = async (payload: LocationPayload) => {
     if (!location) return;
 
-    const changedPayload: LocationPayload = {};
-    if (payload.project_id !== location.project_id) changedPayload.project_id = payload.project_id;
-    if (payload.loc_name !== location.loc_name) changedPayload.loc_name = payload.loc_name;
-    if (payload.loc_number !== location.loc_number) changedPayload.loc_number = payload.loc_number;
-    if (payload.lat !== location.lat) changedPayload.lat = payload.lat;
-    if (payload.lon !== location.lon) changedPayload.lon = payload.lon;
-    if (payload.frequency !== location.frequency) changedPayload.frequency = payload.frequency;
-    if (payload.active !== location.active) changedPayload.active = payload.active;
-
-    if (Object.keys(changedPayload).length === 0) {
-      toaster.create({ description: "No changes detected.", type: "info" });
-      return;
-    }
-
     try {
-      const edited = await updateLocation(location.id, changedPayload);
+      const edited = await updateLocation(location.id, payload);
       toaster.create({ description: "Location updated", type: "success" });
       onEdited?.(edited);
     } catch (err) {

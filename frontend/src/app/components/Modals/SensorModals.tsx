@@ -344,27 +344,8 @@ export function SensorEditModal({ trigger, sensor, onEdited, projectId }: BaseSe
  const handleUpdate = async (payload: MonitoringSensorPayload) => {
     if (!sensor) return;
   
-    const changedPayload: MonitoringSensorPayload = {};
-    if (payload.mon_source_id !== sensor.mon_source_id) changedPayload.mon_source_id = payload.mon_source_id;
-    if (Object.prototype.hasOwnProperty.call(payload, "sensor_group_id")) {
-      const a = payload.sensor_group_id;
-      const b = sensor.sensor_group_id;
-      const bothEmpty = (a === '' || a == null) && (b === '' || b == null);
-      if (!bothEmpty && a !== b) {
-        changedPayload.sensor_group_id = a;
-      }
-    }
-    if (payload.sensor_name !== sensor.sensor_name) changedPayload.sensor_name = payload.sensor_name;
-    if (payload.sensor_type !== sensor.sensor_type) changedPayload.sensor_type = payload.sensor_type;
-    if (payload.active !== sensor.active) changedPayload.active = payload.active;
-    console.log(changedPayload);
-    if (Object.keys(changedPayload).length === 0) {
-      toaster.create({ description: "No changes detected.", type: "info" });
-      return;
-    }
-
     try {
-      const edited = await updateSensor(sensor.id, changedPayload);
+      const edited = await updateSensor(sensor.id, payload);
       toaster.create({ description: "Sensor updated successfully", type: "success" });
       onEdited?.(edited);
     } catch (err) {

@@ -16,9 +16,9 @@ export interface MonitoringSensor {
 }
 
 export interface MonitoringSensorPayload {
-  mon_source_id?: string;
+  mon_source_id: string;
   sensor_group_id?: string | null;
-  sensor_name?: string;
-  sensor_type?: string;
+  sensor_name: string;
+  sensor_type: string;
   active?: number;
 }
