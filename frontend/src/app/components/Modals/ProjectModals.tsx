@@ -52,7 +52,7 @@ function ProjectForm({
   useEffect(() => {
     if (initialData) {
       setProjectName(initialData.project_name);
-      setProjectNumber(initialData.project_number || '');
+      setProjectNumber(initialData.project_number);
       setDescription(initialData.description || '');
       setStartDate(initialData.start_date);
       setEndDate(initialData.end_date || '');
@@ -75,8 +75,8 @@ function ProjectForm({
       start_date: startDate,
       active,
       status: active === 1 ? 'Active' : 'On-Hold',
+      project_number: projectNumber,
     };
-    if (projectNumber) payload.project_number = projectNumber;
     if (endDate) payload.end_date = endDate;
 
     await onSubmit(payload);
@@ -100,7 +100,7 @@ function ProjectForm({
 
           <Field.Root mb={4}>
             <Field.Label>Project Number</Field.Label>
-            <Input placeholder="Optional" value={projectNumber} borderColor={bc} onChange={(e) => setProjectNumber(e.target.value)}
+            <Input value={projectNumber} borderColor={bc} onChange={(e) => setProjectNumber(e.target.value)}
               _focusWithin={{
                 outline: "2px solid",
                 outlineColor: "var(--chakra-colors-blue-400)",
@@ -164,7 +164,7 @@ function ProjectForm({
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
           <Dialog.ActionTrigger asChild>
-            <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+            <Button colorScheme="yellow" type="button" onClick={handleSubmit}>{submitLabel}</Button>
           </Dialog.ActionTrigger>
         </Dialog.Footer>
       </form>

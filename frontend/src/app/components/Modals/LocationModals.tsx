@@ -372,7 +372,7 @@ function LocationForm({
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
           <Dialog.ActionTrigger asChild>
-            <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+            <Button colorScheme="yellow" type="button" onClick={handleSubmit}>{submitLabel}</Button>
           </Dialog.ActionTrigger>
         </Dialog.Footer>
       </form>

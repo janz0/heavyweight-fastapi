@@ -187,7 +187,7 @@ function SensorForm({
                 </Select.Positioner>
               </Select.Root>
             </Field.Root>
-            <SourceCreateModal
+            <SourceCreateModal projectId={fixedProjectId}
               trigger={
                 <IconButton mt="auto" mb={4} aria-label="New Source" outline="solid thin" variant="ghost">
                   <Plus size={16} />
@@ -286,7 +286,7 @@ function SensorForm({
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
           <Dialog.ActionTrigger asChild>
-            <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+            <Button colorScheme="yellow" type="button" onClick={handleSubmit}>{submitLabel}</Button>
           </Dialog.ActionTrigger>
         </Dialog.Footer>
       </form>
