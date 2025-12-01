@@ -73,7 +73,7 @@ export default function Navbar() {
         <Flex as="nav" align="center" justify="space-between" pr={"1%"} position="relative">
           <Box display="flex" alignItems="center" gap="0">
             <BackForward />
-            <Box fontWeight="bold" display={{ base: "none", sm:"block"}} fontSize={["md", "lg"]} alignContent="center" color={textColor} px={4} py={1} _hover={{backgroundColor: "whiteAlpha.500"}}>
+            <Box fontWeight="bold" display={{ base: "none", sm:"block"}} fontSize={["md", "lg"]} alignContent="center" color={textColor} px={4} py={1} borderRadius={"xl"} _hover={{backgroundColor: "whiteAlpha.500"}}>
               <NextLink href={"/"}>RWH Monitoring</NextLink>
             </Box>
           </Box>
@@ -98,6 +98,7 @@ export default function Navbar() {
                         variant="ghost"
                         onClick={item.onClick ?? undefined}
                         color={item.active ? "orange.400" : undefined}
+                        borderRadius={"xl"}
                       >{<Icon as={item.icon} />}</IconButton>
                   );
 

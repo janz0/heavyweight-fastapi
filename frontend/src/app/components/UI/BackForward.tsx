@@ -19,6 +19,7 @@ export function BackForward() {
         p={0}
         m={0}
         size="2xs"
+        borderRadius={"xl"}
       />
       <IconButton
         as={ChevronRight}
@@ -30,6 +31,7 @@ export function BackForward() {
         p={0}
         m={0}
         size="2xs"
+        borderRadius={"xl"}
       />
     </Flex>
   );

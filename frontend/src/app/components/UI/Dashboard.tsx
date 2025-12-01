@@ -76,7 +76,7 @@ export default function Dashboard({
                     <Text display="inline-flex" fontSize={{base: "clamp(0.75rem, 2.5vw, 1rem)", md: "75%", lg: "md"}} className="text-color" flexShrink={1} truncate alignItems={"center"} justifyContent="center">
                       {label}
                       {s.label === 'Projects' && (
-                        <Box ml={1}>
+                        <Box as="span" ml={1}>
                           <Tooltip
                             content={`${activeProjects} active`}
                             showArrow
