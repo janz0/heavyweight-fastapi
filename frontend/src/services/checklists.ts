@@ -1,5 +1,5 @@
 // File: src/services/checklists.ts
-import type { Checklist, ChecklistPayload, ChecklistExpanded, UUID, ChecklistTemplate } from "@/types/checklist";
+import type { Checklist, ChecklistPayload, ChecklistExpanded, UUID, ChecklistTemplate, ChecklistTemplateCategory, ChecklistTemplateItem } from "@/types/checklist";
 
 const API_ROOT = process.env.NEXT_PUBLIC_API_URL!;
 const BASE     = `${API_ROOT}checklists`;
@@ -111,4 +111,26 @@ export async function listChecklistTemplates(): Promise<ChecklistTemplate[]> {
   const res = await fetch(`${BASE}/templates`);
   if (!res.ok) throw new Error("Failed to fetch templates");
   return res.json() as Promise<ChecklistTemplate[]>;
+}
+
+export async function listTemplateCategories(
+  templateId: UUID
+): Promise<ChecklistTemplateCategory[]> {
+  const res = await fetch(`${BASE}/templates/${templateId}/categories`);
+  if (!res.ok) {
+    const body = await readBody(res);
+    throw new Error(`List template categories failed (${res.status}): ${body}`);
+  }
+  return res.json() as Promise<ChecklistTemplateCategory[]>;
+}
+
+export async function listCategoryItems(
+  categoryId: UUID
+): Promise<ChecklistTemplateItem[]> {
+  const res = await fetch(`${BASE}/categories/${categoryId}/items`);
+  if (!res.ok) {
+    const body = await readBody(res);
+    throw new Error(`List category items failed (${res.status}): ${body}`);
+  }
+  return res.json() as Promise<ChecklistTemplateItem[]>;
 }

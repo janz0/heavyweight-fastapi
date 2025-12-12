@@ -168,6 +168,13 @@ html[style*="color-scheme: dark"] .card:hover {
   outline: 1px solid;
 }
 
+.json-editor {
+  background-color: #f6f6f6;
+}
+
+html[style*="color-scheme: dark"] .json-editor {
+  background-color: var(--chakra-colors-gray-400) !important;
+}
 .breadcrumb {
   border-radius: 7px;
   box-shadow: 0 2px 5px rgb(0, 0, 0);

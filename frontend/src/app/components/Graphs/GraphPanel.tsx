@@ -4,6 +4,7 @@ import { Box, Select, Portal } from "@chakra-ui/react";
 import { Line, Bar, Scatter } from "react-chartjs-2";
 import type { ChartOptions, ChartData, ChartType } from "chart.js";
 import { createListCollection } from "@chakra-ui/react";
+import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // Type for your time-series data row
 export type SampleRow = {
@@ -25,6 +26,21 @@ interface GraphPanelProps {
   config: GraphConfig;
   onConfigChange: (c: GraphConfig) => void;
 }
+function seedFromString(s: string) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function colorFromSeed(seed: string, mode: "light" | "dark") {
+  const h = seedFromString(seed) % 360;
+  const s = 65;
+  const l = mode === "light" ? 45 : 70;
+  return `hsl(${h} ${s}% ${l}%)`;
+}
 
 export default function GraphPanel({
   sensorName,
@@ -32,6 +48,15 @@ export default function GraphPanel({
   config,
   onConfigChange,
 }: GraphPanelProps) {
+  const { colorMode } = useColorMode();
+  const isDark = colorMode === "dark";
+
+  const stroke = colorFromSeed(sensorName || "default", colorMode);
+  const fill =
+    config.type === "line" && isDark
+      ? stroke.replace("hsl", "hsla").replace("%)", "% / 0.25)")
+      : "transparent";
+
   // Define selectable chart types
   const chartTypes = createListCollection({
     items: [
@@ -45,6 +70,13 @@ export default function GraphPanel({
   const labels = data.map((d) =>
     new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   );
+
+  const axisColor = isDark ? "#E5E7EB" : "#374151";
+  const gridColor = isDark
+    ? "rgba(255, 255, 255, 0.08)"
+    : "rgba(100, 100, 100, 0.08)";
+  const tooltipBg = isDark ? "#111827" : "#F9FAFB";
+  const tooltipBorder = isDark ? "#4B5563" : "#E5E7EB";
 
   // Dataset logic per chart type
   let chartData: ChartData<ChartType> | null = null;
@@ -60,35 +92,60 @@ export default function GraphPanel({
             const val = pt[config.field];
             return typeof val === "number" ? val : null;
           }),
-          backgroundColor: "#3B82F6",
-          borderColor: "#3B82F6",
-          fill: false,
+          backgroundColor: config.type === "bar" ? stroke : fill,
+          borderColor: stroke,
+          borderWidth: 2,
+          tension: config.type === "line" ? 0.35 : 0,
+          pointRadius: config.type === "line" ? 0 : 3,
+          pointHitRadius: 6,
         },
       ],
     };
     options = {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "top" } },
+      plugins: {
+        legend: {
+          position: "top",
+          labels: { color: axisColor },
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: tooltipBg,
+          borderColor: tooltipBorder,
+          borderWidth: 1,
+          titleColor: axisColor,
+          bodyColor: axisColor,
+        },
+      },
       scales: {
-        x: { title: { display: true, text: "Time" }, grid: { display: false } },
-        y: { title: { display: true, text: config.field } },
+        x: {
+          title: { display: true, text: "Time", color: axisColor },
+          ticks: { color: axisColor },
+          grid: { color: gridColor },
+        },
+        y: {
+          title: { display: true, text: config.field, color: axisColor },
+          ticks: { color: axisColor },
+          grid: { color: gridColor },
+        },
       },
     };
   } else if (config.type === "scatter") {
     chartData = {
       datasets: [
         {
-          label: `${sensorName} — ${config.field} vs ${config.yField ?? "longitude"}`,
+          label: `${sensorName} — ${config.field} vs ${
+            config.yField ?? "longitude"
+          }`,
           data: data.map((pt) => {
             const xVal = pt[config.field];
             const yVal = pt[config.yField ?? "longitude"];
-
             return typeof xVal === "number" && typeof yVal === "number"
               ? { x: xVal, y: yVal }
-              : null; // Chart.js allows null points
+              : null;
           }),
-          backgroundColor: "#10B981",
+          backgroundColor: stroke,
         },
       ],
     };
@@ -96,18 +153,43 @@ export default function GraphPanel({
     options = {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "top" } },
+      plugins: {
+        legend: {
+          position: "top",
+          labels: { color: axisColor },
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: tooltipBg,
+          borderColor: tooltipBorder,
+          borderWidth: 1,
+          titleColor: axisColor,
+          bodyColor: axisColor,
+        },
+      },
       scales: {
-        x: { title: { display: true, text: config.field } },
-        y: { title: { display: true, text: config.yField ?? "longitude" } },
+        x: {
+          title: { display: true, text: config.field, color: axisColor },
+          ticks: { color: axisColor },
+          grid: { color: gridColor },
+        },
+        y: {
+          title: {
+            display: true,
+            text: config.yField ?? "longitude",
+            color: axisColor,
+          },
+          ticks: { color: axisColor },
+          grid: { color: gridColor },
+        },
       },
     };
   }
 
   return (
-    <Box h="full" p={2} pt={8} borderWidth={2} position="relative">
+    <Box h="full" p={2} pt={8} position="relative" border="none">
       {/* Dropdown to change chart type */}
-      <Box className="bg-card" position="absolute" bg="gray.200" right={"2%"} top={3} p={1} m={0}>
+      <Box className="bg-card" position="absolute" bg="gray.200" _dark={{ bg: 'gray.700' }} right={"2%"} top={3} p={1} m={0}>
         <Select.Root
           collection={chartTypes}
           w="120px"
@@ -119,7 +201,7 @@ export default function GraphPanel({
         >
           <Select.HiddenSelect />
           <Select.Control>
-            <Select.Trigger h="25px" minH={0}>
+            <Select.Trigger h="25px" minH={0} border="none">
               <Select.ValueText fontSize={12} />
             </Select.Trigger>
             <Select.IndicatorGroup>

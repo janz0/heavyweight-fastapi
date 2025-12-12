@@ -43,7 +43,7 @@ export const sensorColumns: Column[] = [
   { key: "sensor_name",     label: "Sensor Name" },
   { key: "sensor_type",     label: "Sensor Type" },
   { key: "details.mon_source_name",   label: "Source" },
-  { key: "sensor_group_id", label: "Sensor Group" },
+  { key: "details.group_name", label: "Sensor Group" },
   { key: "created_at",      label: "Created" },
   { key: "last_updated",    label: "Updated" },
   { key: "sensor_data",     label: "Sensor Data" },

@@ -59,11 +59,11 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
   // Once authenticated, show the Navbar + whatever the page is (dashboard, etc.).
   return (
-    <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)" _dark={{background: "gray.700"}}>
+    <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)" _dark={{background: "gray.900"}}>
       <Navbar />
       <Flex flex="1" minH="0" w="100vw" pl={{md: "2"}} gap="1">
         <Sidebar />
-        <Box flex="1" px={{ base: 0, md: 8 }} py={{ base: 0, md: 4 }} overflowY="auto" bg="gray.100" _dark={{background: "gray.900"}} borderTopLeftRadius={{md: "xl"}}>{children}</Box>
+        <Box flex="1" px={{ base: 0, md: 8 }} py={{ base: 0, md: 4 }} overflowY="auto" bg="gray.100" _dark={{background: "gray.800"}}>{children}</Box>
       </Flex>
     </Flex>
   );
@@ -75,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}

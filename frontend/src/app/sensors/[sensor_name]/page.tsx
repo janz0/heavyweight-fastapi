@@ -30,6 +30,6 @@ export default async function SensorsPage({ params }: PageProps) {
   console.log(fields);
   console.log(dataByField);
   return (
-    <SensorPageClient sensor={sensor}/>
+    <SensorPageClient initialSensor={sensor}/>
   );
 }

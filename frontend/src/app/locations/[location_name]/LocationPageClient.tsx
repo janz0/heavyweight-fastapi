@@ -8,7 +8,7 @@ import { useColorMode } from '@/app/src/components/ui/color-mode';
 import type { Location } from '@/types/location';
 import type { MonitoringSensor } from '@/types/sensor';
 import type { Source } from '@/types/source';
-import { PencilSimple, Trash, DotsThreeVertical } from "phosphor-react";
+import { PencilSimple, Plus, Trash, Copy, DotsThreeVertical } from "phosphor-react";
 import DataTable from '@/app/components/DataTable';
 import { SourceCreateModal, SourceEditModal, SourceDeleteModal, SourceDuplicateModal } from '@/app/components/Modals/SourceModals';
 import { SensorCreateModal, SensorEditModal, SensorDeleteModal, SensorDuplicateModal } from '@/app/components/Modals/SensorModals';
@@ -38,37 +38,6 @@ export default function LocationPageClient({ initialLocation, initialSources, in
   const [sources, setSources] = useState<Source[]>(initialSources);
   const [sensors, setSensors] = useState<MonitoringSensor[]>(initialSensors);
 
-  // Source Variables
-  const [isSrcCreateOpen, setSrcCreateOpen] = useState(false);
-  const [isSrcEditOpen, setSrcEditOpen] = useState(false);
-  const [isSrcDelOpen, setSrcDelOpen] = useState(false);
-  const [isSrcDupOpen, setSrcDupOpen] = useState(false);
-  const [selectedSource, setSelectedSource] = useState<Source | undefined>();
-  const [srcToDelete, setSrcToDelete] = useState<Source | undefined>();
-  const [srcToDup, setSrcToDup] = useState<Source | undefined>();
-  const handleNewSource = () => { setSelectedSource(undefined); setSrcCreateOpen(true); };
-  const handleEditSource = (s: Source) => { setSelectedSource(s); setSrcEditOpen(true); };
-  const handleDeleteSource = (s: Source) => { setSrcToDelete(s); setSrcDelOpen(true); };
-  const handleDuplicateSource = (s: Source) => { setSrcToDup(s); setSrcDupOpen(true); };
-
-  // Sensor Variables
-  const [isSenCreateOpen, setSenCreateOpen] = useState(false);
-  const [isSenEditOpen, setSenEditOpen] = useState(false);
-  const [isSenDelOpen, setSenDelOpen] = useState(false);
-  const [isSenDupOpen, setSenDupOpen] = useState(false);
-  const [selectedSensor, setSelectedSensor] = useState<MonitoringSensor | undefined>();
-  const [senToDelete, setSenToDelete] = useState<MonitoringSensor | undefined>();
-  const [senToDup, setSenToDup] = useState<MonitoringSensor | undefined>();
-  const handleNewSensor = () => { setSelectedSensor(undefined); setSenCreateOpen(true); };
-  const handleEditSensor = (s: MonitoringSensor) => { setSelectedSensor(s); setSenEditOpen(true); };
-  const handleDeleteSensor = (s: MonitoringSensor) => { setSenToDelete(s); setSenDelOpen(true); };
-  const handleDuplicateSensor = (s: MonitoringSensor) => { setSenToDup(s); setSenDupOpen(true); };
-  
-  const [isLocEditOpen, setLocEditOpen] = useState(false);
-  const [isLocDelOpen, setLocDelOpen] = useState(false);
-  const handleEditLocation = () => {setLocEditOpen(true); setPopoverOpen(false)};
-  const handleDeleteLocation = () => {setLocDelOpen(true); setPopoverOpen(false)};
-
   const [isGrpCreateOpen, setGrpCreateOpen] = useState(false);
   const [isGrpEditOpen, setGrpEditOpen] = useState(false);
   const [isGrpDelOpen, setGrpDelOpen] = useState(false);
@@ -77,7 +46,6 @@ export default function LocationPageClient({ initialLocation, initialSources, in
   const handleNewGrp = () => (setGrpCreateOpen(true));
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   // Map controls
   const [isMapCollapsed, setMapCollapsed] = useState(false);
@@ -108,7 +76,8 @@ export default function LocationPageClient({ initialLocation, initialSources, in
       setMapCollapsed(true);
       setMapMaximized(false);
       setMapHeightSmooth(0);
-      
+      if (!isChecklistCollapsed)
+        maximizeChecklist();
     }
   };
   const restoreMap = () => {
@@ -128,16 +97,18 @@ export default function LocationPageClient({ initialLocation, initialSources, in
     setChecklistCollapsed(true);
     setChecklistMaximized(false);
   };
+  
   const restoreChecklist = () => {
     setChecklistCollapsed(false);
     setChecklistMaximized(false);
   };
+
   const maximizeChecklist = () => {
     setChecklistCollapsed(false);
-    setChecklistMaximized(true);
     // hide map while checklist is maximized
     setMapMaximized(false);
   };
+
   function formatDate(dateString?: string | null) {
     if (!dateString) return '—';
     const date = new Date(dateString);
@@ -171,7 +142,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
             bg={location.active ? "green.400" : "red.400"}
           />
           <Box display={"inline-block"}>
-            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
                   onClick={(e) => e.stopPropagation()}
@@ -191,12 +162,23 @@ export default function LocationPageClient({ initialLocation, initialSources, in
                   </Popover.Arrow>
                   <Popover.Body height="100px" p={0} >
                     <VStack gap={0} justifyContent={"center"} height="inherit">
-                      <Button variant="ghost" size="md" onClick={handleEditLocation}>
-                        <PencilSimple />
-                      </Button>
-                      <Button variant="ghost" size="md" onClick={handleDeleteLocation}>
-                        <Trash />
-                      </Button>
+                      <LocationEditModal location={location}
+                        trigger={
+                          <Button variant="ghost" size="md" rounded="lg">
+                            <PencilSimple />
+                          </Button>
+                        }
+                        onEdited={(edited) => {
+                          setLocation(edited);
+                        }}
+                      />
+                      <LocationDeleteModal location={location}
+                        trigger={
+                          <Button variant="ghost" size="md" rounded="lg">
+                            <Trash />
+                          </Button>
+                        }
+                      />
                     </VStack>
                   </Popover.Body>
                 </Popover.Content>
@@ -232,8 +214,9 @@ export default function LocationPageClient({ initialLocation, initialSources, in
         gap={3}
         direction={isMapMaximized || isChecklistMaximized ? "column" : "row"}
         overflow={"hidden"}
-        h={`${mapHeight}px + 10px)`}
+        h={isChecklistMaximized ? "100%" : `${mapHeight}px + 10px)`}
         minH={`42px`}
+        rounded={"md"}
       >
         {/* Map panel */}
         <Box
@@ -318,24 +301,24 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           flexShrink={0}
           flexGrow={0}
           flexBasis={isMapMaximized ? "0px" : isChecklistCollapsed ? `${COLLAPSED_RAIL}px` : "25%"}
-          transition={"flex-basis 0.5s ease-in-out, min-height 0.5s ease-in-out"}
+          transition={"flex-basis 0.5s ease-in-out, min-height 0.5s ease-in-out, width 0.5s ease-in-out"}
           minW={"100px"}
-          minH={isChecklistCollapsed || isMapMaximized ? "0px" : "250px"}
+          minH={isChecklistMaximized ? "70vh" : isChecklistCollapsed ? "0px" : mapHeight == 0 ? prevMapHeight : mapHeight}
           display={isMapMaximized ? "none" : "block"}
         >
           <Box
             position="absolute"
-            top={1}
-            right={3}
-            w={isChecklistCollapsed ? "auto" : "400px"}
-            h="20px"
+            top={0}
+            right={0}
+            w={"inherit"}
+            h="40px"
             bg="transparent"
             opacity={0}
             _hover={{ opacity: 1 }}
             zIndex={1}
           >
             {/* checklist controls (top-right) */}
-            <Flex position="absolute" top={1} right={1} gap={1} zIndex={1}>
+            <Flex position="absolute" top={1} right={isChecklistCollapsed ? 1 : 5} zIndex={1} gap={1} transition="right 500ms ease">
               {isChecklistCollapsed ? (
                 <Tooltip content="Restore checklist">
                   <IconButton aria-label="Restore checklist" size="xs" variant="ghost" bg="bg.subtle" onClick={restoreChecklist}>
@@ -411,7 +394,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           borderColor={"purple.600"}
           bg={activeTab === 'sources' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "white"}}
           w="25%"
         >
           Sources
@@ -423,7 +406,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           borderColor={"green.600"}
           bg={activeTab === 'sensors' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "white"}}
           w="25%"
         >
           Sensors
@@ -435,96 +418,122 @@ export default function LocationPageClient({ initialLocation, initialSources, in
           borderColor={"black"}
           bg={activeTab === 'groups' ? 'rgba(194, 213, 255, 0.40)' : 'undefined'}
           color={"black"}
-          _dark={{borderColor: "white"}}
+          _dark={{color: "white"}}
           w="25%"
         >
           Groups
         </Button>
       </HStack>
       {activeTab === 'sources' && (
-        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} onCreate={handleNewSource} onEdit={handleEditSource} onDelete={handleDeleteSource} onDuplicate={handleDuplicateSource} name={activeTab} />
+        <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} name={activeTab}
+          createElement={
+            <SourceCreateModal projectId={location.project_id} locationId={location.id}
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              onCreated={(created) => {
+                setSources(prev => [created, ...prev]);
+              }}
+            />
+          }
+          editElement={(item) => (
+            <SourceEditModal source={item} projectId={location.project_id}
+              trigger={
+                <Button variant="ghost" size="md" rounded="md">
+                  <PencilSimple />
+                </Button>
+              }
+              onEdited={(edited) => {
+                setSources(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+              }}
+            />
+          )}
+          deleteElement={(item) => (
+            <SourceDeleteModal source={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Trash />
+                </Button>
+              }
+              onDeleted={(id) => {
+                setSources(prev => prev.filter(p => p.id !== id));
+              }}
+            />
+          )}
+          duplicateElement={(item) => (
+            <SourceDuplicateModal source={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Copy />
+                </Button>
+              }
+              onDuplicated={(duplicated) => {
+                setSources(prev => [duplicated, ...prev]);
+              }}
+            />
+          )}
+        />
       )}
 
       {activeTab === 'sensors' && (
-        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} onCreate={handleNewSensor} onEdit={handleEditSensor} onDelete={handleDeleteSensor} onDuplicate={handleDuplicateSensor} name={activeTab} />
+        <DataTable columns={sensorColumns} color={"green.600"} data={sensors} name={activeTab}
+          createElement={
+            <SensorCreateModal projectId={location.project_id} locationId={location.id}
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              onCreated={(created) => {
+                setSensors(prev => [created, ...prev]);
+              }}
+            />
+          }
+          editElement={(item) => (
+            <SensorEditModal sensor={item} projectId={location.project_id}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <PencilSimple />
+                </Button>
+              }
+              onEdited={(edited) => {
+                setSensors(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
+              }}
+            />
+          )}
+          deleteElement={(item) => (
+            <SensorDeleteModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Trash />
+                </Button>
+              }
+              onDeleted={(id) => {
+                setSensors(prev => prev.filter(p => p.id !== id));
+              }}
+            />
+          )}
+          duplicateElement={(item) => (
+            <SensorDuplicateModal sensor={item}
+              trigger={
+                <Button variant="ghost" size="md">
+                  <Copy />
+                </Button>
+              }
+              onDuplicated={(duplicated) => {
+                setSensors(prev => [duplicated, ...prev]);
+              }}
+            />
+          )}
+        />
       )}
 
       {activeTab === 'groups' && (
         <DataTable columns={groupColumns} data={initialGroups} onCreate={handleNewGrp} onEdit={handleEditGroup} onDelete={handleDeleteGroup} name={activeTab} />
       )}
-      <LocationEditModal
-        isOpen={isLocEditOpen}
-        location={location}
-        onClose={() => { setLocEditOpen(false); }}
-        onEdited={(edited) => setLocation(edited)}
-      />
-      <LocationDeleteModal
-        isOpen={isLocDelOpen}
-        location={location}
-        onClose={() => { setLocDelOpen(false); }}
-      />
-      <SourceCreateModal
-        isOpen={isSrcCreateOpen}
-        onClose={() => { setSelectedSource(undefined); setSrcCreateOpen(false); } }
-        onCreated={(created) => {
-          setSources(prev => [created, ...prev]);
-        }}
-      />
-      <SourceEditModal 
-        isOpen={isSrcEditOpen}
-        source={selectedSource}
-        onClose={() => { setSelectedSource(undefined); setSrcEditOpen(false); }}
-        onEdited={(edited) => {
-          setSources(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
-        }}
-      />
-      <SourceDeleteModal
-        isOpen={isSrcDelOpen}
-        source={srcToDelete}
-        onClose={() => { setSrcToDelete(undefined); setSrcDelOpen(false); }}
-        onDeleted={(id) => {
-          setSources(prev => prev.filter(s => s.id !== id));
-        }}
-      />
-      <SourceDuplicateModal 
-        isOpen={isSrcDupOpen}
-        source={srcToDup}
-        onClose={() => {setSrcToDup(undefined); setSrcDupOpen(false); }}
-        onDuplicated={(duplicated) => {
-          setSources(prev => [duplicated, ...prev]);
-        }}
-      />
-      <SensorCreateModal
-        isOpen={isSenCreateOpen}
-        onClose={() => { setSelectedSensor(undefined); setSenCreateOpen(false); } }
-        onCreated={(created) => {
-          setSensors(prev => [created, ...prev]);
-        }}
-      />
-      <SensorEditModal
-        isOpen={isSenEditOpen}
-        sensor={selectedSensor}
-        onClose={() => { setSelectedSensor(undefined); setSenEditOpen(false); }}
-        onEdited={(edited) => {
-          setSensors(prev => prev.map(s => s.id === edited.id ? { ...s, ...edited } : s ));
-        }}
-      />
-      <SensorDeleteModal
-        isOpen={isSenDelOpen}
-        sensor={senToDelete}
-        onClose={() => { setSenToDelete(undefined); setSenDelOpen(false); }}
-        onDeleted={(id) => {
-          setSensors(prev => prev.filter(s => s.id !== id));
-        }}
-      />
-      <SensorDuplicateModal
-        isOpen={isSenDupOpen}
-        sensor={senToDup}
-        onClose={() => { setSenToDup(undefined); setSenDupOpen(false); }}
-        onDuplicated={(duplicated) => {
-          setSensors(prev => [duplicated, ...prev]);
-        }}
-      />
+
       <MonitoringGroupCreateModal isOpen={isGrpCreateOpen} onClose={() => setGrpCreateOpen(false)} locationId={location.id} />
       <MonitoringGroupEditModal isOpen={isGrpEditOpen} group={selectedGroup} onClose={() => { setGrpEditOpen(false); setSelectedGroup(undefined); }}/>
       <MonitoringGroupDeleteModal isOpen={isGrpDelOpen} group={grpToDelete} onClose={() => { setGrpDelOpen(false); setGrpToDelete(undefined); }}/>

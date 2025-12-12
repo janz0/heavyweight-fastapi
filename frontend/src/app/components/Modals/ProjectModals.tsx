@@ -6,18 +6,17 @@ import React, { FormEvent, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 // Chakra Imports + Icons
-import { Button, CloseButton, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Switch, Text, Textarea } from '@chakra-ui/react';
-import { X } from 'lucide-react';
+import { Button, CloseButton, Dialog, Field, Flex, HStack, Input, Portal, Switch, Textarea } from '@chakra-ui/react';
 import { toaster } from '@/components/ui/toaster';
-import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // Services + Types
 import { createProject, updateProject, deleteProject } from '@/services/projects';
 import type { Project, ProjectPayload } from '@/types/project';
 
 interface BaseProjectModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  trigger: React.ReactElement;
+  onClose?: () => void;
   onCreated?: (p: Project) => void;
   onEdited?: (p: Project) => void;
   onDeleted?: (id: string) => void;
@@ -30,18 +29,13 @@ interface BaseProjectModalProps {
 // ==============================
 function ProjectForm({
   onSubmit,
-  onClose,
   initialData,
   submitLabel,
 }: {
   onSubmit: (payload: ProjectPayload) => Promise<void>;
-  onClose: () => void;
   initialData?: Project;
   submitLabel: string;
 }) {
-  const { colorMode } = useColorMode();
-  const bc = colorMode === "light" ? "black" : "white";
-
   const today = new Date().toISOString().split('T')[0];
   const [projectName, setProjectName] = useState(initialData?.project_name || '');
   const [projectNumber, setProjectNumber] = useState(initialData?.project_number || '');
@@ -51,10 +45,16 @@ function ProjectForm({
   const [active, setActive] = useState(initialData?.active || 1);
   const router = useRouter();
 
+  const [errors, setErrors] = useState<{
+    projName?: string;
+    projNumber?: string;
+    description?: string;
+  }>({});
+
   useEffect(() => {
     if (initialData) {
       setProjectName(initialData.project_name);
-      setProjectNumber(initialData.project_number || '');
+      setProjectNumber(initialData.project_number);
       setDescription(initialData.description || '');
       setStartDate(initialData.start_date);
       setEndDate(initialData.end_date || '');
@@ -71,14 +71,44 @@ function ProjectForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const nextErrors: typeof errors = {};
+    let hasError = false;
+
+    if (!projectName.trim()) {
+      nextErrors.projName = "Project name is required";
+      hasError = true;
+    }
+
+    if (!projectNumber.trim()) {
+      nextErrors.projNumber = "Project number is required";
+      hasError = true;
+    }
+
+    if (!description.trim()) {
+      nextErrors.description = "Project description is required";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(nextErrors);
+      toaster.create({
+        description: "Please fix the highlighted fields.",
+        type: "error",
+      });
+      return;
+    }
+
+    setErrors({});
+
     const payload: ProjectPayload = {
       project_name: projectName,
       description,
       start_date: startDate,
       active,
       status: active === 1 ? 'Active' : 'On-Hold',
+      project_number: projectNumber,
     };
-    if (projectNumber) payload.project_number = projectNumber;
     if (endDate) payload.end_date = endDate;
 
     await onSubmit(payload);
@@ -86,91 +116,79 @@ function ProjectForm({
   };
 
   return (
-    <form id="project-form" onSubmit={handleSubmit}>
-      <Field.Root required mb={4}>
-        <Field.Label>Project Name</Field.Label>
-        <Input value={projectName} borderColor={bc} onChange={(e) => setProjectName(e.target.value)}
-          _focusWithin={{
-            outline: "2px solid",
-            outlineColor: "var(--chakra-colors-blue-400)",
-            outlineOffset: "2px",
-          }}
-        />
-      </Field.Root>
+    <>
+      <form id="project-form" noValidate onSubmit={handleSubmit}>
+        <Dialog.Body>
+          <Field.Root required invalid={!!errors.projName} mb={errors.projName ? 6 : 4}>
+            <Field.Label>Project Name</Field.Label>
+            <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} borderColor={!errors.projName ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.projName}</Field.ErrorText>
+          </Field.Root>
 
-      <Field.Root mb={4}>
-        <Field.Label>Project Number</Field.Label>
-        <Input placeholder="Optional" value={projectNumber} borderColor={bc} onChange={(e) => setProjectNumber(e.target.value)}
-          _focusWithin={{
-            outline: "2px solid",
-            outlineColor: "var(--chakra-colors-blue-400)",
-            outlineOffset: "2px",
-          }}
-        />
-      </Field.Root>
+          <Field.Root required invalid={!!errors.projNumber} mb={errors.projNumber ? 6 : 4}>
+            <Field.Label>Project Number</Field.Label>
+            <Input value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)} borderColor={!errors.projNumber ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.projNumber}</Field.ErrorText>
+          </Field.Root>
 
-      <Field.Root required mb={4}>
-        <Field.Label>Description</Field.Label>
-        <Textarea rows={3} value={description} borderColor={bc} onChange={(e) => setDescription(e.target.value)} />
-      </Field.Root>
+          <Field.Root required invalid={!!errors.description} mb={errors.description ? 6 : 4}>
+            <Field.Label>Description</Field.Label>
+            <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} borderColor={!errors.description ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.description}</Field.ErrorText>
+          </Field.Root>
 
-      <HStack gap={4} mb={4}>
-        <Field.Root required>
-          <Field.Label>Start Date</Field.Label>
-          <Input type="date" value={startDate} borderColor={bc} onChange={(e) => setStartDate(e.target.value)}
-            _focusWithin={{
-              outline: "2px solid",
-              outlineColor: "var(--chakra-colors-blue-400)",
-              outlineOffset: "2px",
-            }}
-          />
-        </Field.Root>
-        <Field.Root>
-          <Field.Label>End Date</Field.Label>
-          <Input type="date" value={endDate} borderColor={bc} onChange={(e) => setEndDate(e.target.value)}
-            _focusWithin={{
-              outline: "2px solid",
-              outlineColor: "var(--chakra-colors-blue-400)",
-              outlineOffset: "2px",
-            }}
-          />
-        </Field.Root>
-      </HStack>
+          <HStack gap={4} mb={4}>
+            <Field.Root required>
+              <Field.Label>Start Date</Field.Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} borderColor="gray.500"/>
+            </Field.Root>
 
-      <Field.Root justifyItems={"center"}>
-        <Flex gap="2">
-        <Field.Label>Active</Field.Label>
-        <Switch.Root
-          checked={active === 1}
-          onCheckedChange={({ checked }) => setActive(checked ? 1 : 0)}
-        >
-          <Switch.HiddenInput />
-          <Switch.Control _checked={{ bg: 'green.400' }}>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Root>
-        </Flex>
-      </Field.Root>
+            <Field.Root>
+              <Field.Label>End Date</Field.Label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} borderColor="gray.500"/>
+            </Field.Root>
+          </HStack>
 
-      <Dialog.Footer>
-        <Button mr={3} type="button" onClick={() => onClose()}>Cancel</Button>
-        <Button type="submit">{submitLabel}</Button>
-      </Dialog.Footer>
-    </form>
+          <Field.Root justifyItems={"center"}>
+            <Flex gap="2">
+            <Field.Label>Active</Field.Label>
+            <Switch.Root
+              checked={active === 1}
+              onCheckedChange={({ checked }) => setActive(checked ? 1 : 0)}
+            >
+              <Switch.HiddenInput />
+              <Switch.Control _checked={{ bg: 'green.400' }}>
+                <Switch.Thumb />
+              </Switch.Control>
+            </Switch.Root>
+            </Flex>
+          </Field.Root>
+        </Dialog.Body>
+        <Dialog.Footer>
+          <Dialog.ActionTrigger asChild>
+            <Button colorScheme="gray" mr={3}>Cancel</Button>
+          </Dialog.ActionTrigger>
+          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+        </Dialog.Footer>
+      </form>
+      <Dialog.CloseTrigger asChild>
+        <CloseButton size="sm" />
+      </Dialog.CloseTrigger>
+    </>
   );
 }
 
 // ==============================
 // ProjectCreateModal
 // ==============================
-export function ProjectCreateModal({ isOpen, onClose, onCreated }: BaseProjectModalProps) {
-
+export function ProjectCreateModal({ trigger, onCreated }: BaseProjectModalProps) {
+  const [open, setOpen] = useState(false);
   const handleCreate = async (payload: ProjectPayload) => {
     try {
       const created = await createProject(payload);
       toaster.create({ description: 'Project created successfully', type: 'success' });
       onCreated?.(created);
-      onClose();
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to create Project: ${err instanceof Error ? err.message : String(err)}`,
@@ -180,22 +198,21 @@ export function ProjectCreateModal({ isOpen, onClose, onCreated }: BaseProjectMo
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
+    <Dialog.Root key="createproj" size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
-        <Dialog.Positioner>
-          <Dialog.Backdrop onClick={onClose} zIndex={1500}/>
-          <Dialog.Content border="2px solid" zIndex={1600}>
+        <Dialog.Backdrop zIndex={2006}/>
+        <Dialog.Positioner zIndex={2007}>
+          <Dialog.Content border="2px solid" zIndex={2008}>
             <Dialog.Header>
               <Dialog.Title>Create Project</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
-              <ProjectForm onSubmit={handleCreate} onClose={onClose} submitLabel="Create" />
-            </Dialog.Body>
+            <ProjectForm onSubmit={handleCreate} submitLabel="Create" />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -206,15 +223,15 @@ export function ProjectCreateModal({ isOpen, onClose, onCreated }: BaseProjectMo
 // ==============================
 // ProjectEditModal
 // ==============================
-export function ProjectEditModal({ isOpen, onClose, project, onEdited }: BaseProjectModalProps) {
-
+export function ProjectEditModal({ trigger, project, onEdited }: BaseProjectModalProps) {
+  const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: ProjectPayload) => {
     if (!project) return;
     try {
       const edited = await updateProject(project.id, payload);
       toaster.create({ description: 'Project updated successfully', type: 'success' });
       onEdited?.(edited);
-      onClose();
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to update Project: ${err instanceof Error ? err.message : String(err)}`,
@@ -224,22 +241,21 @@ export function ProjectEditModal({ isOpen, onClose, project, onEdited }: BasePro
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
+    <Dialog.Root size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
-          <Dialog.Backdrop onClick={onClose} zIndex={1500}/>
-          <Dialog.Content border="2px solid" zIndex={1600}>
+          <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Edit Project</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
-              <ProjectForm onSubmit={handleUpdate} onClose={onClose} initialData={project} submitLabel="Save" />
-            </Dialog.Body>
+            <ProjectForm onSubmit={handleUpdate} initialData={project} submitLabel="Save" />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -250,23 +266,22 @@ export function ProjectEditModal({ isOpen, onClose, project, onEdited }: BasePro
 // ==============================
 // ProjectDeleteModal
 // ==============================
-export function ProjectDeleteModal({ isOpen, onClose, project, onDeleted }: BaseProjectModalProps) {
+export function ProjectDeleteModal({ trigger, project, onDeleted }: BaseProjectModalProps) {
   const router = useRouter();
   const pathname = usePathname();
-
-  const handleConfirm = async () => {
+  const [open, setOpen] = useState(false);
+  const handleDelete = async () => {
     if (!project) return;
     try {
       await deleteProject(project.id);
       toaster.create({ description: 'Project deleted', type: 'success' });
-      onClose();
-
       const detailRoute = /^\/projects\/[^\/]+$/;
       if (detailRoute.test(pathname)) {
         router.back();
       } else {
         onDeleted?.(project.id);
       }
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to delete Project: ${err instanceof Error ? err.message : String(err)}`,
@@ -276,26 +291,33 @@ export function ProjectDeleteModal({ isOpen, onClose, project, onDeleted }: Base
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="sm">
+    <Dialog.Root size="sm" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
-          <Dialog.Backdrop onClick={onClose} zIndex={1500}/>
-          <Dialog.Content border="2px solid" zIndex={1600}>
+          <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Delete Project</Dialog.Title>
               <Dialog.CloseTrigger asChild>
-                <CloseButton size="sm" onClick={onClose} _hover={{ backgroundColor: 'gray.500' }} />
+                <CloseButton size="sm"/>
               </Dialog.CloseTrigger>
             </Dialog.Header>
             <Dialog.Body>
-              <Text>
-                Are you sure you want to delete{' '}
-                <Text as="span" fontWeight="bold">{project?.project_name}</Text>?
-              </Text>
+                Are you sure you want to delete <strong>{project?.project_name}</strong>
             </Dialog.Body>
             <Dialog.Footer>
-              <Button onClick={onClose}>Cancel</Button>
-              <Button onClick={handleConfirm}>Delete</Button>
+              <Dialog.ActionTrigger asChild>
+                <Button colorScheme="gray">Cancel</Button>
+              </Dialog.ActionTrigger>
+              <Dialog.ActionTrigger asChild>
+                <Button onClick={handleDelete}>Delete</Button>
+              </Dialog.ActionTrigger>
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
@@ -304,12 +326,11 @@ export function ProjectDeleteModal({ isOpen, onClose, project, onDeleted }: Base
   );
 }
 
-export function ProjectDuplicateModal({ isOpen, onClose, project, onDuplicated }: BaseProjectModalProps) {
+export function ProjectDuplicateModal({ trigger, project, onDuplicated }: BaseProjectModalProps) {
   const handleDuplicate = async (payload: ProjectPayload) => {
     const duplicated = await createProject(payload);
     toaster.create({ description: 'Project created successfully', type: 'success' });
     onDuplicated?.(duplicated);
-    onClose();
   };
 
   const cloneData: Project | undefined = project
@@ -317,27 +338,24 @@ export function ProjectDuplicateModal({ isOpen, onClose, project, onDuplicated }
     : undefined;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="lg">
+    <Dialog.Root size="lg">
+      {trigger && (
+        <Dialog.Trigger asChild>
+          {trigger}
+        </Dialog.Trigger>
+      )}
       <Portal>
+        <Dialog.Backdrop/>
         <Dialog.Positioner>
-          <Dialog.Backdrop onClick={onClose} zIndex={1500} />
-          <Dialog.Content border="2px solid" zIndex={1600}>
+          <Dialog.Content border="2px solid">
             <Dialog.Header>
               <Dialog.Title>Duplicate Project</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" variant="ghost" onClick={onClose}>
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
             </Dialog.Header>
-            <Dialog.Body>
-              <ProjectForm
-                onSubmit={handleDuplicate}
-                onClose={onClose}
-                initialData={cloneData}
-                submitLabel="Create"
-              />
-            </Dialog.Body>
+            <ProjectForm
+              onSubmit={handleDuplicate}
+              initialData={cloneData}
+              submitLabel="Create"
+            />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

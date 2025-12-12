@@ -2,7 +2,7 @@
 
 export interface Project {
   id: string;
-  project_number: string | null;
+  project_number: string;
   project_name: string;
   description: string | null;
   start_date: string;
@@ -14,13 +14,12 @@ export interface Project {
   locations_count: number;
 }
 
-// mirror your backend’s create/update schema:
 export interface ProjectPayload {
   project_name: string;
   description: string;
   start_date: string;
   active: number;
   status: string;
-  project_number?: string;
+  project_number: string;
   end_date?: string;
 }

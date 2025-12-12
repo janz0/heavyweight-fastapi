@@ -6,7 +6,7 @@ import Link from "next/link";
 
 // Chakra Imports + Icons
 import { Box, Button, ButtonGroup, Checkbox, Dialog, Flex, Heading, Icon, IconButton, Pagination, Popover, Portal, Table, Text, Textarea, useToken, VStack } from "@chakra-ui/react";
-import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass, PencilSimple, Plus, Trash, Copy } from "phosphor-react";
+import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass } from "phosphor-react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import { RotateCcw, Eye } from "lucide-react";
 
@@ -60,10 +60,10 @@ export default function DataTable<T extends { id: string; }>({
   color,
   data,
   columns,
-  onCreate,
-  onEdit,
-  onDelete,
-  onDuplicate,
+  createElement,
+  editElement,
+  deleteElement,
+  duplicateElement,
 }: DataTableProps<T>) {
   // Page Size Select
   const [page, setPage] = useState(1);
@@ -350,9 +350,7 @@ export default function DataTable<T extends { id: string; }>({
           </>
           }
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
-          <Button onClick={onCreate} borderRadius='0.375rem' boxShadow="sm" bg="orange" color="black" size={{base: "xs", lg:"sm"}}>
-            <Plus/><Text display={{base: "none", md: "block"}}>Add New</Text>
-          </Button>
+          {createElement}
         </Flex>
       </Flex>
       <Box className="bg-card">
@@ -590,29 +588,15 @@ export default function DataTable<T extends { id: string; }>({
                           </IconButton>
                         </Popover.Trigger>
                         <Popover.Positioner>
-                          <Popover.Content width="64px" height={onDuplicate ? "135px" : "100px"} borderColor={"blackAlpha.600"} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
+                          <Popover.Content maxW="64px" borderColor={"blackAlpha.600"} p={2} _dark={{borderColor: "whiteAlpha.600"}} borderWidth={1}>
                             <Popover.Arrow>
                               <Popover.ArrowTip borderColor={"blackAlpha.600"} borderWidth={1} _dark={{borderColor: "whiteAlpha.600"}}/>
                             </Popover.Arrow>
-                            <Popover.Body height={onDuplicate ? "135px" : "100px"} p={0}>
+                            <Popover.Body p={0}>
                               <VStack gap={0} justifyContent={"center"} height="inherit">
-                                <Popover.CloseTrigger asChild>
-                                <Button variant="ghost" size="md" onClick={() => onEdit(item)}>
-                                  <PencilSimple />
-                                </Button>
-                                </Popover.CloseTrigger>
-                                {onDuplicate && (
-                                  <Popover.CloseTrigger asChild>
-                                  <Button variant="ghost" size="md" onClick={() => onDuplicate(item)}>
-                                    <Copy />
-                                  </Button>
-                                  </Popover.CloseTrigger>
-                                )}
-                                <Popover.CloseTrigger asChild>
-                                <Button variant="ghost" size="md" onClick={() => onDelete(item)}>
-                                  <Trash />
-                                </Button>
-                                </Popover.CloseTrigger>
+                                {editElement && editElement(item)}
+                                {deleteElement && deleteElement(item)}
+                                {duplicateElement && duplicateElement(item)}
                               </VStack>
                             </Popover.Body>
                           </Popover.Content>
@@ -668,15 +652,16 @@ export default function DataTable<T extends { id: string; }>({
                 </Dialog.Header>
                 <Dialog.Body maxH="65vh" overflowY="auto">
                   {configViewer.data ? (
-                    <JsonEditor
-                      data={configViewer.data}
-                      setData={() => { /* read-only viewer */ }}
-                      restrictEdit={() => true}     // disallow edits
-                      restrictDelete={() => true}   // disallow deletes
-                      restrictAdd={() => true}
-                      rootName="Config"
-                      defaultValue=""
-                    />
+                      <JsonEditor
+                        data={configViewer.data}
+                        setData={() => { /* read-only viewer */ }}
+                        restrictEdit={() => true}     // disallow edits
+                        restrictDelete={() => true}   // disallow deletes
+                        restrictAdd={() => true}
+                        rootName="Config"
+                        defaultValue=""
+                        className="json-editor"
+                      />
                   ) : (
                     <Textarea readOnly value="No config available" />
                   )}

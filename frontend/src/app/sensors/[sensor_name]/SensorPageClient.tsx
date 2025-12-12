@@ -11,7 +11,7 @@ import { SensorEditModal, SensorDeleteModal } from '../../components/Modals/Sens
 import GraphPanel, { GraphConfig } from "@/app/components/Graphs/GraphPanel";
 
 interface SensorPageClientProps {
-  sensor: MonitoringSensor;
+  initialSensor: MonitoringSensor;
 }
 
 // Utility to format ISO date strings to "Month day, year"
@@ -25,13 +25,10 @@ function formatDate(dateString?: string | null) {
   }).format(date);
 }
 
-export default function SensorPageClient({ sensor }: SensorPageClientProps) {
+export default function SensorPageClient({ initialSensor }: SensorPageClientProps) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
-  const [isSenEditOpen, setSenEditOpen] = useState(false);
-  const [isSenDelOpen, setSenDelOpen] = useState(false);
-  const handleEditSensor = () => { setSenEditOpen(true); setPopoverOpen(false)};
-  const handleDeleteSensor = () => { setSenDelOpen(true); setPopoverOpen(false)};
+  const [sensor, setSensor] = useState<MonitoringSensor>(initialSensor);
 
   type SampleRow = {
     timestamp: string;      // ISO string
@@ -75,7 +72,6 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
   const thumbBg = useColorModeValue('gray.600', 'gray.400');
   const thumbBorder = useColorModeValue('gray.100', 'gray.800');
   const [sampleData] = useState<SampleRow[]>(() => makeSampleData());
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
       <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
@@ -97,7 +93,7 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
             bg={sensor.active ? "green.400" : "red.400"}
           />
           <Box display={"inline-block"}>
-            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}} autoFocus={false} open={isPopoverOpen} onOpenChange={() => setPopoverOpen(true)}>
+            <Popover.Root positioning={{ placement: 'right', strategy: 'fixed', offset: {crossAxis: 0, mainAxis: 0}}}>
               <Popover.Trigger asChild>
                 <IconButton as={DotsThreeVertical} aria-label="More actions" variant="ghost" size="2xs" color="black" borderRadius="full" ml={2}
                   onClick={(e) => e.stopPropagation()}
@@ -117,12 +113,23 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
                   </Popover.Arrow>
                   <Popover.Body height="100px" p={0} >
                     <VStack gap={0} justifyContent={"center"} height="inherit">
-                      <Button variant="ghost" size="md" onClick={handleEditSensor}>
-                        <PencilSimple />
-                      </Button>
-                      <Button variant="ghost" size="md" onClick={handleDeleteSensor}>
-                        <Trash />
-                      </Button>
+                      <SensorEditModal sensor={sensor}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <PencilSimple />
+                          </Button>
+                        }
+                        onEdited={(edited) => {
+                          setSensor(edited);
+                        }}
+                      />
+                      <SensorDeleteModal sensor={sensor}
+                        trigger={
+                          <Button variant="ghost" size="md">
+                            <Trash />
+                          </Button>
+                        }
+                      />
                     </VStack>
                   </Popover.Body>
                 </Popover.Content>
@@ -195,7 +202,7 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
             </Table.Root>
           </Table.ScrollArea>
         </Box>
-        <Box className="bg-card" minW={0} bg="white" flex={"1 1 0%"}>
+        <Box className="bg-card" minW={0} flex={"1 1 0%"}>
           {/* --------------- */}
           {/* the actual line chart */}
           <GraphPanel
@@ -206,8 +213,6 @@ export default function SensorPageClient({ sensor }: SensorPageClientProps) {
           />
         </Box>
       </HStack>
-      <SensorEditModal isOpen={isSenEditOpen} sensor={sensor} onClose={() => { setSenEditOpen(false); }} />
-      <SensorDeleteModal isOpen={isSenDelOpen} sensor={sensor} onClose={() => { setSenDelOpen(false); }} />
     </Box>
   );
 }

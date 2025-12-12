@@ -3,8 +3,8 @@
 import { usePathname } from "next/navigation";
 import NextLink from "next/link";
 import { ColorModeIcon } from "@/app/src/components/ui/color-mode";
-import { Menu } from "lucide-react";
-import { Box, Button, CloseButton, Flex, Icon, HStack, IconButton, Link, Text, Portal, useDisclosure, Drawer, Separator, VStack, Circle } from "@chakra-ui/react";
+import { Menu, Plus } from "lucide-react";
+import { Box, Button, CloseButton, Dialog, Flex, Field, Icon, HStack, IconButton, Link, Text, Portal, useDisclosure, Drawer, Separator, VStack, Circle, Input, Group } from "@chakra-ui/react";
 import { useColorModeValue, useColorMode } from "@/app/src/components/ui/color-mode";
 import { useAuth } from "@/lib/auth";
 import { User, Bell } from "phosphor-react";
@@ -27,7 +27,7 @@ export default function Navbar() {
   const { authToken, signOut } = useAuth();
   const profileRef = useRef<HTMLDivElement>(null);
   const textColor = useColorModeValue("gray.800","#eeeeee");
-  const navbgColor = useColorModeValue("rgba(230, 234, 243, 0.19)","gray.700");
+  const navbgColor = useColorModeValue("rgba(230, 234, 243, 0.19)","gray.900");
   const links = [
     {
       label: "Dashboard",
@@ -73,7 +73,7 @@ export default function Navbar() {
         <Flex as="nav" align="center" justify="space-between" pr={"1%"} position="relative">
           <Box display="flex" alignItems="center" gap="0">
             <BackForward />
-            <Box fontWeight="bold" display={{ base: "none", sm:"block"}} fontSize={["md", "lg"]} alignContent="center" color={textColor} px={4} py={1} _hover={{backgroundColor: "whiteAlpha.500"}}>
+            <Box fontWeight="bold" display={{ base: "none", sm:"block"}} fontSize={["md", "lg"]} alignContent="center" color={textColor} px={4} py={1} borderRadius={"xl"} _hover={{backgroundColor: "whiteAlpha.500"}}>
               <NextLink href={"/"}>RWH Monitoring</NextLink>
             </Box>
           </Box>
@@ -98,6 +98,7 @@ export default function Navbar() {
                         variant="ghost"
                         onClick={item.onClick ?? undefined}
                         color={item.active ? "orange.400" : undefined}
+                        borderRadius={"xl"}
                       >{<Icon as={item.icon} />}</IconButton>
                   );
 
@@ -136,7 +137,36 @@ export default function Navbar() {
                 <Box p={2} pl={0} w="50%">
                   <Text fontSize={"xs"} color="gray" py={2} px={4}>More</Text>
                   <VStack align={"left"} gap={0} fontSize={"sm"}>
-                    <HStack className="button-hover" px={2}><Circle><BsPeopleFill /></Circle>Invite Members</HStack>
+                    <Dialog.Root size="sm">
+                      <Dialog.Trigger asChild>
+                        <HStack className="button-hover" px={2}><Circle><BsPeopleFill /></Circle>Invite Members</HStack>
+                      </Dialog.Trigger>
+                      <Dialog.Backdrop/>
+                      <Dialog.Positioner>
+                        <Dialog.Content border="2px solid" maxH="80vh" overflowY={"auto"}>
+                          <Dialog.Header>
+                            <Dialog.Title>Invite Members</Dialog.Title>
+                          </Dialog.Header>
+                          <Dialog.Body>
+                            <Field.Root>
+                              <Field.Label>
+                                Email
+                              </Field.Label>
+                              <Group attached w="full" maxW="sm">
+                                <Input flex="1" placeholder="Enter an email address to invite..." />
+                                <Button bg="blue.600" color="white" variant="outline">
+                                  <Plus size="sm"/>
+                                </Button>
+                              </Group>
+                              <Field.HelperText>Only emails under your organization can be invited</Field.HelperText>
+                            </Field.Root>
+                            <Dialog.CloseTrigger asChild>
+                              <CloseButton size="sm" />
+                            </Dialog.CloseTrigger>
+                          </Dialog.Body>
+                        </Dialog.Content>
+                      </Dialog.Positioner>
+                    </Dialog.Root>
                     <HStack className="button-hover" px={2}><Circle><BsQuestionLg /></Circle>Help</HStack>
                     <HStack className="button-hover" px={2} onClick={toggleColorMode}><Circle><ColorModeIcon /></Circle>Change Theme</HStack>
                   </VStack>
