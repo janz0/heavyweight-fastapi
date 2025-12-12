@@ -476,7 +476,7 @@ const toggleAll = (check: boolean) => {
       <Separator variant="solid" size="lg" marginY="6" borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'} />
       <DataTable columns={sensorColumns} color={"green.600"} data={sensors} name={"sensors"}
         createElement={
-          <SensorCreateModal projectId={source.details?.project_id}
+          <SensorCreateModal projectId={source.details?.project_id} locationId={source.mon_loc_id} sourceId={source.id}
             trigger={
               <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
                 <Plus /> Add New

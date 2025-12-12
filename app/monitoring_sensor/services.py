@@ -98,4 +98,4 @@ def enrich_sensor(sensor: MonitoringSensor) -> dict:
     sensor_dict = dict(sensor.__dict__)
     sensor_dict["details"] = details
     model = schemas.MonitoringSensor.model_construct(**sensor_dict)
-    return model
+    return model.model_dump()

@@ -10,7 +10,6 @@ const MapPicker = dynamic(() => import("./components/MapPicker"), { ssr: false }
 // Chakra Imports + Icons
 import { Box, Button, CloseButton, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
-import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { X, Plus } from "lucide-react";
 
 // Location Components
@@ -62,8 +61,6 @@ function LocationForm({
   initialProjectId?: string;
   submitLabel: string;
 }) {
-  const { colorMode } = useColorMode();
-  const bc = colorMode === "light" ? "black" : "white";
   const fixedProjectId = initialProjectId ?? initialData?.project_id;
   const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
   const TORONTO: [number, number] = [43.6532, -79.3832];
@@ -72,13 +69,21 @@ function LocationForm({
 
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState(initialData?.project_id ?? initialProjectId ?? "");
+  const [projectId, setProjectId] = useState(initialData?.project_id ?? "");
   const [locName, setLocName] = useState(initialData?.loc_name ?? "");
   const [locNumber, setLocNumber] = useState(initialData?.loc_number ?? "");
   const [latitude, setLatitude] = useState(initialData ? initialData.lat : 0);
   const [longitude, setLongitude] = useState(initialData ? initialData.lon : 0);
   const [frequency, setFrequency] = useState(initialData?.frequency ?? "");
   const [active, setActive] = useState(initialData ? initialData.active : 1);
+
+  const [errors, setErrors] = useState<{
+    locName?: string;
+    projectId?: string;
+    latitude?: string;
+    longitude?: string;
+    frequency?: string;
+  }>({});
 
   useEffect(() => {
     listProjects()
@@ -124,14 +129,53 @@ function LocationForm({
     []
   )
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const nextErrors: typeof errors = {};
+    let hasError = false;
+
+    // Location name
+    if (!locName.trim()) {
+      nextErrors.locName = "Location name is required";
+      hasError = true;
+    }
+
+    // Project
+    if (!projectId) {
+      nextErrors.projectId = "Project is required";
+      hasError = true;
+    }
+
+    // Frequency
+    if (!frequency) {
+      nextErrors.frequency = "Frequency is required";
+      hasError = true;
+    }
+
     const latNum = latitude;
     const lonNum = longitude;
-    if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) {
-      toaster.create({ description: "Invalid latitude or longitude", type: "error" });
+    if (!Number.isFinite(latNum)) {
+      nextErrors.latitude = "Latitude is required and must be a number";
+      hasError = true;
+    }
+
+    if (!Number.isFinite(lonNum)) {
+      nextErrors.longitude = "Longitude is required and must be a number";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(nextErrors);
+      toaster.create({
+        description: "Please fix the highlighted fields.",
+        type: "error",
+      });
       return;
     }
+
+    setErrors({}); // clear errors
+
     const payload: LocationPayload = {
       project_id: projectId,
       loc_name: locName,
@@ -147,48 +191,45 @@ function LocationForm({
 
   return (
     <>
-      <form id="location-form" onSubmit={handleSubmit}>
+      <form id="location-form" noValidate onSubmit={handleSubmit}>
         <Dialog.Body>
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.locName} mb={errors.locName ? 6 : 4}>
             <Field.Label>Location Name</Field.Label>
-            <Input value={locName} borderColor={bc} onChange={(e) => setLocName(e.target.value)}
-              _focusWithin={{
-                outline: "2px solid",
-                outlineColor: "var(--chakra-colors-blue-400)",
-                outlineOffset: "2px",
-              }}
+            <Input value={locName} borderColor={!errors.locName ? "gray.500" : "none"} onChange={(e) => {
+                setLocName(e.target.value);
+                if (errors.locName) {
+                  setErrors((prev) => ({ ...prev, locName: undefined }));
+                }
+              }} required
             />
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.locName}</Field.ErrorText>
           </Field.Root>
 
           <Field.Root mb={4}>
             <Field.Label>Location Number</Field.Label>
-            <Input value={locNumber} placeholder="Optional" borderColor={bc} onChange={(e) => setLocNumber(e.target.value)}
-              _focusWithin={{
-                outline: "2px solid",
-                outlineColor: "var(--chakra-colors-blue-400)",
-                outlineOffset: "2px",
-              }}
-            />
+            <Input value={locNumber} placeholder="Optional" onChange={(e) => setLocNumber(e.target.value)} borderColor="gray.500"/>
           </Field.Root>
 
           <HStack>
-            <Field.Root required mb={4}>
+            <Field.Root invalid={!!errors.projectId} mb={errors.projectId ? 6 : 4}>
               <Field.Label>Project</Field.Label>
               <Select.Root
                 collection={projectCollection}
                 value={projectId ? [projectId] : []}
-                onValueChange={(e) => setProjectId(e.value[0])}
+                onValueChange={(e) => {setProjectId(e.value[0])
+                  if (errors.projectId) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      projectId: undefined,
+                    }));
+                  }
+                }}
                 disabled={isProjectLocked}
                 rounded="sm"
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-                }}
               >
-                <Select.HiddenSelect />
+                <Select.HiddenSelect required/>
                 <Select.Control>
-                  <Select.Trigger borderColor={bc}>
+                  <Select.Trigger borderColor={!errors.projectId ? "gray.500" : "none"}>
                     <Select.ValueText placeholder="Select project" />
                   </Select.Trigger>
                   <Select.IndicatorGroup>
@@ -197,7 +238,7 @@ function LocationForm({
                   </Select.IndicatorGroup>
                 </Select.Control>
                 <Select.Positioner>
-                  <Select.Content>
+                  <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                     {projectCollection.items.map((item) => (
                       <Select.Item key={item.value} item={item}>
                         {item.label}
@@ -205,12 +246,13 @@ function LocationForm({
                     ))}
                   </Select.Content>
                 </Select.Positioner>
+                <Field.ErrorText position="absolute" left={0} top="100%">{errors.projectId}</Field.ErrorText>
               </Select.Root>
             </Field.Root>
 
-            <ProjectCreateModal
+            <ProjectCreateModal 
               trigger={
-                <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost">
+                <IconButton mt="auto" mb={errors.projectId ? 6 : 4} aria-label="New Project" variant="outline" borderColor="gray.500" disabled={isProjectLocked}>
                   <Plus size={16} />
                 </IconButton>
               }
@@ -220,51 +262,54 @@ function LocationForm({
             />
           </HStack>
 
-          <HStack gap={4} mb={4}>
-            <Field.Root required>
+          <HStack gap={4}>
+            <Field.Root required invalid={!!errors.latitude} mb={errors.latitude ? 6 : 4}>
               <Field.Label>Latitude</Field.Label>
-              <Input
+              <Input required
                 type="number"
                 step="0.000001"
                 value={Number.isFinite(latitude) ? latitude : ""} // show empty if NaN
-                borderColor={bc}
+                borderColor={!errors.latitude ? "gray.500" : "none"}
                 onChange={(e) => {
                   const val = e.target.value;
                   setLatitude(val === "" ? Number.NaN : parseFloat(val));
-                }}
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
+                  if (errors.latitude) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      latitude: undefined,
+                    }));
+                  }
                 }}
               />
+              <Field.ErrorText position="absolute" left={0} top="100%">{errors.latitude}</Field.ErrorText>
             </Field.Root>
 
-            <Field.Root required>
+            <Field.Root required invalid={!!errors.longitude} mb={errors.longitude ? 6 : 4}>
               <Field.Label>Longitude</Field.Label>
-              <Input
+              <Input required
                 type="number"
                 step="0.000001"
                 value={Number.isFinite(longitude) ? longitude : ""}
-                borderColor={bc}
+                borderColor={!errors.longitude ? "gray.500" : "none"}
                 onChange={(e) => {
                   const val = e.target.value;
                   setLongitude(val === "" ? Number.NaN : parseFloat(val));
-                }}
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
+                  if (errors.longitude) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      longitude: undefined,
+                    }));
+                  }
                 }}
               />
+              <Field.ErrorText position="absolute" left={0} top="100%">{errors.longitude}</Field.ErrorText>
             </Field.Root>
 
-            <Box marginTop={"auto"}>
+            <Box mt="auto" mb={errors.latitude || errors.longitude ? 6 : 4}>
               <IconButton
                 aria-label="coordinates-map"
                 variant="outline"
-                borderColor={"black"}
-                _dark={{borderColor: "white"}}
+                borderColor="gray.500"
                 onClick={(e) => {
                   e.preventDefault();
                   setMapOpen(true);
@@ -318,22 +363,25 @@ function LocationForm({
             </Portal>
           </Dialog.Root>
 
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.frequency} mb={errors.projectId ? 6 : 4}>
             <Field.Label>Frequency</Field.Label>
             <Select.Root
               collection={frequencyCollection}
               value={frequency ? [frequency] : []}
-              onValueChange={(e) => setFrequency(e.value[0])}
-              rounded="sm"
-              _focusWithin={{
-                outline: "2px solid",
-                outlineColor: "var(--chakra-colors-blue-400)",
-                outlineOffset: "2px",
+              onValueChange={(e) => {
+                setFrequency(e.value[0]);
+                if (errors.frequency) {
+                  setErrors((prev) => ({
+                    ...prev,
+                    frequency: undefined,
+                  }));
+                }
               }}
+              rounded="sm"
             >
-              <Select.HiddenSelect />
+              <Select.HiddenSelect required/>
               <Select.Control>
-                <Select.Trigger borderColor={bc}>
+                <Select.Trigger borderColor={!errors.frequency ? "gray.500" : "none"}>
                   <Select.ValueText placeholder="Select frequency" />
                 </Select.Trigger>
                 <Select.IndicatorGroup>
@@ -341,7 +389,7 @@ function LocationForm({
                 </Select.IndicatorGroup>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content>
+                <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                   {frequencyCollection.items.map((item) => (
                     <Select.Item key={item.value} item={item}>
                       {item.label}
@@ -350,6 +398,7 @@ function LocationForm({
                 </Select.Content>
               </Select.Positioner>
             </Select.Root>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.frequency}</Field.ErrorText>
           </Field.Root>
 
           <Field.Root justifyItems={"center"}>
@@ -371,15 +420,12 @@ function LocationForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Dialog.ActionTrigger asChild>
-            <Button colorScheme="yellow" type="button" onClick={handleSubmit}>{submitLabel}</Button>
-          </Dialog.ActionTrigger>
+          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
         <CloseButton size="sm" />
       </Dialog.CloseTrigger>
-      {/*<ProjectCreateModal isOpen={isCreateOpen} onClose={() => { setCreateOpen(false);}} />*/}
     </>
   );
 }
@@ -388,11 +434,13 @@ function LocationForm({
 // LocationCreateModal
 // ==============================
 export function LocationCreateModal({ trigger, onCreated, projectId }: BaseLocationModalProps) {
+  const [open, setOpen] = useState(false);
   const handleCreate = async (payload: LocationPayload) => {
     try {
       const created = await createLocation(payload);
       toaster.create({ description: "Location created", type: "success" });
       onCreated?.(created);
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to create Location: ${err instanceof Error ? err.message : String(err)}`,
@@ -402,7 +450,8 @@ export function LocationCreateModal({ trigger, onCreated, projectId }: BaseLocat
   };
 
   return (
-    <Dialog.Root key="createloc" size="lg">
+    <Dialog.Root key="createloc" size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       {trigger && (
         <Dialog.Trigger asChild>
           {trigger}
@@ -427,6 +476,7 @@ export function LocationCreateModal({ trigger, onCreated, projectId }: BaseLocat
 // LocationEditModal
 // ==============================
 export function LocationEditModal({ trigger, location, onEdited }:  BaseLocationModalProps) {
+  const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: LocationPayload) => {
     if (!location) return;
 
@@ -434,6 +484,7 @@ export function LocationEditModal({ trigger, location, onEdited }:  BaseLocation
       const edited = await updateLocation(location.id, payload);
       toaster.create({ description: "Location updated", type: "success" });
       onEdited?.(edited);
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to update Location: ${err instanceof Error ? err.message : String(err)}`,
@@ -443,7 +494,8 @@ export function LocationEditModal({ trigger, location, onEdited }:  BaseLocation
   };
 
   return (
-    <Dialog.Root key="editloc" size="lg">
+    <Dialog.Root key="editloc" size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       <Portal>
         <Dialog.Backdrop zIndex={2000}/>
         <Dialog.Positioner zIndex={2001}>

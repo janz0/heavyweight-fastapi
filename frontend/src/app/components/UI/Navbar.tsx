@@ -3,8 +3,8 @@
 import { usePathname } from "next/navigation";
 import NextLink from "next/link";
 import { ColorModeIcon } from "@/app/src/components/ui/color-mode";
-import { Menu } from "lucide-react";
-import { Box, Button, CloseButton, Flex, Icon, HStack, IconButton, Link, Text, Portal, useDisclosure, Drawer, Separator, VStack, Circle } from "@chakra-ui/react";
+import { Menu, Plus } from "lucide-react";
+import { Box, Button, CloseButton, Dialog, Flex, Field, Icon, HStack, IconButton, Link, Text, Portal, useDisclosure, Drawer, Separator, VStack, Circle, Input, Group } from "@chakra-ui/react";
 import { useColorModeValue, useColorMode } from "@/app/src/components/ui/color-mode";
 import { useAuth } from "@/lib/auth";
 import { User, Bell } from "phosphor-react";
@@ -137,7 +137,36 @@ export default function Navbar() {
                 <Box p={2} pl={0} w="50%">
                   <Text fontSize={"xs"} color="gray" py={2} px={4}>More</Text>
                   <VStack align={"left"} gap={0} fontSize={"sm"}>
-                    <HStack className="button-hover" px={2}><Circle><BsPeopleFill /></Circle>Invite Members</HStack>
+                    <Dialog.Root size="sm">
+                      <Dialog.Trigger asChild>
+                        <HStack className="button-hover" px={2}><Circle><BsPeopleFill /></Circle>Invite Members</HStack>
+                      </Dialog.Trigger>
+                      <Dialog.Backdrop/>
+                      <Dialog.Positioner>
+                        <Dialog.Content border="2px solid" maxH="80vh" overflowY={"auto"}>
+                          <Dialog.Header>
+                            <Dialog.Title>Invite Members</Dialog.Title>
+                          </Dialog.Header>
+                          <Dialog.Body>
+                            <Field.Root>
+                              <Field.Label>
+                                Email
+                              </Field.Label>
+                              <Group attached w="full" maxW="sm">
+                                <Input flex="1" placeholder="Enter an email address to invite..." />
+                                <Button bg="blue.600" color="white" variant="outline">
+                                  <Plus size="sm"/>
+                                </Button>
+                              </Group>
+                              <Field.HelperText>Only emails under your organization can be invited</Field.HelperText>
+                            </Field.Root>
+                            <Dialog.CloseTrigger asChild>
+                              <CloseButton size="sm" />
+                            </Dialog.CloseTrigger>
+                          </Dialog.Body>
+                        </Dialog.Content>
+                      </Dialog.Positioner>
+                    </Dialog.Root>
                     <HStack className="button-hover" px={2}><Circle><BsQuestionLg /></Circle>Help</HStack>
                     <HStack className="button-hover" px={2} onClick={toggleColorMode}><Circle><ColorModeIcon /></Circle>Change Theme</HStack>
                   </VStack>

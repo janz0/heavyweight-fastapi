@@ -8,7 +8,6 @@ import { useRouter, usePathname } from 'next/navigation';
 // Chakra Imports + Icons
 import { Button, CloseButton, Dialog, Field, Flex, HStack, Input, Portal, Switch, Textarea } from '@chakra-ui/react';
 import { toaster } from '@/components/ui/toaster';
-import { useColorMode } from "@/app/src/components/ui/color-mode";
 
 // Services + Types
 import { createProject, updateProject, deleteProject } from '@/services/projects';
@@ -37,9 +36,6 @@ function ProjectForm({
   initialData?: Project;
   submitLabel: string;
 }) {
-  const { colorMode } = useColorMode();
-  const bc = colorMode === "light" ? "black" : "white";
-
   const today = new Date().toISOString().split('T')[0];
   const [projectName, setProjectName] = useState(initialData?.project_name || '');
   const [projectNumber, setProjectNumber] = useState(initialData?.project_number || '');
@@ -48,6 +44,12 @@ function ProjectForm({
   const [endDate, setEndDate] = useState(initialData?.end_date || '');
   const [active, setActive] = useState(initialData?.active || 1);
   const router = useRouter();
+
+  const [errors, setErrors] = useState<{
+    projName?: string;
+    projNumber?: string;
+    description?: string;
+  }>({});
 
   useEffect(() => {
     if (initialData) {
@@ -69,6 +71,36 @@ function ProjectForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const nextErrors: typeof errors = {};
+    let hasError = false;
+
+    if (!projectName.trim()) {
+      nextErrors.projName = "Project name is required";
+      hasError = true;
+    }
+
+    if (!projectNumber.trim()) {
+      nextErrors.projNumber = "Project number is required";
+      hasError = true;
+    }
+
+    if (!description.trim()) {
+      nextErrors.description = "Project description is required";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(nextErrors);
+      toaster.create({
+        description: "Please fix the highlighted fields.",
+        type: "error",
+      });
+      return;
+    }
+
+    setErrors({});
+
     const payload: ProjectPayload = {
       project_name: projectName,
       description,
@@ -85,62 +117,35 @@ function ProjectForm({
 
   return (
     <>
-      <form id="project-form" onSubmit={handleSubmit}>
+      <form id="project-form" noValidate onSubmit={handleSubmit}>
         <Dialog.Body>
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.projName} mb={errors.projName ? 6 : 4}>
             <Field.Label>Project Name</Field.Label>
-            <Input value={projectName} borderColor={bc} onChange={(e) => setProjectName(e.target.value)}
-              _focusWithin={{
-                outline: "2px solid",
-                outlineColor: "var(--chakra-colors-blue-400)",
-                outlineOffset: "2px",
-              }}
-            />
+            <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} borderColor={!errors.projName ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.projName}</Field.ErrorText>
           </Field.Root>
 
-          <Field.Root mb={4}>
+          <Field.Root required invalid={!!errors.projNumber} mb={errors.projNumber ? 6 : 4}>
             <Field.Label>Project Number</Field.Label>
-            <Input value={projectNumber} borderColor={bc} onChange={(e) => setProjectNumber(e.target.value)}
-              _focusWithin={{
-                outline: "2px solid",
-                outlineColor: "var(--chakra-colors-blue-400)",
-                outlineOffset: "2px",
-              }}
-            />
+            <Input value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)} borderColor={!errors.projNumber ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.projNumber}</Field.ErrorText>
           </Field.Root>
 
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.description} mb={errors.description ? 6 : 4}>
             <Field.Label>Description</Field.Label>
-            <Textarea rows={3} value={description} borderColor={bc} onChange={(e) => setDescription(e.target.value)}
-              _focusWithin={{
-                outline: "2px solid",
-                outlineColor: "var(--chakra-colors-blue-400)",
-                outlineOffset: "2px",
-              }}
-            />
+            <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} borderColor={!errors.description ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.description}</Field.ErrorText>
           </Field.Root>
 
           <HStack gap={4} mb={4}>
             <Field.Root required>
               <Field.Label>Start Date</Field.Label>
-              <Input type="date" value={startDate} borderColor={bc} onChange={(e) => setStartDate(e.target.value)}
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-                }}
-              />
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} borderColor="gray.500"/>
             </Field.Root>
 
             <Field.Root>
               <Field.Label>End Date</Field.Label>
-              <Input type="date" value={endDate} borderColor={bc} onChange={(e) => setEndDate(e.target.value)}
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-                }}
-              />
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} borderColor="gray.500"/>
             </Field.Root>
           </HStack>
 
@@ -163,9 +168,7 @@ function ProjectForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Dialog.ActionTrigger asChild>
-            <Button colorScheme="yellow" type="button" onClick={handleSubmit}>{submitLabel}</Button>
-          </Dialog.ActionTrigger>
+          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
@@ -179,12 +182,13 @@ function ProjectForm({
 // ProjectCreateModal
 // ==============================
 export function ProjectCreateModal({ trigger, onCreated }: BaseProjectModalProps) {
-
+  const [open, setOpen] = useState(false);
   const handleCreate = async (payload: ProjectPayload) => {
     try {
       const created = await createProject(payload);
       toaster.create({ description: 'Project created successfully', type: 'success' });
       onCreated?.(created);
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to create Project: ${err instanceof Error ? err.message : String(err)}`,
@@ -194,7 +198,8 @@ export function ProjectCreateModal({ trigger, onCreated }: BaseProjectModalProps
   };
 
   return (
-    <Dialog.Root key="createproj" size="lg">
+    <Dialog.Root key="createproj" size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       {trigger && (
         <Dialog.Trigger asChild>
           {trigger}
@@ -219,13 +224,14 @@ export function ProjectCreateModal({ trigger, onCreated }: BaseProjectModalProps
 // ProjectEditModal
 // ==============================
 export function ProjectEditModal({ trigger, project, onEdited }: BaseProjectModalProps) {
-
+  const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: ProjectPayload) => {
     if (!project) return;
     try {
       const edited = await updateProject(project.id, payload);
       toaster.create({ description: 'Project updated successfully', type: 'success' });
       onEdited?.(edited);
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to update Project: ${err instanceof Error ? err.message : String(err)}`,
@@ -235,7 +241,8 @@ export function ProjectEditModal({ trigger, project, onEdited }: BaseProjectModa
   };
 
   return (
-    <Dialog.Root size="lg">
+    <Dialog.Root size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       {trigger && (
         <Dialog.Trigger asChild>
           {trigger}
@@ -262,7 +269,7 @@ export function ProjectEditModal({ trigger, project, onEdited }: BaseProjectModa
 export function ProjectDeleteModal({ trigger, project, onDeleted }: BaseProjectModalProps) {
   const router = useRouter();
   const pathname = usePathname();
-
+  const [open, setOpen] = useState(false);
   const handleDelete = async () => {
     if (!project) return;
     try {
@@ -274,6 +281,7 @@ export function ProjectDeleteModal({ trigger, project, onDeleted }: BaseProjectM
       } else {
         onDeleted?.(project.id);
       }
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to delete Project: ${err instanceof Error ? err.message : String(err)}`,
@@ -283,7 +291,8 @@ export function ProjectDeleteModal({ trigger, project, onDeleted }: BaseProjectM
   };
 
   return (
-    <Dialog.Root size="sm">
+    <Dialog.Root size="sm" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       {trigger && (
         <Dialog.Trigger asChild>
           {trigger}

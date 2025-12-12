@@ -9,7 +9,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { Button, CloseButton, Combobox, createListCollection, Dialog, Field, Flex, HStack, IconButton, Input, Portal, Select, Switch, Textarea } from "@chakra-ui/react";
 import { X, Plus } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
-import { useColorMode } from "@/app/src/components/ui/color-mode";
 import { Maximize2 } from "lucide-react";
 
 import { JsonEditor } from 'json-edit-react';
@@ -35,6 +34,7 @@ interface BaseSourceModalProps {
   onDeleted?: (id: string) => void;
   onDuplicated?: (s: Source) => void;
   projectId?: string;
+  locationId?: string;
   source?: Source;
 }
 
@@ -61,20 +61,28 @@ function SourceForm({
   onSubmit,
   initialData,
   initialProjectId,
+  initialLocationId,
   submitLabel,
 }: {
   onSubmit: (payload: SourcePayload) => Promise<void>;
   initialData?: Source;
   initialProjectId?: string;
+  initialLocationId?: string;
   submitLabel: string;
 }) {
-  const { colorMode } = useColorMode();
-  const bc = colorMode === "light" ? "black" : "white";
   const fixedProjectId = initialProjectId ?? initialData?.details?.project_id;
   const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
-  const fixedLocationId = initialData?.mon_loc_id;
+  const fixedLocationId = initialLocationId ?? initialData?.mon_loc_id;
   const isLocationLocked = Boolean(fixedLocationId && submitLabel == 'Create');
   const [knownRoots, setKnownRoots] = useState<string[]>([]);
+
+  const [errors, setErrors] = useState<{
+    projectId?: string;
+    locationId?: string;
+    srcName?: string;
+    folPath?: string;
+    interval?: string;
+  }>({});
 
   useEffect(() => {
     (async () => {
@@ -101,13 +109,9 @@ function SourceForm({
   // form fields
   const [projects, setProjects]     = useState<Project[]>([]);
   const [locations, setLocations]   = useState<Location[]>([]);
-  const [projectIds, setProjectIds] = useState<string[]>(
-    fixedProjectId ? [fixedProjectId] : []
-  );
+  const [projectId, setProjectId] = useState<string>(fixedProjectId ?? "" );
 
-  const [locationIds, setLocationIds] = useState<string[]>(
-    isLocationLocked ? [fixedLocationId!] : []
-  );
+  const [locationId, setLocationId] = useState<string>(fixedLocationId! ?? "");
   const [sourceName,  setSourceName]  = useState(initialData?.source_name  || "");
   const [folderPath,  setFolderPath]  = useState(initialData?.folder_path  || "");
   const [fileKeyword, setFileKeyword] = useState(initialData?.file_keyword || "");
@@ -278,8 +282,8 @@ function SourceForm({
 
   // when project changes, reload locations
   useEffect(() => {
-    if (projectIds[0]) {
-      listLocations(projectIds[0])
+    if (projectId) {
+      listLocations(projectId)
         .then(setLocations)
         .catch(err => {
           console.error(err);
@@ -293,7 +297,7 @@ function SourceForm({
           toaster.create({ description: "Could not load locations", type: "error" });
         });
     }
-  }, [projectIds, projects]);
+  }, [projectId, projects]);
 
   // When jsonErrLoc changes, select the whole line in the textarea
   useEffect(() => {
@@ -357,6 +361,46 @@ function SourceForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const nextErrors: typeof errors = {};
+    let hasError = false;
+
+    if (!projectId.trim()){
+      nextErrors.projectId = "Project is required";
+      hasError = true;
+    }
+
+    if (!locationId.trim()){
+      nextErrors.locationId = "Location is required";
+      hasError = true;
+    }
+
+    if (!sourceName.trim()){
+      nextErrors.srcName = "Source name is required";
+      hasError = true;
+    }
+
+    if (!folderPath.trim()){
+      nextErrors.folPath = "Folder path is required";
+      hasError = true;
+    }
+
+    if (!interval.trim()){
+      nextErrors.interval = "Interval is required";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(nextErrors);
+      toaster.create({
+        description: "Please fix the highlighted fields.",
+        type: "error",
+      });
+      return;
+    }
+
+    setErrors({});
+
     const res = validateInner(configInnerText);
     if (!res.ok) {
       setConfigError(res.message);
@@ -365,7 +409,7 @@ function SourceForm({
     }
     setConfig(res.next); // ensure synced
     const payload: SourcePayload = {
-      mon_loc_id:    locationIds[0] || "",
+      mon_loc_id:    locationId || "",
       source_name:   sourceName,
       folder_path:   folderPath,
       file_keyword:  fileKeyword,
@@ -382,8 +426,8 @@ function SourceForm({
   // if initialData changes, re-populate fields
   useEffect(() => {
     if (!initialData) return;
-    setProjectIds(initialData.details ? [initialData.details.project_id] : []);
-    setLocationIds([initialData.mon_loc_id]);
+    setProjectId(initialData.details ? initialData.details.project_id : "");
+    setLocationId(initialData.mon_loc_id);
     setSourceName(initialData.source_name);
     setFolderPath(initialData.folder_path);
     setFileKeyword(initialData.file_keyword);
@@ -409,26 +453,28 @@ function SourceForm({
 
   return (
     <>
-      <form id="source-form" onSubmit={handleSubmit}>
+      <form id="source-form" noValidate onSubmit={handleSubmit}>
         <Dialog.Body>
           <HStack>
-            <Field.Root required mb={4}>
+            <Field.Root required invalid={!!errors.projectId} mb={errors.projectId ? 6 : 4}>
               <Field.Label>Project</Field.Label>
               <Select.Root
                 collection={projectCollection}
-                value={projectIds}
-                onValueChange={e => setProjectIds(e.value)}
+                value={projectId ? [projectId] : []}
+                onValueChange={e => {setProjectId(e.value[0]); setLocationId("");
+                  if (errors.projectId) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      projectId: undefined,
+                    }));
+                  }
+                }}
                 disabled={isProjectLocked}
                 rounded="sm"
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-                }}
               >
                 <Select.HiddenSelect />
                 <Select.Control>
-                  <Select.Trigger borderColor={bc}>
+                  <Select.Trigger borderColor={!errors.projectId ? "gray.500" : "none"}>
                     <Select.ValueText placeholder="Select project" />
                   </Select.Trigger>
                   <Select.IndicatorGroup>
@@ -437,14 +483,7 @@ function SourceForm({
                   </Select.IndicatorGroup>
                 </Select.Control>
                 <Select.Positioner>
-                  <Select.Content
-                    mt="-1px"
-                    borderWidth="1px"
-                    borderColor={bc}
-                    rounded="sm"
-                    shadow="md"
-                    overflowY="auto"
-                    w="100%">
+                  <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                     {projectCollection.items.map(item => (
                       <Select.Item key={item.value} item={item}>
                         {item.label}
@@ -453,10 +492,11 @@ function SourceForm({
                   </Select.Content>
                 </Select.Positioner>
               </Select.Root>
+              <Field.ErrorText position="absolute" left={0} top="100%">{errors.projectId}</Field.ErrorText>
             </Field.Root>
             <ProjectCreateModal
               trigger={
-                <IconButton mt="auto" mb={4} aria-label="New Project" outline="solid thin" variant="ghost">
+                <IconButton mt="auto" mb={errors.projectId ? 6 : 4} aria-label="New Project" outline="solid thin" variant="ghost" disabled={isProjectLocked}>
                   <Plus />
                 </IconButton>
               }
@@ -469,26 +509,28 @@ function SourceForm({
 
           {/* Location */}
           <HStack>
-            <Field.Root required mb={4}>
+            <Field.Root required invalid={!!errors.locationId} mb={errors.locationId ? 6 : 4}>
               <Field.Label>Location</Field.Label>
               <Select.Root
                 collection={locationCollection}
-                value={locationIds}
-                onValueChange={e => setLocationIds(e.value)}
-                disabled={isLocationLocked || !projectIds[0]}
-                rounded="sm"
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
+                value={locationId ? [locationId] : []}
+                onValueChange={e => {setLocationId(e.value[0])
+                  if (errors.locationId) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      locationId: undefined,
+                    }));
+                  }
                 }}
+                disabled={isLocationLocked || !projectId}
+                rounded="sm"
               >
                 <Select.HiddenSelect />
                 <Select.Control>
-                  <Select.Trigger borderColor={bc}>
+                  <Select.Trigger borderColor={!errors.locationId ? "gray.500" : "none"}>
                     <Select.ValueText
                       placeholder={
-                        !projectIds[0] ? "Select a project first" : "Select location"
+                        !projectId ? "Select a project first" : "Select location"
                       }
                     />
                   </Select.Trigger>
@@ -498,15 +540,7 @@ function SourceForm({
                   </Select.IndicatorGroup>
                 </Select.Control>
                 <Select.Positioner>
-                  <Select.Content
-                    mt="-1px"
-                    borderWidth="1px"
-                    borderColor={bc}
-                    rounded="sm"
-                    shadow="md"
-                    overflowY="auto"
-                    w="100%"
-                  >
+                  <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                     {locationCollection.items.map(item => (
                       <Select.Item key={item.value} item={item}>
                         {item.label}
@@ -515,10 +549,11 @@ function SourceForm({
                   </Select.Content>
                 </Select.Positioner>
               </Select.Root>
+              <Field.ErrorText position="absolute" left={0} top="100%">{errors.locationId}</Field.ErrorText>
             </Field.Root>
-            <LocationCreateModal projectId={projectIds[0]}
+            <LocationCreateModal projectId={projectId}
               trigger={
-                <IconButton mt="auto" mb={4} aria-label="New Location" outline="solid thin" variant="ghost" disabled={!projectIds[0] || isLocationLocked}>
+                <IconButton mt="auto" mb={errors.locationId ? 6 : 4} aria-label="New Location" outline="solid thin" variant="ghost" disabled={!projectId || isLocationLocked}>
                   <Plus />
                 </IconButton>
               }
@@ -529,23 +564,16 @@ function SourceForm({
           </HStack>
 
           {/* Other fields */}
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.srcName} mb={errors.srcName ? 6 : 4}>
             <Field.Label>Source Name</Field.Label>
-            <Input value={sourceName} borderColor={bc} onChange={e => setSourceName(e.target.value)} _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-            }}/>
+            <Input value={sourceName} onChange={e => setSourceName(e.target.value)} borderColor={!errors.srcName ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.srcName}</Field.ErrorText>
           </Field.Root>
 
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.folPath} mb={errors.folPath ? 6 : 4}>
             <Field.Label >Folder Path</Field.Label>
-            <Input value={folderPath} borderColor={bc} onChange={e => setFolderPath(e.target.value)}
-            _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-            }}/>
+            <Input value={folderPath} onChange={e => setFolderPath(e.target.value)} borderColor={!errors.folPath ? "gray.500" : "none"}/>
+            <Field.ErrorText position="absolute" left={0} top="100%">{errors.folPath}</Field.ErrorText>
           </Field.Root>
 
           <Field.Root mb={4}>
@@ -570,14 +598,9 @@ function SourceForm({
                 h="2.5rem"
                 minH="unset"
                 borderWidth="1px"
-                borderColor={bc}
+                borderColor="gray.500"
                 rounded="sm"
                 display="flex"
-                _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-                }}
               >
                 <Combobox.Input
                   placeholder="Type or select a root dir (e.g. /mnt/data)"
@@ -622,7 +645,7 @@ function SourceForm({
                 <Combobox.Content
                   mt="7px"
                   borderWidth="1px"
-                  borderColor={bc}
+                  borderColor="gray.500"
                   rounded="sm"
                   shadow="md"
                   overflowY="auto"
@@ -643,13 +666,8 @@ function SourceForm({
             <Input
               placeholder="Optional"
               value={fileKeyword}
-              borderColor={bc}
               onChange={e => setFileKeyword(e.target.value)}
-              _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-              }}
+              borderColor="gray.500"
             />
           </Field.Root>
 
@@ -660,15 +678,10 @@ function SourceForm({
               value={fileType ? [fileType] : []}
               onValueChange={e => setFileType(e.value[0] ?? "")}
               rounded="sm"
-              _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-            }}
             >
               <Select.HiddenSelect />
               <Select.Control>
-                <Select.Trigger borderColor={bc}>
+                <Select.Trigger borderColor="gray.500">
                   <Select.ValueText
                     placeholder="Optional"
                   />
@@ -679,15 +692,7 @@ function SourceForm({
                 </Select.IndicatorGroup>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content
-                  mt="-1px"
-                  borderWidth="1px"
-                  borderColor={bc}
-                  rounded="sm"
-                  shadow="md"
-                  overflowY="auto"
-                  w="100%"
-                >
+                <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                   {fileTypesCollection.items.map((item) => (
                     <Select.Item key={item} item={item}>
                       {item}
@@ -705,15 +710,10 @@ function SourceForm({
               value={sourceType ? [sourceType] : []}
               onValueChange={e => setSourceType(e.value[0] ?? "")}
               rounded="sm"
-              _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-            }}
             >
               <Select.HiddenSelect />
               <Select.Control>
-                <Select.Trigger borderColor={bc}>
+                <Select.Trigger borderColor="gray.500">
                   <Select.ValueText
                     placeholder="Optional"
                   />
@@ -724,15 +724,7 @@ function SourceForm({
                 </Select.IndicatorGroup>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content
-                  mt="-1px"
-                  borderWidth="1px"
-                  borderColor={bc}
-                  rounded="sm"
-                  shadow="md"
-                  overflowY="auto"
-                  w="100%"
-                >
+                <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                   {sourceTypesCollection.items.map((item) => (
                     <Select.Item key={item} item={item}>
                       {item}
@@ -752,7 +744,7 @@ function SourceForm({
               <Textarea
                 ref={textRef}
                 className={`config-textarea ${jsonErrLoc ? 'has-error' : ''}`}
-                borderColor={jsonErrLoc ? 'red.400' : bc}
+                borderColor={jsonErrLoc ? 'red.400' : "gray.500"}
                 w="100%"
                 placeholder={`"sn_map": {
       "x1": "IPI-N05-05",
@@ -847,22 +839,24 @@ function SourceForm({
               </Portal>
             </Dialog.Root>
           </Field.Root>
-          <Field.Root required mb={4}>
+          <Field.Root required invalid={!!errors.interval} mb={errors.interval ? 6 : 4}>
             <Field.Label>Interval</Field.Label>
             <Select.Root
               collection={intervalCollection}
               value={interval ? [interval] : []}
-              onValueChange={e => setInterval(e.value[0])}
+              onValueChange={e => {setInterval(e.value[0])
+                if (errors.interval) {
+                  setErrors((prev) => ({
+                    ...prev,
+                    locationId: undefined,
+                  }));
+                }
+              }}
               rounded="sm"
-              _focusWithin={{
-                  outline: "2px solid",
-                  outlineColor: "var(--chakra-colors-blue-400)",
-                  outlineOffset: "2px",
-            }}
             >
               <Select.HiddenSelect />
               <Select.Control>
-                <Select.Trigger borderColor={bc} >
+                <Select.Trigger borderColor={!errors.interval ? "gray.500" : "none"}>
                   <Select.ValueText placeholder="Select interval" />
                 </Select.Trigger>
                 <Select.IndicatorGroup>
@@ -871,15 +865,7 @@ function SourceForm({
                 </Select.IndicatorGroup>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content
-                  mt="-1px"
-                  borderWidth="1px"
-                  borderColor={bc}
-                  rounded="sm"
-                  shadow="md"
-                  overflowY="auto"
-                  w="100%"
-                >
+                <Select.Content borderWidth="1px" shadow="md" mt="-4px" mb="-4px" borderColor="gray.500">
                   {INTERVAL_OPTIONS.map(opt => (
                     <Select.Item key={opt.value} item={opt}>
                       {opt.label}
@@ -909,16 +895,12 @@ function SourceForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Dialog.ActionTrigger asChild>
-            <Button colorScheme="yellow" type="button" onClick={handleSubmit}>{submitLabel}</Button>
-          </Dialog.ActionTrigger>
+          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
         <CloseButton size="sm" />
       </Dialog.CloseTrigger>
-      {/*<ProjectCreateModal isOpen={isCreateProjectOpen} onClose={() => { setCreateProjectOpen(false);}} />*/}
-      {/*<LocationCreateModal projectId={projectIds[0]} isOpen={isCreateLocationOpen} onClose={() => { setCreateLocationOpen(false);}} />*/}
     </>
   );
 }
@@ -926,12 +908,14 @@ function SourceForm({
 // ----------------------
 // CreateSourceModal
 // ----------------------
-export function SourceCreateModal({ trigger, onCreated, projectId }: BaseSourceModalProps) {
+export function SourceCreateModal({ trigger, onCreated, projectId, locationId }: BaseSourceModalProps) {
+  const [open, setOpen] = useState(false);
   const handleCreate = async (payload: SourcePayload) => {
     try {
       const created = await createSource(payload);
       toaster.create({description: "Source created", type: "success" });
       onCreated?.(created);
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to create Source: ${err instanceof Error ? err.message : String(err)}`,
@@ -941,7 +925,8 @@ export function SourceCreateModal({ trigger, onCreated, projectId }: BaseSourceM
   };
 
   return (
-    <Dialog.Root size="lg">
+    <Dialog.Root key="createsrc" size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       {trigger && (
         <Dialog.Trigger asChild>
           {trigger}
@@ -954,7 +939,7 @@ export function SourceCreateModal({ trigger, onCreated, projectId }: BaseSourceM
             <Dialog.Header>
               <Dialog.Title>Create Source</Dialog.Title>
             </Dialog.Header>
-            <SourceForm onSubmit={handleCreate} submitLabel="Create" initialProjectId={projectId} />
+            <SourceForm onSubmit={handleCreate} submitLabel="Create" initialProjectId={projectId} initialLocationId={locationId}/>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -966,6 +951,7 @@ export function SourceCreateModal({ trigger, onCreated, projectId }: BaseSourceM
 // EditSourceModal
 // ----------------------
 export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalProps) {
+  const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: SourcePayload) => {
     if (!source) return;
 
@@ -973,6 +959,7 @@ export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalPr
       const edited = await updateSource(source.id, payload);
       toaster.create({ description: "Source updated", type: "success" });
       onEdited?.(edited);
+      setOpen(false);
     } catch (err) {
       toaster.create({
         description: `Failed to update Source: ${err instanceof Error ? err.message : String(err)}`,
@@ -982,7 +969,8 @@ export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalPr
   };
 
   return (
-    <Dialog.Root size="lg">
+    <Dialog.Root size="lg" open={open}
+      onOpenChange={({ open }) => setOpen(open)}>
       {trigger && (
         <Dialog.Trigger asChild>
           {trigger}

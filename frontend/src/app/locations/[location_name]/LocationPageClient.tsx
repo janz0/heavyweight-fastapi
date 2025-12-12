@@ -427,7 +427,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
       {activeTab === 'sources' && (
         <DataTable columns={sourcesColumns} color={"purple.600"} data={sources} name={activeTab}
           createElement={
-            <SourceCreateModal projectId={location.project_id}
+            <SourceCreateModal projectId={location.project_id} locationId={location.id}
               trigger={
                 <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
                   <Plus /> Add New
@@ -480,7 +480,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
       {activeTab === 'sensors' && (
         <DataTable columns={sensorColumns} color={"green.600"} data={sensors} name={activeTab}
           createElement={
-            <SensorCreateModal projectId={location.project_id}
+            <SensorCreateModal projectId={location.project_id} locationId={location.id}
               trigger={
                 <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
                   <Plus /> Add New

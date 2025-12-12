@@ -10,7 +10,7 @@ class Source(DBBase):
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     mon_loc_id = Column(PGUUID(as_uuid=True), ForeignKey("mon_loc.id", ondelete="CASCADE"), nullable=False)
-    source_name = Column(Text, nullable=True)
+    source_name = Column(Text, nullable=False)
     folder_path = Column(Text, nullable=False)
     file_keyword = Column(Text, nullable=False)
     file_type = Column(Text, nullable=False)

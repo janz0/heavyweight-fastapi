@@ -3,19 +3,17 @@
 
 import { useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { Box, Button, Container, Flex, Heading, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
-import { PasswordInput, PasswordStrengthMeter } from "@/components/ui/password-input";
+import { Box, Button, Container, defineStyle, Field, Flex, Heading, HStack, Input, InputProps, Text, useControllableState, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import bgImg from '@/app/styles/main-screen.png'
 import logoImg from '@/app/logoRWH.png'
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebook, FaTwitter, FaGithub } from "react-icons/fa";
-import { ColorModeButton } from "@/app/src/components/ui/color-mode";
-import { useAuth } from "@/lib/auth";
-import { loginUser, } from "@/services/auth";
-import { useColorModeValue } from "../../src/components/ui/color-mode";
+//import { FcGoogle } from "react-icons/fc";
+//import { FaFacebook, FaTwitter, FaGithub } from "react-icons/fa";
+import { ColorModeButton, useColorModeValue } from "@/app/src/components/ui/color-mode";
+import { PasswordInput, PasswordStrengthMeter } from "@/components/ui/password-input";
 import { toaster } from "@/components/ui/toaster"
-import { createUser } from "@/services/auth";
+import { useAuth } from "@/lib/auth";
+import { createUser, loginUser } from "@/services/auth";
 
 const ALLOWED_DOMAINS = ["rwhengineering.ca"];
 
@@ -25,6 +23,109 @@ type FormValues = {
   firstName?: string;
   lastName?: string;
 };
+
+interface FloatingLabelInputProps extends InputProps {
+  label: React.ReactNode
+  value?: string | undefined
+  defaultValue?: string | undefined
+  onValueChange?: ((value: string) => void) | undefined
+}
+
+const FloatingLabelInput = (props: FloatingLabelInputProps) => {
+  const { label, onValueChange, value, defaultValue = "", ...rest } = props
+
+  const [inputState, setInputState] = useControllableState({
+    defaultValue,
+    onChange: onValueChange,
+    value,
+  })
+
+  const [focused, setFocused] = useState(false)
+  const shouldFloat = inputState.length > 0 || focused
+  const inputBg     = useColorModeValue("white", "#3f3f46");
+  const autofillStyles = {
+    boxShadow: `0 0 0px 1000px ${inputBg} inset`,
+    WebkitTextFillColor: shouldFloat ? "inherit" : "transparent",
+    transition: "background-color 9999s ease-out 0s",
+  };
+
+  return (
+    <Box pos="relative" w="full">
+      {label != 'Password' &&
+        <Input
+          {...rest}
+          onFocus={(e) => {
+            props.onFocus?.(e)
+            setFocused(true)
+          }}
+          onBlur={(e) => {
+            props.onBlur?.(e)
+            setFocused(false)
+          }}
+          onChange={(e) => {
+            props.onChange?.(e)
+            setInputState(e.target.value)
+          }}
+          value={inputState}
+          data-float={shouldFloat || undefined}
+          data-focus={focused || undefined}
+          _autofill={autofillStyles}
+        />
+      }
+      {label == 'Password' && 
+        <PasswordInput
+          {...rest}
+          onFocus={(e) => {
+            props.onFocus?.(e)
+            setFocused(true)
+          }}
+          onBlur={(e) => {
+            props.onBlur?.(e)
+            setFocused(false)
+          }}
+          onChange={(e) => {
+            props.onChange?.(e)
+            setInputState(e.target.value)
+          }}
+          value={inputState}
+          data-float={shouldFloat || undefined}
+          data-focus={focused || undefined}
+          _autofill={autofillStyles}
+        />
+      }
+      <Field.Label css={floatingStyles} data-float={shouldFloat || undefined} data-focus={focused || undefined}>
+        {label}
+      </Field.Label>
+    </Box>
+  )
+}
+
+const floatingStyles = defineStyle({
+  pos: "absolute",
+  bg: "white",
+  px: "0.5",
+  top: "2.5",
+  insetStart: "3",
+  fontWeight: "normal",
+  pointerEvents: "none",
+  transition: "top 0.1s linear, inset 0.1s linear",
+  color: "gray.500",
+  _dark: {
+    bg: "gray.700",
+    color: "gray.200"
+  },
+  "&[data-float]": {
+    top: "-3",
+    insetStart: "2",
+    fontSize: "12px",
+  },
+  "&[data-focus]": {
+    color: "blue.500",
+    _dark: {
+      color: "blue.200",
+    }
+  }
+})
 
 export function LoginForm() {
   const { signIn } = useAuth();
@@ -98,9 +199,6 @@ export function LoginForm() {
   // Colors
   const sectionBg   = useColorModeValue("gray.100","gray.800");
   const panelBg     = useColorModeValue("white","gray.700");
-  const inputBg     = useColorModeValue("white", "#3f3f46");
-  const labelBg     = useColorModeValue("white","gray.700");
-  const labelColor  = useColorModeValue("gray.500","gray.300");
   const textColor   = useColorModeValue("gray.800","gray.100");
   const focusColor  = useColorModeValue("blue.500","blue.300");
   const buttonLight = useColorModeValue(
@@ -113,20 +211,7 @@ export function LoginForm() {
   );
   const invertedTextColor   = useColorModeValue("gray.100", "gray.800");
 
-  const email = watch("email", "");
   const password = watch("password", "");
-  const firstName = watch("firstName", "");
-  const lastName = watch("lastName", "");
-
-  const [isPwdFocused, setIsPwdFocused] = useState(false);
-  const [isUsrFocused, setIsUsrFocused] = useState(false);
-  const [isFNFocused, setIsFNFocused] = useState(false);
-  const [isLNFocused, setIsLNFocused] = useState(false);
-
-  const floatingPwd = isPwdFocused || Boolean(password);
-  const floatingUsr = isUsrFocused || Boolean(email);
-  const floatingFN = isFNFocused || Boolean(firstName);
-  const floatingLN = isLNFocused || Boolean(lastName);
 
   return (
     <Box as="section" bg={sectionBg}>
@@ -156,139 +241,37 @@ export function LoginForm() {
                     {mode === "register" && (
                       <Flex gap={4} flexDir={"row"}>
                         <Box position="relative" flex="1">
-                          <Input {...register("firstName", { required: "First Name Required"})}
-                            onFocus={() => setIsFNFocused(true)}
-                            onBlur={() => setIsFNFocused(false)}
-                            _autofill={{
-                              boxShadow: `0 0 0px 1000px ${inputBg} inset`,
-                              WebkitTextFillColor: floatingFN ? `currentColor` : 'transparent',
-                            }}
-                            _focus={{
-                              borderColor: focusColor,
-                            }}
-                          />
-                          <Text
-                            as="label"
-                            htmlContent="firstName"
-                            position="absolute"
-                            truncate
-                            text-overflow="ellipsis"
-                            left="0.75rem"
-                            top={floatingFN ? "-25%" : "50%"}
-                            transform={floatingFN ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
-                            transformOrigin="left top"
-                            transition="all 0.2s ease-out"
-                            bg={labelBg}
-                            px="0.25rem"
-                            color={isFNFocused ? focusColor : labelColor}
-                            pointerEvents="none"
-                          >
-                            First name
-                          </Text>
+                          <Field.Root required invalid={!!errors.firstName}>
+                            <FloatingLabelInput label="First Name" {...register("firstName", { required: "First name required" })} _focus={{borderColor: focusColor}}/>
+                          </Field.Root>
                         </Box>
                         <Box position="relative" flex="1">
-                          <Input {...register("lastName", { required: "Last name required"})}
-                            onFocus={() => setIsLNFocused(true)}
-                            onBlur={() => setIsLNFocused(false)}
-                            _autofill={{
-                              boxShadow: `0 0 0px 1000px ${inputBg} inset`,
-                              WebkitTextFillColor: floatingLN ? `currentColor` : 'transparent',
-                            }}
-                            _focus={{
-                              borderColor: focusColor,
-                            }}
-                          />
-                          <Text
-                            as="label"
-                            htmlContent="lastName"
-                            position="absolute"
-                            truncate
-                            left="0.75rem"
-                            top={floatingLN ? "-25%" : "50%"}
-                            transform={floatingLN ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
-                            transformOrigin="left top"
-                            transition="all 0.2s ease-out"
-                            bg={labelBg}
-                            px="0.25rem"
-                            color={isLNFocused ? focusColor : labelColor}
-                            pointerEvents="none"
-                          >
-                            Last name
-                          </Text>
+                          <Field.Root required invalid={!!errors.lastName}>
+                            <FloatingLabelInput label="Last Name" {...register("lastName", { required: "Last name required" })} _focus={{borderColor: focusColor}}/>
+                          </Field.Root>
                         </Box>
                       </Flex>
                     )}
 
                     {/** Email Label + Input */}
                     <Box position="relative">
-                      <Input
-                        type="email"
-                        {...register("email", {
+                      <Field.Root required invalid={!!errors.email}>
+                        <FloatingLabelInput label="Email" {...register("email", {
                           required: "Email required",
                           pattern: {
                             value: /\S+@\S+\.\S+/,
                             message: "Invalid email"
                           }
-                        })}
-                        onFocus={() => setIsUsrFocused(true)}
-                        onBlur={() => setIsUsrFocused(false)}
-                        _autofill={{
-                          boxShadow: `0 0 0px 1000px ${inputBg} inset`,
-                          WebkitTextFillColor: floatingUsr ? `currentColor` : 'transparent',
-                        }}
-                        _focus={{
-                          borderColor: focusColor,
-                        }}
-                      />
-                      <Text
-                        as="label"
-                        htmlContent="email"
-                        position="absolute"
-                        left="0.75rem"
-                        top={floatingUsr ? "-25%" : "50%"}
-                        transform={floatingUsr ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
-                        transformOrigin="left top"
-                        transition="all 0.2s ease-out"
-                        bg={labelBg}
-                        px="0.25rem"
-                        color={isUsrFocused ? focusColor : labelColor}
-                        pointerEvents="none"
-                      >
-                        Email
-                      </Text>
+                        })} _focus={{borderColor: focusColor}}/>
+                      </Field.Root>
                     </Box>
 
                     {/** Password Label + Input + toggle */}
                     <Box position="relative" mb={[-3, -5]}>
-                      <PasswordInput
-                        {...register("password", {required: "Password required", minLength: { value: 8, message: "Min 8 chars" } })}
-                        onFocus={() => setIsPwdFocused(true)}
-                        onBlur={() => setIsPwdFocused(false)}
-                        _autofill={{
-                          boxShadow: `0 0 0px 1000px ${inputBg} inset`,
-                          WebkitTextFillColor: floatingPwd ? `currentColor` : 'transparent',
-                        }}
-                        _focus={{
-                          borderColor: errors.password ? "Red" : focusColor,
-                        }}
-                      />
-                      {mode === 'register' && <PasswordStrengthMeter value={password.length} />}
-                      <Text
-                        as="label"
-                        htmlContent="password"
-                        position="absolute"
-                        left="0.75rem"
-                        top={floatingPwd ? "-25%" : "50%"}
-                        transform={floatingPwd ? "translateY(0) scale(0.75)" : "translateY(-50%)"}
-                        transformOrigin="left top"
-                        transition="all 0.2s ease-out"
-                        bg={labelBg}
-                        px="0.25rem"
-                        color={isPwdFocused ? focusColor : labelColor}
-                        pointerEvents="none"
-                      >
-                        Password
-                      </Text>
+                      <Field.Root required invalid={!!errors.password}>
+                        <FloatingLabelInput label="Password" {...register("password", {required: "Password required", minLength: { value: 8, message: "Min 8 chars" } })} _focus={{borderColor: focusColor}} />
+                        {mode === 'register' && password.length > 0 && <PasswordStrengthMeter value={password.length} w={"full"}/>}
+                      </Field.Root>
                     </Box>
                     {/** Submit */}
                     <VStack mb={[2, 4]} mt={[2, 4]}>
@@ -314,8 +297,10 @@ export function LoginForm() {
                   </VStack>
                 </Box>
               </VStack>
+              
               <Flex justify="center" left={0} right={0} align="center" bottom={"5%"}>
                 <VStack>
+                  {/*
                   <Flex justify="center" mt={[2, 4]}>
                     <Text color={textColor}>{mode=="login" ? "— or login with —" : "— or sign up with —"}</Text>
                   </Flex>
@@ -351,9 +336,10 @@ export function LoginForm() {
                       >{<FaGithub size="20px" />}</IconButton>
                     </HStack>
                   </Flex>
+                */}
                 {mode === "login" ? (
                 <HStack>
-                  <Text display={{base: "none", lg: "block"}} mr={6}>Don`t have an account?</Text>
+                  <Text display={{base: "none", lg: "block"}} mr={3}>Don`t have an account?</Text>
                   <Button
                     variant="outline"
                     color={textColor}
