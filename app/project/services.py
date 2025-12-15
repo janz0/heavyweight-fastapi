@@ -7,7 +7,7 @@ from app.project.schemas import ProjectCreate, ProjectUpdate
 from app.project.selectors import get_project_model
 
 def create_project(db: Session, payload: ProjectCreate) -> ProjectModel:
-    obj = ProjectModel(**payload.dict())
+    obj = ProjectModel(**payload.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -22,7 +22,7 @@ def update_project(
     if not obj:
         return None
 
-    for field, val in payload.dict(exclude_unset=True).items():
+    for field, val in payload.model_dump(exclude_unset=True).items():
         setattr(obj, field, val)
 
     db.commit()

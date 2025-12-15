@@ -5,7 +5,7 @@ from app.monitoring_group.models import MonitoringGroup
 
 
 def create_monitoring_group(db: Session, payload: schemas.MonitoringGroupCreate) -> MonitoringGroup:
-    obj = MonitoringGroup(**payload.dict())
+    obj = MonitoringGroup(**payload.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -16,7 +16,7 @@ def update_monitoring_group(db: Session, group_id: UUID, payload: schemas.Monito
     obj = selectors.get_monitoring_group(db, group_id)
     if not obj:
         return None
-    for k, v in payload.dict(exclude_unset=True).items():
+    for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)

@@ -10,7 +10,7 @@ from app.monitoring_source.models import Source
 from app.location.models import Location
 
 def create_monitoring_sensor(db: Session, payload: schemas.MonitoringSensorCreate) -> MonitoringSensor:
-    obj = MonitoringSensor(**payload.dict())
+    obj = MonitoringSensor(**payload.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -22,7 +22,7 @@ def update_monitoring_sensor(db: Session, sensor_id: UUID, payload: schemas.Moni
     obj = selectors.get_monitoring_sensor(db, sensor_id)
     if not obj:
         return None
-    for k, v in payload.dict(exclude_unset=True).items():
+    for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)

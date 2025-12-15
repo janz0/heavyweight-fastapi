@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Navbar from "./components/UI/Navbar";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Box, Flex, Spinner } from "@chakra-ui/react";
-import { ColorModeProvider } from "./src/components/ui/color-mode";
+import { ColorModeProvider, useColorModeValue } from "./src/components/ui/color-mode";
 import { NavigationProvider } from "./context/NavigationContext";
 import Sidebar from "./components/UI/SideNav";
 import { useRouter } from "next/navigation";
@@ -35,7 +35,12 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   // Pull auth state from your AuthProvider’s context:
   const { authToken, isChecking } = useAuth();
   const router = useRouter();
-  
+
+  const edgeFade = useColorModeValue(
+    "linear-gradient(180deg, rgba(228, 228, 231, 0.9) 0%, rgba(194, 213, 255, 0.40) 100%)",
+    "linear-gradient(90deg, var(--chakra-colors-gray-700), rgba(0,0,0,0))",
+  );
+
   useEffect(() => {
     if (!isChecking && !authToken) {
       // Redirect to login if not authenticated
@@ -61,9 +66,46 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <Flex direction="column" h="100vh" overflow="hidden" bg="rgba(194, 213, 255, 0.40)" _dark={{background: "gray.900"}}>
       <Navbar />
-      <Flex flex="1" minH="0" w="100vw" pl={{md: "2"}} gap="1">
+      <Flex flex="1" minH="0" w="100vw" pl={{md: "2"}} gap={1}>
         <Sidebar />
-        <Box flex="1" px={{ base: 0, md: 8 }} py={{ base: 0, md: 4 }} overflowY="auto" bg="gray.100" _dark={{background: "gray.800"}}>{children}</Box>
+        <Box
+          flex="1"
+          position="relative"
+          zIndex={0}
+          overflow="visible"
+          _before={{
+            content: '""',
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: "-8px",
+            width: "16px",
+            bg: edgeFade,
+            pointerEvents: "none",
+            zIndex: 0,          // under the rounded panel
+            borderRadius: 0,    // keep it a straight rectangle
+          }}
+        >
+          {/* INNER PANEL: owns radius + clipping */}
+          <Box
+            position="relative"
+            zIndex={1}
+            h="100%"
+            borderTopLeftRadius="xl"
+            overflow="hidden"
+            bg="gray.100"
+            _dark={{ bg: "gray.800" }}
+          >
+            <Box
+              h="100%"
+              px={{ base: 0, md: 8 }}
+              py={{ base: 0, md: 4 }}
+              overflowY="auto"
+            >
+              {children}
+            </Box>
+          </Box>
+        </Box>
       </Flex>
     </Flex>
   );

@@ -23,7 +23,7 @@ def touch_source(db: Session, source_id: UUID) -> Optional[Source]:
     return obj
 
 def create_source(db: Session, payload: schemas.SourceCreate) -> Source:
-    obj = Source(**payload.dict())
+    obj = Source(**payload.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -33,7 +33,7 @@ def update_source(db: Session, source_id: UUID, payload: schemas.SourceUpdate) -
     obj = selectors.get_source(db, source_id)
     if not obj:
         return None
-    for k, v in payload.dict(exclude_unset=True).items():
+    for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)

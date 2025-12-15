@@ -27,6 +27,7 @@ from app.monitoring_sensor_baseline.apis import router as monitoring_sensor_base
 from app.monitoring_sensor_data.apis import router as monitoring_sensor_data_router
 from app.checklists.apis import router as checklists_router
 from app.scheduler_task.apis import router as tasks_router
+from app.teams.apis import router as teams_router
 
 # Lifespan (startup, shutdown)
 @asynccontextmanager
@@ -44,7 +45,6 @@ async def lifespan(_: FastAPI):
     # Shutdown
     yield
     print("System Call: Release Recollection...")
-
 
 app = FastAPI(
     title="RWM(FastAPI)",
@@ -72,7 +72,6 @@ app.add_middleware(
     minimum_size=5000,  # Minimum size of the response before it is compressed in bytes
 )
 
-
 # Health Check
 @app.get("/health", status_code=200, include_in_schema=False)
 async def health_check(db=Depends(get_db)):
@@ -98,3 +97,4 @@ app.include_router(monitoring_sensor_baseline_router, dependencies=[])
 app.include_router(monitoring_sensor_data_router, dependencies=[])
 app.include_router(checklists_router, dependencies=[])
 app.include_router(tasks_router, dependencies=[])
+app.include_router(teams_router, dependencies=[])

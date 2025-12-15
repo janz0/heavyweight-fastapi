@@ -1,6 +1,7 @@
 import uuid
 from sqlalchemy import Column, Text, Integer, TIMESTAMP, func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import relationship
 from app.config.database import DBBase
 
 class User(DBBase):
@@ -25,4 +26,10 @@ class User(DBBase):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+    team_members = relationship(
+        "TeamMember",
+        back_populates="user",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )

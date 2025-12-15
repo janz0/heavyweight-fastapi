@@ -5,7 +5,7 @@ from app.location.models import Location
 from typing import Optional, List
 
 def create_location(db: Session, payload: schemas.LocationCreate) -> Location:
-    obj = Location(**payload.dict())
+    obj = Location(**payload.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -15,7 +15,7 @@ def update_location(db: Session, loc_id: UUID, payload: schemas.LocationUpdate) 
     obj = selectors.get_location(db, loc_id)
     if not obj:
         return None
-    for k, v in payload.dict(exclude_unset=True).items():
+    for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)

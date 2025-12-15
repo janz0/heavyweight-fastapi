@@ -8,7 +8,7 @@ import { useNavigation } from "../../context/NavigationContext";
 export function BackForward() {
   const { canGoBack, canGoForward, back, forward } = useNavigation();
   return (
-    <Flex gap={0} p={0} m={0} flex="1" align={"center"} px={2}>
+    <Flex gap={0} p={0} m={0} flex="1" align={"center"} pl={2}>
       <IconButton
         as={ChevronLeft}
         aria-label="Back"
