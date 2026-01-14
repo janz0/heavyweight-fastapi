@@ -12,6 +12,7 @@ import GraphPanel, { GraphConfig } from "@/app/components/Graphs/GraphPanel";
 
 interface SensorPageClientProps {
   initialSensor: MonitoringSensor;
+  authToken: string;
 }
 
 // Utility to format ISO date strings to "Month day, year"
@@ -25,7 +26,7 @@ function formatDate(dateString?: string | null) {
   }).format(date);
 }
 
-export default function SensorPageClient({ initialSensor }: SensorPageClientProps) {
+export default function SensorPageClient({ initialSensor, authToken }: SensorPageClientProps) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const [sensor, setSensor] = useState<MonitoringSensor>(initialSensor);
@@ -122,6 +123,7 @@ export default function SensorPageClient({ initialSensor }: SensorPageClientProp
                         onEdited={(edited) => {
                           setSensor(edited);
                         }}
+                        authToken={authToken}
                       />
                       <SensorDeleteModal sensor={sensor}
                         trigger={
@@ -129,6 +131,7 @@ export default function SensorPageClient({ initialSensor }: SensorPageClientProp
                             <Trash />
                           </Button>
                         }
+                        authToken={authToken}
                       />
                     </VStack>
                   </Popover.Body>

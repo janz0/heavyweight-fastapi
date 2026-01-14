@@ -21,6 +21,7 @@ ChartJS.register(...registerables);
 interface Props {
   initialSource: Source;
   initialSensors: MonitoringSensor[];
+  authToken: string;
 }
 
 const chart = createListCollection({
@@ -95,7 +96,7 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
   return null;
 };
 
-export default function SourcePageClient({ initialSource, initialSensors }: Props) {
+export default function SourcePageClient({ initialSource, initialSensors, authToken }: Props) {
   const { colorMode } = useColorMode();
   const text    = colorMode === 'light' ? 'gray.800' : 'gray.200';
   const [source, setSource] = useState<Source>(initialSource);
@@ -287,6 +288,7 @@ const toggleAll = (check: boolean) => {
                         onEdited={(edited) => {
                           setSource(edited);
                         }}
+                        authToken={authToken}
                       />
                       <SourceDeleteModal source={source}
                         trigger={
@@ -294,6 +296,7 @@ const toggleAll = (check: boolean) => {
                             <Trash />
                           </Button>
                         }
+                        authToken={authToken}
                       />
                     </VStack>
                   </Popover.Body>
@@ -485,6 +488,7 @@ const toggleAll = (check: boolean) => {
             onCreated={(created) => {
               setSensors(prev => [created, ...prev]);
             }}
+            authToken={authToken}
           />
         }
         editElement={(item) => (
@@ -497,6 +501,7 @@ const toggleAll = (check: boolean) => {
             onEdited={(edited) => {
               setSensors(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
             }}
+            authToken={authToken}
           />
         )}
         deleteElement={(item) => (
@@ -509,6 +514,7 @@ const toggleAll = (check: boolean) => {
             onDeleted={(id) => {
               setSensors(prev => prev.filter(p => p.id !== id));
             }}
+            authToken={authToken}
           />
         )}
         duplicateElement={(item) => (
@@ -521,6 +527,7 @@ const toggleAll = (check: boolean) => {
             onDuplicated={(duplicated) => {
               setSensors(prev => [duplicated, ...prev]);
             }}
+            authToken={authToken}
           />
         )}
       />

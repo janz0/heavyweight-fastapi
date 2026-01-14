@@ -12,10 +12,12 @@ import { useColorMode } from "../src/components/ui/color-mode";
 import SourcesPageClient from "./SourcesPageClient";
 
 // Sources Components
+import { useAuth } from "@/lib/auth";
 import { listSources } from "@/services/sources";
 import type { Source } from "@/types/source";
 
 export default function SourcesPage() {
+  const { authToken } = useAuth();
   const { colorMode } = useColorMode();
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
@@ -24,10 +26,10 @@ export default function SourcesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listSources()
+    listSources(authToken)
       .then((data) => setSources(data))
       .catch((e) => setError(e instanceof Error ? e.message: String(e)));
-  }, []);
+  }, [authToken]);
 
   if (!sources && !error) {
     return (
@@ -45,5 +47,5 @@ export default function SourcesPage() {
     );
   }
 
-  return <SourcesPageClient sources={sources!} />;
+  return <SourcesPageClient sources={sources!} authToken={authToken!}/>;
 }

@@ -72,6 +72,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           flex="1"
           position="relative"
           zIndex={0}
+          minW={0}
           overflow="visible"
           _before={{
             content: '""',
@@ -98,9 +99,11 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           >
             <Box
               h="100%"
+              minW={0}
               px={{ base: 0, md: 8 }}
               py={{ base: 0, md: 4 }}
               overflowY="auto"
+              overflowX="auto"
             >
               {children}
             </Box>

@@ -1,102 +1,108 @@
-// File: services/sources.ts
+// File: src/services/sources.ts
 import type { Source, SourcePayload } from "@/types/source";
-
-const API = process.env.NEXT_PUBLIC_API_URL; 
-const BASE = `${API}monitoring-sources`;
-const PROJECTS_BASE = `${API}projects`
-const LOCATIONS_BASE = `${API}locations`;
+import { apiFetchJson } from "@/services/api";
 
 export async function listSources(
+  authToken?: string | null,
   projectId?: string,
   locationId?: string,
-  skip = 0,
+  skip = 0
 ): Promise<Source[]> {
-  let url: string;
-
   if (locationId) {
-    // get all sources for a location (across projects)
-    url = `${LOCATIONS_BASE}/${locationId}/sources?skip=${skip}`;
-  } else if (projectId) {
-    // get all sources for a project
-    url = `${PROJECTS_BASE}/${projectId}/sources?skip=${skip}`;
-  } else {
-    // fallback: list *all* sources
-    url = `${BASE}/?skip=${skip}`;
+    return apiFetchJson<Source[]>(
+      `/locations/${locationId}/sources?skip=${skip}`,
+      { method: "GET" },
+      authToken
+    );
   }
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`List sources failed (${res.status})`);
-  return (await res.json()) as Source[];
+  if (projectId) {
+    return apiFetchJson<Source[]>(
+      `/projects/${projectId}/sources?skip=${skip}`,
+      { method: "GET" },
+      authToken
+    );
+  }
+
+  return apiFetchJson<Source[]>(
+    `/monitoring-sources/?skip=${skip}`,
+    { method: "GET" },
+    authToken
+  );
 }
 
 export async function createSource(
-  payload: SourcePayload
+  payload: SourcePayload,
+  authToken?: string | null
 ): Promise<Source> {
-  const res = await fetch(`${BASE}/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Create Source failed (${res.status}): ${text}`);
-  }
-  return (await res.json()) as Source;
+  return apiFetchJson<Source>(
+    `/monitoring-sources/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    authToken
+  );
 }
 
 export async function updateSource(
   sourceId: string,
-  payload: SourcePayload
+  payload: SourcePayload,
+  authToken?: string | null
 ): Promise<Source> {
-  const res = await fetch(`${BASE}/${sourceId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Update Source failed (${res.status}): ${text}`);
-  }
-  return (await res.json()) as Source;
+  return apiFetchJson<Source>(
+    `/monitoring-sources/${sourceId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    authToken
+  );
 }
 
-export async function getSource(sourceId: string): Promise<Source> {
-  const res = await fetch(`${BASE}/${sourceId}`);
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Fetch Source failed (${res.status}): ${text}`);
-  }
-  return (await res.json()) as Source;
+export async function getSource(
+  sourceId: string,
+  authToken?: string | null
+): Promise<Source> {
+  return apiFetchJson<Source>(
+    `/monitoring-sources/${sourceId}`,
+    { method: "GET" },
+    authToken
+  );
 }
 
 export async function getSourceByName(
-  name: string
+  name: string,
+  authToken?: string | null
 ): Promise<Source> {
-  const res = await fetch(`${BASE}/name/${name}`);
-  if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
-  return (await res.json()) as Source;
+  return apiFetchJson<Source>(
+    `/monitoring-sources/name/${encodeURIComponent(name)}`,
+    { method: "GET" },
+    authToken
+  );
 }
 
-
-export async function deleteSource(sourceId: string): Promise<void> {
-  const res = await fetch(`${BASE}/${sourceId}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Delete Source failed (${res.status}): ${text}`);
-  }
+export async function deleteSource(
+  sourceId: string,
+  authToken?: string | null
+): Promise<void> {
+  await apiFetchJson<void>(
+    `/monitoring-sources/${sourceId}`,
+    { method: "DELETE" },
+    authToken
+  );
 }
 
-export async function listDistinctRootDirectories(): Promise<string[]> {
-  const sources = await listSources(); // returns Source[]
+export async function listDistinctRootDirectories(
+  authToken?: string | null
+): Promise<string[]> {
+  const sources = await listSources(authToken);
   return Array.from(
     new Set(
       sources
-        .map(s => s.root_directory?.trim())
+        .map((s) => s.root_directory?.trim())
         .filter((x): x is string => !!x)
     )
   ).sort();

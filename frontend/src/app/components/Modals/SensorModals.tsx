@@ -2,7 +2,7 @@
 "use client";
 
 // React + Next Imports
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
@@ -18,6 +18,7 @@ import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
 import type { MonitoringGroup } from "@/types/monitoringGroup";
 import { listMonitoringGroups } from "@/services/monitoringGroups";
 import { SourceCreateModal } from "./SourceModals";
+import { MonitoringGroupCreateModal } from "./MonitoringGroupModals";
 
 interface BaseSensorModalProps {
   isOpen?: boolean;
@@ -31,6 +32,7 @@ interface BaseSensorModalProps {
   locationId?: string;
   sourceId?: string;
   sensor?: MonitoringSensor;
+  authToken: string;
 }
 
 // ==============================
@@ -43,6 +45,7 @@ function SensorForm({
   initialLocationId,
   initialSourceId,
   submitLabel,
+  authToken
 }: {
   onSubmit: (payload: MonitoringSensorPayload) => Promise<void>;
   initialData?: MonitoringSensor;
@@ -50,6 +53,7 @@ function SensorForm({
   initialLocationId?: string;
   initialSourceId?: string;
   submitLabel: string;
+  authToken: string;
 }) {
   const fixedProjectId = initialProjectId;
   const fixedLocationId = initialLocationId;
@@ -77,13 +81,13 @@ function SensorForm({
 
   // This needs updating for if location is provided, if inside location then the location should be specified instead of the project id
   useEffect(() => {
-    listSources(fixedProjectId, fixedLocationId)
+    listSources(authToken, fixedProjectId, fixedLocationId)
     .then(setSources)
       .catch((err) => {
         console.error("Failed to load sources:", err);
         toaster.create({ description: "Could not load sources", type: "error" });
       });
-  }, [fixedProjectId, fixedLocationId]);
+  }, [fixedProjectId, fixedLocationId, authToken]);
 
   useEffect(() => {
     if (!fixedSourceId) {
@@ -102,8 +106,7 @@ function SensorForm({
           type: "error",
         });
       });
-    console.log(src.mon_loc_id);
-  }, [sources]);
+  }, [sources, fixedSourceId]);
 
   useEffect(() => {
     if (!initialData) return;
@@ -131,9 +134,7 @@ function SensorForm({
     [groups]
   );
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
+  const handleSave = async () => {
     const nextErrors: typeof errors = {};
     let hasError = false;
 
@@ -178,7 +179,7 @@ function SensorForm({
 
   return (
     <>
-      <form id="sensor-form" noValidate onSubmit={handleSubmit}>
+      <form id="sensor-form" noValidate>
         <Dialog.Body>
           <HStack>
             <Field.Root required invalid={!!errors.srcId} mb={errors.srcId ? 6 : 4}>
@@ -228,6 +229,7 @@ function SensorForm({
               onCreated={(created) => {
                 setSources(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           </HStack>
           <HStack>
@@ -261,9 +263,29 @@ function SensorForm({
                 </Select.Positioner>
               </Select.Root>
             </Field.Root>
-            <IconButton mt="auto" mb={4} aria-label="New Group" borderColor="gray.500" variant="outline" disabled={!sourceId}>
-              <Plus size={16} />
-            </IconButton>
+            <MonitoringGroupCreateModal
+              locationId={sources.find(s => s.id === sourceId)?.mon_loc_id}
+              trigger={
+                <IconButton
+                  mt="auto"
+                  mb={errors.srcId ? 6 : 4}
+                  aria-label="New Sensor Group"
+                  borderColor="gray.500"
+                  variant="outline"
+                  disabled={!sourceId}
+                >
+                  <Plus size={16} />
+                </IconButton>
+              }
+              onCreated={(createdGroup) => {
+                // update local groups list
+                setGroups(prev => [createdGroup, ...prev]);
+
+                // optionally auto-select it in the dropdown
+                setGroupIds([createdGroup.id]);
+              }}
+              authToken={authToken}
+            />
           </HStack>
           <Field.Root required invalid={!!errors.senName} mb={errors.senName ? 6 : 4}>
             <Field.Label>Sensor Name</Field.Label>
@@ -296,7 +318,7 @@ function SensorForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+          <Button colorScheme="yellow" type="button" onClick={handleSave}>{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
@@ -309,11 +331,11 @@ function SensorForm({
 // ==============================
 // SensorCreateModal
 // ==============================
-export function SensorCreateModal({ trigger, onCreated, projectId, locationId, sourceId }: BaseSensorModalProps) {
+export function SensorCreateModal({ trigger, onCreated, projectId, locationId, sourceId, authToken }: BaseSensorModalProps) {
   const [open, setOpen] = useState(false);
   const handleCreate = async (payload: MonitoringSensorPayload) => {
     try {
-      const created = await createSensor(payload);
+      const created = await createSensor(payload, authToken);
       toaster.create({ description: "Sensor created successfully", type: "success" });
       onCreated?.(created);
       setOpen(false);
@@ -340,7 +362,7 @@ export function SensorCreateModal({ trigger, onCreated, projectId, locationId, s
             <Dialog.Header>
               <Dialog.Title>Create Sensor</Dialog.Title>
             </Dialog.Header>
-            <SensorForm onSubmit={handleCreate} initialProjectId={projectId} initialLocationId={locationId} initialSourceId={sourceId} submitLabel="Create" />
+            <SensorForm onSubmit={handleCreate} initialProjectId={projectId} initialLocationId={locationId} initialSourceId={sourceId} submitLabel="Create" authToken={authToken}/>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -351,13 +373,13 @@ export function SensorCreateModal({ trigger, onCreated, projectId, locationId, s
 // ==============================
 // SensorEditModal
 // ==============================
-export function SensorEditModal({ trigger, sensor, onEdited, projectId }: BaseSensorModalProps) {
+export function SensorEditModal({ trigger, sensor, onEdited, projectId, authToken }: BaseSensorModalProps) {
   const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: MonitoringSensorPayload) => {
     if (!sensor) return;
   
     try {
-      const edited = await updateSensor(sensor.id, payload);
+      const edited = await updateSensor(sensor.id, payload, authToken);
       toaster.create({ description: "Sensor updated successfully", type: "success" });
       onEdited?.(edited);
       setOpen(false);
@@ -384,7 +406,7 @@ export function SensorEditModal({ trigger, sensor, onEdited, projectId }: BaseSe
             <Dialog.Header>
               <Dialog.Title>Edit Sensor</Dialog.Title>
             </Dialog.Header>
-            <SensorForm onSubmit={handleUpdate} initialData={sensor} initialProjectId={projectId} submitLabel="Save" />
+            <SensorForm onSubmit={handleUpdate} initialData={sensor} initialProjectId={projectId} submitLabel="Save" authToken={authToken}/>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -395,14 +417,14 @@ export function SensorEditModal({ trigger, sensor, onEdited, projectId }: BaseSe
 // ==============================
 // SensorDeleteModal
 // ==============================
-export function SensorDeleteModal({ trigger, sensor, onDeleted }: BaseSensorModalProps) {
+export function SensorDeleteModal({ trigger, sensor, onDeleted, authToken }: BaseSensorModalProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const handleDelete = async () => {
     if (!sensor) return;
     try {
-      await deleteSensor(sensor.id);
+      await deleteSensor(sensor.id, authToken);
       toaster.create({ description: "Sensor deleted", type: "success" });
       const detailRoute = /^\/sensors\/[^\/]+$/;
       if (detailRoute.test(pathname)) {
@@ -455,9 +477,9 @@ export function SensorDeleteModal({ trigger, sensor, onDeleted }: BaseSensorModa
   );
 }
 
-export function SensorDuplicateModal({ trigger, sensor, onDuplicated }: BaseSensorModalProps) {
+export function SensorDuplicateModal({ trigger, sensor, onDuplicated, authToken }: BaseSensorModalProps) {
   const handleDuplicate = async (payload: MonitoringSensorPayload) => {
-    const duplicated = await createSensor(payload);
+    const duplicated = await createSensor(payload, authToken);
     toaster.create({ description: 'Sensor created successfully', type: 'success' });
     onDuplicated?.(duplicated);
   };
@@ -484,6 +506,7 @@ export function SensorDuplicateModal({ trigger, sensor, onDuplicated }: BaseSens
               onSubmit={handleDuplicate}
               initialData={cloneData}
               submitLabel="Duplicate"
+              authToken={authToken}
             />
           </Dialog.Content>
         </Dialog.Positioner>

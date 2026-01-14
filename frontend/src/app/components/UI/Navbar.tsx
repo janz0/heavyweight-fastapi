@@ -13,9 +13,11 @@ import { Tooltip } from "../../src/components/ui/tooltip";
 import { GoHome } from 'react-icons/go';
 import { BsPeopleFill, BsPersonAdd, BsQuestionLg } from 'react-icons/bs';
 import { BackForward } from "./BackForward";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { FiLogOut } from "react-icons/fi";
 import { TeamsModal } from "@/app/components/Modals/TeamsModals";
+import { getMe } from "@/services/users";
+import type { MeResponse } from "@/services/users";
 
 export default function Navbar() {
   const {
@@ -38,8 +40,8 @@ export default function Navbar() {
 
   const pathname = usePathname();
   const [isProfileOpen, setProfileOpen] = useState(false);
-  // Replace `user` with `authToken`, and `logout` with `signOut`.
   const { authToken, signOut } = useAuth();
+  const [me, setMe] = useState<MeResponse | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const textColor = useColorModeValue("gray.800","#eeeeee");
   const navbgColor = useColorModeValue("rgba(230, 234, 243, 0.19)","gray.900");
@@ -82,6 +84,23 @@ export default function Navbar() {
     };
   }, [profileRef]);
   const { toggleColorMode } = useColorMode()
+
+  useEffect(() => {
+    if (!authToken) {
+      setMe(null);
+      return;
+    }
+    getMe(authToken)
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, [authToken]);
+
+  const displayName = useMemo(() => {
+    if (!me) return "";
+    if (me.first_name?.trim() + " " + me.last_name?.trim()) return me.first_name.trim() + " " + me.last_name?.trim();
+    // fallback: "first.last@domain.com" -> "first.last"
+    return me.email.split("@")[0];
+  }, [me]);
 
   return (
     <>
@@ -138,7 +157,24 @@ export default function Navbar() {
             </HStack>
             {isProfileOpen && 
             <Box ref={profileRef} className={"dropdown-color"} position="absolute" top="100%" right="6" width="20vw" borderWidth="1px" borderColor="border.muted" borderRadius="lg" boxShadow={"lg"} height="fit-content" pb={2}>
-              <Text fontSize={12} p={4}>RWH Engineering</Text>
+              <Flex px={4} py={3} align="center" justify="space-between" gap={3}>
+                <Text fontSize={12}>RWH Engineering</Text>
+
+                {authToken && displayName && (
+                  <Text
+                    fontSize={12}
+                    color="fg.muted"
+                    maxW="50%"
+                    whiteSpace="nowrap"
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                    textAlign="right"
+                    title={displayName}
+                  >
+                    {displayName}
+                  </Text>
+                )}
+              </Flex>
               <Separator borderColor={"fg.muted"}/>
               <HStack gap={1}>
                 <Box p={2} pr={0} w="50%">

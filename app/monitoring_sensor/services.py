@@ -8,6 +8,7 @@ from app.monitoring_sensor.models import MonitoringSensor
 from app.monitoring_source import services as source_services
 from app.monitoring_source.models import Source
 from app.location.models import Location
+from app.project.models import Project
 
 def create_monitoring_sensor(db: Session, payload: schemas.MonitoringSensorCreate) -> MonitoringSensor:
     obj = MonitoringSensor(**payload.model_dump())
@@ -37,13 +38,16 @@ def delete_monitoring_sensor(db: Session, sensor_id: UUID) -> None:
 def list_sensors_for_project(
     db: Session,
     project_id: UUID,
+    org_id: UUID,
     skip: int = 0,
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
           .join(Source, MonitoringSensor.mon_source_id == Source.id)
           .join(Location, Source.mon_loc_id == Location.id)
+          .join(Project, Location.project_id == Project.id)
           .filter(Location.project_id == project_id)
+          .filter(Project.org_id == org_id)
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
           .all()
@@ -52,13 +56,16 @@ def list_sensors_for_project(
 def list_sensors_for_location(
     db: Session,
     loc_id: UUID,
+    org_id: UUID,
     skip: int = 0,
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
           .join(MonitoringSensor.mon_source)
           .join(Source.mon_loc)
+          .join(Project, Location.project_id == Project.id)
           .filter(Location.id == loc_id)
+          .filter(Project.org_id == org_id)
           .options(contains_eager(MonitoringSensor.mon_source))
           .order_by(MonitoringSensor.sensor_name)
           .offset(skip)
@@ -68,14 +75,19 @@ def list_sensors_for_location(
 def list_sensors_for_source(
     db: Session,
     source_id: UUID,
+    org_id: UUID,
     skip: int = 0,
 ) -> List[MonitoringSensor]:
     return (
         db.query(MonitoringSensor)
-          .filter(MonitoringSensor.mon_source_id == source_id)
-          .order_by(MonitoringSensor.sensor_name)
-          .offset(skip)
-          .all()
+        .join(Source, MonitoringSensor.mon_source_id == Source.id)
+        .join(Location, Source.mon_loc_id == Location.id)
+        .join(Project, Location.project_id == Project.id)
+        .filter(MonitoringSensor.mon_source_id == source_id)
+        .filter(Project.org_id == org_id)
+        .order_by(MonitoringSensor.sensor_name)
+        .offset(skip)
+        .all()
     )
 
 def get_monitoring_sensor_by_name(

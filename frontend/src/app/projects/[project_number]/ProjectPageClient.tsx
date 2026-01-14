@@ -1,4 +1,4 @@
-// File: app/projects/[projectId]/ProjectsPageClient.tsx
+// File: app/projects/[project_number]/ProjectsPageClient.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -25,9 +25,10 @@ interface Props {
   initialLocations: Location[];
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
+  authToken: string;
 }
 
-export default function ProjectsPageClient({ initialProject, initialLocations, initialSources, initialSensors, }: Props) {
+export default function ProjectsPageClient({ initialProject, initialLocations, initialSources, initialSensors, authToken }: Props) {
   const { colorMode } = useColorMode();
   const [activeTab, setActiveTab] = useState<'locations'|'sources'|'sensors'>('locations');
   const [project, setProject] = useState<Project>(initialProject);
@@ -97,13 +98,10 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
 }
   return (
     <Box px={4} py={{base: "2", md: "2"}} color={text}>
-      <Flex mb={4} align="flex-start" position="relative" w="100%" direction="column">
+      <Flex mb={4} position="relative" direction="column">
         <Heading fontSize="3xl">
-          <Text as="span" fontSize={{base:"md",md:"2xl"}} color="orange.600">
-            {project.project_name.charAt(0)}
-          </Text>
-          <Text as="span" fontSize={{base:"xs",md:"md",lg:"lg"}} fontWeight="bold" color="orange.600">
-            {project.project_name.slice(1)}
+          <Text as="span" fontSize={{base:"md",md:"2xl"}}>
+            {project.project_name}
           </Text>
           <Text as="span" ml={2} fontSize={{base:"xs",md:"sm",lg:"md"}} fontWeight={"extralight"}>
             {project.project_number}
@@ -145,6 +143,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
                         onEdited={(edited) => {
                           setProject(edited);
                         }}
+                        authToken={authToken}
                       />
                       <ProjectDeleteModal project={project}
                         trigger={
@@ -152,6 +151,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
                             <Trash />
                           </Button>
                         }
+                        authToken={authToken}
                       />
                     </VStack>
                   </Popover.Body>
@@ -179,7 +179,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
         </VStack>
 
       </Flex>
-      <Flex mb={3} align="stretch" direction={{base: "column", md: "row"}} gap={2}>
+      <Flex mb={3} direction={{base: "column", md: "row"}} gap={2}>
         <SimpleGrid columns={{ base: 1, md: 2}} gap={{base: "2", md:"4"}} alignSelf={"center"} whiteSpace={"nowrap"} w={{base: "full", md: "55%"}} className="bg-card">
           {stats.map(s => {
             const color = TYPE_COLORS[s.label] ?? text;
@@ -347,6 +347,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onCreated={(created) => {
                 setLocations(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -359,6 +360,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onEdited={(edited) => {
                 setLocations(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -371,6 +373,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onDeleted={(id) => {
                 setLocations(prev => prev.filter(l => l.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -383,6 +386,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onDuplicated={(duplicated) => {
                 setLocations(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />
@@ -400,6 +404,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onCreated={(created) => {
                 setSources(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -412,6 +417,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onEdited={(edited) => {
                 setSources(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -424,6 +430,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onDeleted={(id) => {
                 setSources(prev => prev.filter(p => p.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -436,6 +443,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onDuplicated={(duplicated) => {
                 setSources(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />
@@ -453,6 +461,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onCreated={(created) => {
                 setSensors(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -465,6 +474,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onEdited={(edited) => {
                 setSensors(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -477,6 +487,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onDeleted={(id) => {
                 setSensors(prev => prev.filter(p => p.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -489,6 +500,7 @@ export default function ProjectsPageClient({ initialProject, initialLocations, i
               onDuplicated={(duplicated) => {
                 setSensors(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />

@@ -21,9 +21,10 @@ import { PencilSimple, Plus, Trash, Copy } from "phosphor-react";
 
 interface Props {
   projects: Project[];
+  authToken: string;
 }
 
-export default function ProjectsPageClient({ projects: initialProjects }: Props) {
+export default function ProjectsPageClient({ projects: initialProjects, authToken: authToken }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<Project[]>(initialProjects);
@@ -58,6 +59,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
               onCreated={(created) => {
                 setItems(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -70,6 +72,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
               onEdited={(edited) => {
                 setItems(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -82,6 +85,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
               onDeleted={(id) => {
                 setItems(prev => prev.filter(p => p.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -94,6 +98,7 @@ export default function ProjectsPageClient({ projects: initialProjects }: Props)
               onDuplicated={(duplicated) => {
                 setItems(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />

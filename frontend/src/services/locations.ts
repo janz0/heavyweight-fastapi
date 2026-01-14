@@ -1,98 +1,86 @@
 // File: src/services/locations.ts
 import type { Location, LocationPayload } from "@/types/location";
-
-const API_ROOT = process.env.NEXT_PUBLIC_API_URL!;
-const BASE     = `${API_ROOT}locations`;
-const PROJECTS_BASE = `${API_ROOT}projects`
+import { apiFetchJson } from "@/services/api";
 
 export async function getLocation(
-  locationId: string
+  locationId: string,
+  authToken?: string | null
 ): Promise<Location> {
-  const res = await fetch(
-    `${BASE}/${locationId}`
+  return apiFetchJson<Location>(
+    `/locations/${locationId}`,
+    { method: "GET" },
+    authToken
   );
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Fetch location failed (${res.status}): ${body}`);
-  }
-  return (await res.json()) as Location;
 }
 
 export async function getLocationByName(
-  name: string
+  name: string,
+  authToken?: string | null
 ): Promise<Location> {
-  const res = await fetch(`${BASE}/name/${name}`);
-  if (!res.ok) {
-    throw new Error(`Fetch location failed (${res.status})`);
-  }
-  return (await res.json()) as Location;
+  return apiFetchJson<Location>(
+    `/locations/name/${name}`,
+    { method: "GET" },
+    authToken
+  );
 }
 
 export async function listLocations(
-  projectId?: string,  // optional projectId
+  authToken?: string | null,
+  projectId?: string
 ): Promise<Location[]> {
-  let url: string;
-
   if (projectId) {
-    url = `${PROJECTS_BASE}/${projectId}/locations?skip=0&limit=100`;
-  } else {
-    url = `${BASE}/?skip=0&limit=100`;  // Adjust this endpoint as needed
+    return apiFetchJson<Location[]>(
+      `/projects/${projectId}/locations?skip=0&limit=100`,
+      { method: "GET" },
+      authToken
+    );
   }
 
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error(`List failed (${res.status})`);
-  }
-
-  return res.json() as Promise<Location[]>;
+  return apiFetchJson<Location[]>(
+    `/locations/?skip=0&limit=100`,
+    { method: "GET" },
+    authToken
+  );
 }
 
 export async function createLocation(
-  payload: LocationPayload
+  payload: LocationPayload,
+  authToken?: string | null
 ): Promise<Location> {
-  const res = await fetch(
-    `${BASE}/`,
+  return apiFetchJson<Location>(
+    `/locations/`,
     {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
-    }
+      body: JSON.stringify(payload),
+    },
+    authToken
   );
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Create failed (${res.status}): ${txt}`);
-  }
-  return (await res.json()) as Location;
 }
 
-// ← new function:
 export async function updateLocation(
   id: string,
-  payload: LocationPayload
+  payload: LocationPayload,
+  authToken?: string | null
 ): Promise<Location> {
-  const res = await fetch(
-    `${BASE}/${id}`,
+  return apiFetchJson<Location>(
+    `/locations/${id}`,
     {
-      method:  "PATCH",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
-    }
+      body: JSON.stringify(payload),
+    },
+    authToken
   );
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Update failed (${res.status}): ${txt}`);
-  }
-  return (await res.json()) as Location;
 }
 
-export async function deleteLocation(id: string): Promise<void> {
-  const res = await fetch(
-    `${BASE}/${id}`,
-    { method: "DELETE" }
+export async function deleteLocation(
+  id: string,
+  authToken?: string | null
+): Promise<void> {
+  await apiFetchJson<void>(
+    `/locations/${id}`,
+    { method: "DELETE" },
+    authToken
   );
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Delete failed (${res.status}): ${txt}`);
-  }
 }

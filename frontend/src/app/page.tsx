@@ -14,11 +14,13 @@ import {
   Legend,
 } from "chart.js";
 import { useAuth } from "@/lib/auth";
+import { apiFetchJson } from "@/services/api";
 import { listProjects } from "@/services/projects";
 import { listSources } from "@/services/sources";
 import { listSensors } from "@/services/sensors";
 import { LoginForm as Loginform } from "./components/UI/LoginForm";
 import Dashboard, { DashboardProps } from "./components/UI/Dashboard";
+import NoOrgLanding from "./components/NoOrgLanding";
 
 ChartJS.register(
   CategoryScale,
@@ -30,6 +32,12 @@ ChartJS.register(
   Legend
 );
 
+type MeResponse = {
+  id: string;
+  email: string;
+  org: null | { org_id: string; role: string };
+};
+
 export default function Page() {
   const { authToken, isChecking } = useAuth();
   const [dashboardData, setDashboardData] = useState<Omit<DashboardProps,'loading'>>({
@@ -40,14 +48,24 @@ export default function Page() {
     totalSources:    0,
   });
   const [loading, setLoading] = useState(true);
+  const [noOrg, setNoOrg] = useState(false);
 
   useEffect(() => {
     if (!authToken) return;
     (async () => {
       try {
-        const projects = await listProjects();
-        const sources  = await listSources();
-        const sensors  = await listSensors();
+        const me = await apiFetchJson<MeResponse>("/users/me", { method: "GET" }, authToken);
+
+        if (!me.org) {
+          setNoOrg(true);
+          return;
+        }
+
+        const [projects, sources, sensors] = await Promise.all([
+          listProjects(authToken),
+          listSources(authToken),
+          listSensors(authToken),
+        ]);
 
         setDashboardData({
           activeProjects:  projects.filter(p => p.active === 1).length,
@@ -71,6 +89,9 @@ export default function Page() {
       </Flex>
     );
   }
+  if (!authToken) return <Loginform />;
 
-  return authToken ? <Dashboard {...dashboardData} loading={loading} /> : <Loginform />;
+  if (noOrg) return <NoOrgLanding />;
+
+  return <Dashboard {...dashboardData} loading={loading} />;
 }

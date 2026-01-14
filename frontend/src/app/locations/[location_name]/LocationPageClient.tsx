@@ -28,22 +28,22 @@ interface LocationPageClientProps {
   initialSources: Source[];
   initialSensors: MonitoringSensor[];
   initialGroups: MonitoringGroup[];
+  authToken: string;
 }
 
-export default function LocationPageClient({ initialLocation, initialSources, initialSensors, initialGroups }: LocationPageClientProps) {
+export default function LocationPageClient({ initialLocation, initialSources, initialSensors, initialGroups, authToken }: LocationPageClientProps) {
   const { colorMode } = useColorMode();
   const text = colorMode === "light" ? "gray.800" : "gray.200";
   const [activeTab, setActiveTab] = useState<'sources'|'sensors'|'groups'>('sources');
   const [location, setLocation] = useState<Location>(initialLocation);
   const [sources, setSources] = useState<Source[]>(initialSources);
   const [sensors, setSensors] = useState<MonitoringSensor[]>(initialSensors);
+  const [groups, setGroups] = useState<MonitoringGroup[]>(initialGroups);
 
-  const [isGrpCreateOpen, setGrpCreateOpen] = useState(false);
   const [isGrpEditOpen, setGrpEditOpen] = useState(false);
   const [isGrpDelOpen, setGrpDelOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<MonitoringGroup | undefined>();
   const [grpToDelete, setGrpToDelete] = useState<MonitoringGroup | undefined>();
-  const handleNewGrp = () => (setGrpCreateOpen(true));
   const handleEditGroup = (g: MonitoringGroup) => { setSelectedGroup(g); setGrpEditOpen(true); };
   const handleDeleteGroup = (g: MonitoringGroup) => { setGrpToDelete(g); setGrpDelOpen(true); };
 
@@ -171,6 +171,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
                         onEdited={(edited) => {
                           setLocation(edited);
                         }}
+                        authToken={authToken}
                       />
                       <LocationDeleteModal location={location}
                         trigger={
@@ -178,6 +179,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
                             <Trash />
                           </Button>
                         }
+                        authToken={authToken}
                       />
                     </VStack>
                   </Popover.Body>
@@ -436,6 +438,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onCreated={(created) => {
                 setSources(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -448,6 +451,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onEdited={(edited) => {
                 setSources(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -460,6 +464,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onDeleted={(id) => {
                 setSources(prev => prev.filter(p => p.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -472,6 +477,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onDuplicated={(duplicated) => {
                 setSources(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />
@@ -489,6 +495,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onCreated={(created) => {
                 setSensors(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -501,6 +508,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onEdited={(edited) => {
                 setSensors(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -513,6 +521,7 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onDeleted={(id) => {
                 setSensors(prev => prev.filter(p => p.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -525,18 +534,54 @@ export default function LocationPageClient({ initialLocation, initialSources, in
               onDuplicated={(duplicated) => {
                 setSensors(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />
       )}
 
       {activeTab === 'groups' && (
-        <DataTable columns={groupColumns} data={initialGroups} onCreate={handleNewGrp} onEdit={handleEditGroup} onDelete={handleDeleteGroup} name={activeTab} />
+        <DataTable
+          columns={groupColumns}
+          data={groups}
+          name={activeTab}
+          createElement={
+            <MonitoringGroupCreateModal
+              trigger={
+                <Button borderRadius="0.375rem" boxShadow="sm" bg="orange" color="black" size="sm">
+                  <Plus /> Add New
+                </Button>
+              }
+              locationId={location.id}
+              authToken={authToken}
+              onCreated={(created) => setGroups((prev) => [created, ...prev])}
+            />
+          }
+          onEdit={handleEditGroup}
+          onDelete={handleDeleteGroup}
+        />
       )}
+      <MonitoringGroupEditModal
+        isOpen={isGrpEditOpen}
+        group={selectedGroup}
+        onClose={() => {
+          setGrpEditOpen(false);
+          setSelectedGroup(undefined);
+        }}
+        authToken={authToken}
+      />
 
-      <MonitoringGroupCreateModal isOpen={isGrpCreateOpen} onClose={() => setGrpCreateOpen(false)} locationId={location.id} />
-      <MonitoringGroupEditModal isOpen={isGrpEditOpen} group={selectedGroup} onClose={() => { setGrpEditOpen(false); setSelectedGroup(undefined); }}/>
-      <MonitoringGroupDeleteModal isOpen={isGrpDelOpen} group={grpToDelete} onClose={() => { setGrpDelOpen(false); setGrpToDelete(undefined); }}/>
+      <MonitoringGroupDeleteModal
+        isOpen={isGrpDelOpen}
+        group={grpToDelete}
+        onClose={() => {
+          setGrpDelOpen(false);
+          if (grpToDelete?.id) {
+            setGroups((prev) => prev.filter((g) => g.id !== grpToDelete.id));
+          }
+          setGrpToDelete(undefined);
+        }}
+      />
       <ChecklistCreateModal
         isOpen={isChecklistModalOpen}
         onClose={() => setChecklistModalOpen(false)}

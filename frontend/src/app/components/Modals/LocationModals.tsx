@@ -2,7 +2,7 @@
 "use client";
 
 // React + Next Imports
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 const MapPicker = dynamic(() => import("./components/MapPicker"), { ssr: false });
@@ -31,6 +31,7 @@ interface BaseLocationModalProps {
   onDuplicated?: (l: Location) => void;
   projectId?: string;
   location?: Location;
+  authToken: string;
 }
 
 const FREQUENCY_ITEMS = [
@@ -55,11 +56,13 @@ function LocationForm({
   initialData,
   initialProjectId,
   submitLabel,
+  authToken
 }: {
   onSubmit: (payload: LocationPayload) => Promise<void>;
   initialData?: Location;
   initialProjectId?: string;
   submitLabel: string;
+  authToken: string;
 }) {
   const fixedProjectId = initialProjectId ?? initialData?.project_id;
   const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
@@ -86,12 +89,12 @@ function LocationForm({
   }>({});
 
   useEffect(() => {
-    listProjects()
+    listProjects(authToken)
       .then(setProjects)
       .catch(() => {
         toaster.create({ description: "Failed to load projects", type: "error" });
       });
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     if (initialData) {
@@ -129,8 +132,7 @@ function LocationForm({
     []
   )
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSave = async () => {
 
     const nextErrors: typeof errors = {};
     let hasError = false;
@@ -191,7 +193,7 @@ function LocationForm({
 
   return (
     <>
-      <form id="location-form" noValidate onSubmit={handleSubmit}>
+      <form id="location-form" noValidate>
         <Dialog.Body>
           <Field.Root required invalid={!!errors.locName} mb={errors.locName ? 6 : 4}>
             <Field.Label>Location Name</Field.Label>
@@ -249,16 +251,17 @@ function LocationForm({
                 <Field.ErrorText position="absolute" left={0} top="100%">{errors.projectId}</Field.ErrorText>
               </Select.Root>
             </Field.Root>
-
+                    
             <ProjectCreateModal 
               trigger={
-                <IconButton mt="auto" mb={errors.projectId ? 6 : 4} aria-label="New Project" variant="outline" borderColor="gray.500" disabled={isProjectLocked}>
+                <IconButton mt="auto" type="button" mb={errors.projectId ? 6 : 4} aria-label="New Project" variant="outline" borderColor="gray.500" disabled={isProjectLocked}>
                   <Plus size={16} />
                 </IconButton>
               }
               onCreated={(created) => {
                 setProjects(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           </HStack>
 
@@ -307,6 +310,7 @@ function LocationForm({
 
             <Box mt="auto" mb={errors.latitude || errors.longitude ? 6 : 4}>
               <IconButton
+                type="button"
                 aria-label="coordinates-map"
                 variant="outline"
                 borderColor="gray.500"
@@ -420,7 +424,7 @@ function LocationForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+          <Button colorScheme="yellow" type="button" onClick={handleSave}>{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
@@ -433,11 +437,11 @@ function LocationForm({
 // ==============================
 // LocationCreateModal
 // ==============================
-export function LocationCreateModal({ trigger, onCreated, projectId }: BaseLocationModalProps) {
+export function LocationCreateModal({ trigger, onCreated, projectId, authToken }: BaseLocationModalProps) {
   const [open, setOpen] = useState(false);
   const handleCreate = async (payload: LocationPayload) => {
     try {
-      const created = await createLocation(payload);
+      const created = await createLocation(payload, authToken);
       toaster.create({ description: "Location created", type: "success" });
       onCreated?.(created);
       setOpen(false);
@@ -464,7 +468,7 @@ export function LocationCreateModal({ trigger, onCreated, projectId }: BaseLocat
             <Dialog.Header>
               <Dialog.Title>Create Location</Dialog.Title>
             </Dialog.Header>
-            <LocationForm onSubmit={handleCreate} submitLabel="Create" initialProjectId={projectId} />
+            <LocationForm onSubmit={handleCreate} submitLabel="Create" initialProjectId={projectId} authToken={authToken} />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -475,13 +479,13 @@ export function LocationCreateModal({ trigger, onCreated, projectId }: BaseLocat
 // ==============================
 // LocationEditModal
 // ==============================
-export function LocationEditModal({ trigger, location, onEdited }:  BaseLocationModalProps) {
+export function LocationEditModal({ trigger, location, onEdited, authToken }:  BaseLocationModalProps) {
   const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: LocationPayload) => {
     if (!location) return;
 
     try {
-      const edited = await updateLocation(location.id, payload);
+      const edited = await updateLocation(location.id, payload, authToken);
       toaster.create({ description: "Location updated", type: "success" });
       onEdited?.(edited);
       setOpen(false);
@@ -503,7 +507,7 @@ export function LocationEditModal({ trigger, location, onEdited }:  BaseLocation
             <Dialog.Header>
               <Dialog.Title>Edit Location</Dialog.Title>
             </Dialog.Header>
-            <LocationForm onSubmit={handleUpdate} initialData={location} submitLabel="Save" />
+            <LocationForm onSubmit={handleUpdate} initialData={location} submitLabel="Save" authToken={authToken} />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -519,14 +523,14 @@ export function LocationEditModal({ trigger, location, onEdited }:  BaseLocation
 // ==============================
 // LocationDeleteModal
 // ==============================
-export function LocationDeleteModal({ trigger, location, onDeleted }: BaseLocationModalProps) {
+export function LocationDeleteModal({ trigger, location, onDeleted, authToken }: BaseLocationModalProps) {
   const router = useRouter();
   const pathname = usePathname();
 
   const handleDelete = async () => {
     if (!location) return;
     try {
-      await deleteLocation(location.id);
+      await deleteLocation(location.id, authToken);
       toaster.create({ description: "Location deleted", type: "success" });
       const detailRoute = /^\/projects\/[^\/]+\/locations\/[^\/]+$/;
       if (detailRoute.test(pathname)) {
@@ -577,9 +581,9 @@ export function LocationDeleteModal({ trigger, location, onDeleted }: BaseLocati
   );
 }
 
-export function LocationDuplicateModal({ trigger, location, onDuplicated }: BaseLocationModalProps) {
+export function LocationDuplicateModal({ trigger, location, onDuplicated, authToken }: BaseLocationModalProps) {
   const handleDuplicate = async (payload: LocationPayload) => {
-    const duplicated = await createLocation(payload);
+    const duplicated = await createLocation(payload, authToken);
     toaster.create({ description: 'Location created successfully', type: 'success' });
     onDuplicated?.(duplicated);
   };
@@ -606,6 +610,7 @@ export function LocationDuplicateModal({ trigger, location, onDuplicated }: Base
               onSubmit={handleDuplicate}
               initialData={cloneData}
               submitLabel="Duplicate"
+              authToken={authToken}
             />
           </Dialog.Content>
         </Dialog.Positioner>

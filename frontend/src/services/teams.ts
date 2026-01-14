@@ -4,7 +4,6 @@ import type { Team, TeamCreatePayload } from "@/types/teams";
 const API = process.env.NEXT_PUBLIC_API_URL;
 const BASE = `${API}teams`;
 
-
 export async function listTeams(authToken?: string | null): Promise<Team[]> {
   const res = await fetch(`${BASE}/`, {
     method: "GET",

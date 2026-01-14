@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.common.dependencies import get_db
 from app.common.security import create_access_token, get_current_user
 
+from app.organizations.selectors import get_org_membership_for_user
+
 from app.user import schemas, selectors, services
 from app.user.models import User
 
@@ -50,6 +52,21 @@ def login(
     return {"access_token": token, "token_type": "bearer"}
 
 
-@router.get("/me", response_model=schemas.UserRead)
-def me(current: User = Depends(get_current_user)):
-    return current
+@router.get("/me", response_model=schemas.UserMe)
+def me(
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    mem = get_org_membership_for_user(db, current.id)
+
+    # Return user + org context (or None)
+    return schemas.UserMe.model_validate(
+        {
+            **current.__dict__,
+            "org": (
+                {"org_id": mem.org_id, "role": mem.role}
+                if mem
+                else None
+            ),
+        }
+    )

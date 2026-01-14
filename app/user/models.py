@@ -27,6 +27,13 @@ class User(DBBase):
         onupdate=func.now(),
         nullable=False,
     )
+    org_membership = relationship(
+        "OrganizationMember",
+        back_populates="user",
+        uselist=False,
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
     team_members = relationship(
         "TeamMember",
         back_populates="user",

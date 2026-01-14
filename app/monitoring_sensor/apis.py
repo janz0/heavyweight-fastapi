@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.common.dependencies import get_db
 from app.monitoring_sensor import schemas, selectors, services
 from app.monitoring_sensor_fields import schemas as field_schemas, selectors as field_selectors, services as field_services
+from app.organizations.dependencies import get_current_org_id
 
 router = APIRouter(prefix="/monitoring-sensors", tags=["Monitoring Sensors"])
 
@@ -14,34 +15,45 @@ def create_monitoring_sensor(
     payload: schemas.MonitoringSensorCreate,
     response: Response,
     db: Session = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id)
 ):
-    existing = selectors.get_sensor_by_source_and_name(db, payload.mon_source_id, payload.sensor_name)
+    if not selectors.source_belongs_to_org(db, payload.mon_source_id, org_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Source not found")
+
+    existing = selectors.get_sensor_by_source_and_name_in_org(
+        db, org_id=org_id, mon_source_id=payload.mon_source_id, sensor_name=payload.sensor_name
+    )
     if existing:
         response.status_code = status.HTTP_200_OK
         return services.enrich_sensor(existing)
+
     try:
         created = services.create_monitoring_sensor(db, payload)
-        refreshed = selectors.get_monitoring_sensor(db, created.id) or created
+        refreshed = selectors.get_monitoring_sensor_in_org(db, created.id, org_id) or created
         return services.enrich_sensor(refreshed)
     except IntegrityError:
         db.rollback()
-        obj = selectors.get_sensor_by_source_and_name(db, payload.mon_source_id, payload.sensor_name)
+        obj = selectors.get_sensor_by_source_and_name_in_org(
+            db, org_id=org_id, mon_source_id=payload.mon_source_id, sensor_name=payload.sensor_name
+        )
         if obj:
             response.status_code = status.HTTP_200_OK
             return services.enrich_sensor(obj)
         raise
 
+
 @router.get("/", response_model=List[schemas.MonitoringSensor])
 def list_monitoring_sensors(
     skip: int = 0,
     db: Session = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id)
 ):
-    sensors = selectors.get_monitoring_sensors(db, skip=skip)
+    sensors = selectors.get_monitoring_sensors_for_org(db, org_id=org_id, skip=skip)
     return [services.enrich_sensor(s) for s in sensors]
 
 @router.get("/{sensor_id}", response_model=schemas.MonitoringSensor)
-def get_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):
-    obj = selectors.get_monitoring_sensor(db, sensor_id)
+def get_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db), org_id: UUID = Depends(get_current_org_id)):
+    obj = selectors.get_monitoring_sensor_in_org(db, sensor_id, org_id)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
     return services.enrich_sensor(obj)
@@ -54,8 +66,9 @@ def get_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):
 def get_monitoring_sensor_by_name(
     sensor_name: str,
     db: Session = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id)
 ):
-    obj = services.get_monitoring_sensor_by_name(db, sensor_name)
+    obj = services.get_monitoring_sensor_by_name(db, org_id=org_id, sensor_name=sensor_name)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sensor not found")
     return obj
@@ -65,19 +78,24 @@ def update_monitoring_sensor(
     sensor_id: UUID,
     payload: schemas.MonitoringSensorUpdate,
     db: Session = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id)
 ):
-    updated = services.update_monitoring_sensor(db, sensor_id, payload)
-    if not updated:
+    existing = selectors.get_monitoring_sensor_in_org(db, sensor_id, org_id)
+    if not existing:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
-    
-    refreshed = selectors.get_monitoring_sensor(db, sensor_id) or updated
+
+    updated = services.update_monitoring_sensor(db, sensor_id, payload)
+    refreshed = selectors.get_monitoring_sensor_in_org(db, sensor_id, org_id) or updated
     return services.enrich_sensor(refreshed)
 
 @router.delete("/{sensor_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db)):
-    if not selectors.get_monitoring_sensor(db, sensor_id):
+def delete_monitoring_sensor(sensor_id: UUID, db: Session = Depends(get_db), org_id: UUID = Depends(get_current_org_id)):
+    existing = selectors.get_monitoring_sensor_in_org(db, sensor_id, org_id)
+    if not existing:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
+
     services.delete_monitoring_sensor(db, sensor_id)
+    return
 
 
 @router.post("/{sensor_id}/field", response_model=field_schemas.MonitoringSensorField, status_code=status.HTTP_201_CREATED)
@@ -86,11 +104,17 @@ def create_sensor_field(
     payload: field_schemas.MonitoringSensorFieldCreate,
     response: Response,
     db: Session = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id)
 ):
+    # Ensure parent sensor belongs to org
+    if not selectors.get_monitoring_sensor_in_org(db, sensor_id, org_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
+
     existing = field_selectors.get_sensor_field_by_sensor_and_name(db, sensor_id, payload.field_name)
     if existing:
         response.status_code = status.HTTP_200_OK
         return existing
+
     try:
         return field_services.create_sensor_field(db, sensor_id, payload)
     except IntegrityError:
@@ -103,20 +127,26 @@ def create_sensor_field(
 
 
 @router.get("/{sensor_id}/fields", response_model=List[field_schemas.MonitoringSensorField])
-def list_sensor_fields(sensor_id: UUID, db: Session = Depends(get_db)):
+def list_sensor_fields(sensor_id: UUID, db: Session = Depends(get_db), org_id: UUID = Depends(get_current_org_id)):
+    if not selectors.get_monitoring_sensor_in_org(db, sensor_id, org_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "MonitoringSensor not found")
     return field_selectors.get_sensor_fields(db, sensor_id)
 
 
 @router.get("/fields/{field_id}", response_model=field_schemas.MonitoringSensorField)
-def get_sensor_field(field_id: UUID, db: Session = Depends(get_db)):
-    obj = field_selectors.get_sensor_field(db, field_id)
+def get_sensor_field(field_id: UUID, db: Session = Depends(get_db), org_id: UUID = Depends(get_current_org_id)):
+    obj = field_selectors.get_sensor_field_in_org(db, field_id, org_id)  # add this selector (below)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Sensor field not found")
     return obj
 
 
 @router.patch("/fields/{field_id}", response_model=field_schemas.MonitoringSensorField)
-def update_sensor_field(field_id: UUID, payload: field_schemas.MonitoringSensorFieldUpdate, db: Session = Depends(get_db)):
+def update_sensor_field(field_id: UUID, payload: field_schemas.MonitoringSensorFieldUpdate, db: Session = Depends(get_db), org_id: UUID = Depends(get_current_org_id)):
+    existing = field_selectors.get_sensor_field_in_org(db, field_id, org_id)
+    if not existing:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Sensor field not found")
+
     obj = field_services.update_sensor_field(db, field_id, payload)
     if not obj:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Sensor field not found")
@@ -124,7 +154,10 @@ def update_sensor_field(field_id: UUID, payload: field_schemas.MonitoringSensorF
 
 
 @router.delete("/fields/{field_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_sensor_field(field_id: UUID, db: Session = Depends(get_db)):
-    if not field_selectors.get_sensor_field(db, field_id):
+def delete_sensor_field(field_id: UUID, db: Session = Depends(get_db), org_id: UUID = Depends(get_current_org_id)):
+    existing = field_selectors.get_sensor_field_in_org(db, field_id, org_id)
+    if not existing:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Sensor field not found")
+
     field_services.delete_sensor_field(db, field_id)
+    return

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.common.dependencies import get_db
+from app.organizations.dependencies import get_current_org_id
 from app.teams import schemas, selectors, services
 
 from app.project import schemas as project_schemas
@@ -21,21 +22,24 @@ router = APIRouter(prefix="/teams", tags=["Teams"])
 def create_team(
     payload: schemas.TeamCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    org_id: UUID = Depends(get_current_org_id),
 ):
     return services.create_team_with_owner(
         db,
         payload,
         owner_id=current_user.id,
         owner_role="owner",
+        org_id=org_id,
     )
 
 @router.get("/", response_model=List[schemas.Team])
 def list_teams(
     skip: int = 0,
     db: Session = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id)
 ):
-    return selectors.get_teams(db, skip=skip)
+    return selectors.get_teams_for_org(db, org_id, skip=skip)
 
 @router.get("/{team_id}", response_model=schemas.Team)
 def get_team(

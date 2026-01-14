@@ -12,10 +12,12 @@ import { useColorMode } from "../src/components/ui/color-mode";
 import LocationsPageClient from "./LocationsPageClient";
 
 // Services + Types
+import { useAuth } from "@/lib/auth";
 import { listLocations } from "@/services/locations";
 import type { Location } from "@/types/location";
 
 export default function LocationsPage() {
+  const { authToken } = useAuth();
   const { colorMode } = useColorMode();
   const bg = colorMode === 'light' ? 'gray.100' : 'gray.800';
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
@@ -24,10 +26,10 @@ export default function LocationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listLocations()
+    listLocations(authToken)
       .then((data) => setLocations(data))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, []);
+  }, [authToken]);
 
   // Loading state
   if (!locations && !error) {
@@ -47,5 +49,5 @@ export default function LocationsPage() {
     );
   }
   
-  return <LocationsPageClient locations={locations!} />;
+  return <LocationsPageClient locations={locations!} authToken={authToken!} />;
 }

@@ -2,7 +2,7 @@
 'use client';
 
 // React + Next Imports
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 // Chakra Imports + Icons
@@ -22,6 +22,7 @@ interface BaseProjectModalProps {
   onDeleted?: (id: string) => void;
   onDuplicated?: (p: Project) => void;
   project?: Project;
+  authToken: string;
 }
 
 // ==============================
@@ -48,7 +49,6 @@ function ProjectForm({
   const [errors, setErrors] = useState<{
     projName?: string;
     projNumber?: string;
-    description?: string;
   }>({});
 
   useEffect(() => {
@@ -69,9 +69,7 @@ function ProjectForm({
     }
   }, [initialData, today]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
+  const handleSave = async () => {
     const nextErrors: typeof errors = {};
     let hasError = false;
 
@@ -82,11 +80,6 @@ function ProjectForm({
 
     if (!projectNumber.trim()) {
       nextErrors.projNumber = "Project number is required";
-      hasError = true;
-    }
-
-    if (!description.trim()) {
-      nextErrors.description = "Project description is required";
       hasError = true;
     }
 
@@ -117,7 +110,7 @@ function ProjectForm({
 
   return (
     <>
-      <form id="project-form" noValidate onSubmit={handleSubmit}>
+      <form id="project-form" noValidate>
         <Dialog.Body>
           <Field.Root required invalid={!!errors.projName} mb={errors.projName ? 6 : 4}>
             <Field.Label>Project Name</Field.Label>
@@ -131,10 +124,9 @@ function ProjectForm({
             <Field.ErrorText position="absolute" left={0} top="100%">{errors.projNumber}</Field.ErrorText>
           </Field.Root>
 
-          <Field.Root required invalid={!!errors.description} mb={errors.description ? 6 : 4}>
+          <Field.Root mb={4}>
             <Field.Label>Description</Field.Label>
-            <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} borderColor={!errors.description ? "gray.500" : "none"}/>
-            <Field.ErrorText position="absolute" left={0} top="100%">{errors.description}</Field.ErrorText>
+            <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} borderColor="gray.500"/>
           </Field.Root>
 
           <HStack gap={4} mb={4}>
@@ -168,7 +160,7 @@ function ProjectForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+          <Button colorScheme="yellow" type="button" onClick={handleSave}>{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
@@ -181,11 +173,11 @@ function ProjectForm({
 // ==============================
 // ProjectCreateModal
 // ==============================
-export function ProjectCreateModal({ trigger, onCreated }: BaseProjectModalProps) {
+export function ProjectCreateModal({ trigger, onCreated, authToken }: BaseProjectModalProps) {
   const [open, setOpen] = useState(false);
   const handleCreate = async (payload: ProjectPayload) => {
     try {
-      const created = await createProject(payload);
+      const created = await createProject(payload, authToken);
       toaster.create({ description: 'Project created successfully', type: 'success' });
       onCreated?.(created);
       setOpen(false);
@@ -223,12 +215,12 @@ export function ProjectCreateModal({ trigger, onCreated }: BaseProjectModalProps
 // ==============================
 // ProjectEditModal
 // ==============================
-export function ProjectEditModal({ trigger, project, onEdited }: BaseProjectModalProps) {
+export function ProjectEditModal({ trigger, project, onEdited, authToken }: BaseProjectModalProps) {
   const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: ProjectPayload) => {
     if (!project) return;
     try {
-      const edited = await updateProject(project.id, payload);
+      const edited = await updateProject(project.id, payload, authToken);
       toaster.create({ description: 'Project updated successfully', type: 'success' });
       onEdited?.(edited);
       setOpen(false);
@@ -266,14 +258,14 @@ export function ProjectEditModal({ trigger, project, onEdited }: BaseProjectModa
 // ==============================
 // ProjectDeleteModal
 // ==============================
-export function ProjectDeleteModal({ trigger, project, onDeleted }: BaseProjectModalProps) {
+export function ProjectDeleteModal({ trigger, project, onDeleted, authToken }: BaseProjectModalProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const handleDelete = async () => {
     if (!project) return;
     try {
-      await deleteProject(project.id);
+      await deleteProject(project.id, authToken);
       toaster.create({ description: 'Project deleted', type: 'success' });
       const detailRoute = /^\/projects\/[^\/]+$/;
       if (detailRoute.test(pathname)) {
@@ -326,9 +318,9 @@ export function ProjectDeleteModal({ trigger, project, onDeleted }: BaseProjectM
   );
 }
 
-export function ProjectDuplicateModal({ trigger, project, onDuplicated }: BaseProjectModalProps) {
+export function ProjectDuplicateModal({ trigger, project, onDuplicated, authToken }: BaseProjectModalProps) {
   const handleDuplicate = async (payload: ProjectPayload) => {
-    const duplicated = await createProject(payload);
+    const duplicated = await createProject(payload, authToken);
     toaster.create({ description: 'Project created successfully', type: 'success' });
     onDuplicated?.(duplicated);
   };

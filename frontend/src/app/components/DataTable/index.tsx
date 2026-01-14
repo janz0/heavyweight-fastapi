@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 // Chakra Imports + Icons
-import { Box, Button, ButtonGroup, Checkbox, Dialog, Flex, Heading, Icon, IconButton, Pagination, Popover, Portal, Table, Text, Textarea, useToken, VStack } from "@chakra-ui/react";
+import { Box, Button, ButtonGroup, Checkbox, Dialog, Flex, Heading, Icon, IconButton, Pagination, Popover, Portal, Table, Text, Textarea, VStack } from "@chakra-ui/react";
 import { CaretDown, CaretUp, DotsThreeVertical, MagnifyingGlass } from "phosphor-react";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import { RotateCcw, Eye } from "lucide-react";
@@ -16,6 +16,8 @@ import PageSizeSelect from "./PageSizeSelect";
 import SearchInput from "../UI/SearchInput";
 import { toaster } from "@/components/ui/toaster";
 import { JsonEditor } from "json-edit-react";
+
+import { useAuth } from "@/lib/auth";
 
 // Modals
 import { MonitoringGroupAssignModal } from "../Modals/MonitoringGroupModals";
@@ -57,7 +59,6 @@ const parseConfig = (raw: unknown): Record<string, unknown> | null => {
 
 export default function DataTable<T extends { id: string; }>({
   name = "",
-  color,
   data,
   columns,
   createElement,
@@ -65,6 +66,8 @@ export default function DataTable<T extends { id: string; }>({
   deleteElement,
   duplicateElement,
 }: DataTableProps<T>) {
+  const { authToken } = useAuth();
+
   // Page Size Select
   const [page, setPage] = useState(1);
   const pageSizeOptions = [10, 25, 50, 100];
@@ -81,14 +84,15 @@ export default function DataTable<T extends { id: string; }>({
 
   // Group Assign
   const [isGrpAssignOpen, setGrpAssign] = useState(false);
-  const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
+  //const [resolvedColor] = useToken("colors", [color ?? "black"]); // resolves colors
+  const resolvedColor = "black"
   
   // Dialog state
   const [configViewer, setConfigViewer] = useState<{
     open: boolean;
     data: Record<string, unknown> | null;
     title?: string;
-    suggestion?: string; // 👈 add this
+    suggestion?: string;
   }>({ open: false, data: null, title: undefined, suggestion: undefined });
 
   const tableRef = useRef<HTMLDivElement>(null);
@@ -321,9 +325,8 @@ export default function DataTable<T extends { id: string; }>({
   return (
     <Box width="full">
       <Flex mb={2} align="center" w="100%" className="bg-card">
-        <Heading fontSize={{base:"xl", sm: "xl", md: "3xl"}} color={color}>
-          <Text as="span">{name.charAt(0).toUpperCase()}</Text>
-          <Text as="span" fontSize={{base:"md", sm: "lg", md: "2xl"}}>{name.slice(1)}</Text>
+        <Heading fontSize={{base:"xl", sm: "xl", md: "2xl", lg: "3xl"}}>
+          <Text as="span" fontWeight={"bold"}>{name.toUpperCase()}</Text>
         </Heading>
         <Flex ml="auto" align="center" gap={{base: 1, sm: 2, md: 3}}>
           <IconButton aria-label="Reset Columns" as={RotateCcw} bg="transparent" size={'2xs'} color='fg' onClick={resetColumns}/>
@@ -346,7 +349,7 @@ export default function DataTable<T extends { id: string; }>({
             >
               Assign Groups
             </Button>
-            <MonitoringGroupAssignModal isOpen={isGrpAssignOpen} onClose={() => setGrpAssign(false)} />
+            <MonitoringGroupAssignModal isOpen={isGrpAssignOpen} onClose={() => setGrpAssign(false)} authToken={authToken!}/>
           </>
           }
           <PageSizeSelect value={pageSize} options={pageSizeOptions} onChange={setPageSize} />
@@ -691,7 +694,7 @@ export default function DataTable<T extends { id: string; }>({
             </Dialog.Positioner>
           </Portal>
         </Dialog.Root>
-        <Box position="absolute" py={1} right={6}><CountFooter count={data.length} total={filtered.length} name={name} color="fg.muted" /></Box>
+        <Box position="absolute" py={1} right={6}><CountFooter count={visibleItems.length} total={filtered.length} name={name} color="fg.muted" /></Box>
       </Flex>
     </Box>
   );

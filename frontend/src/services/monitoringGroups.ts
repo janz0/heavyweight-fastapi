@@ -25,8 +25,10 @@ export async function listMonitoringGroups(
 
 // Create a new group under a location
 export async function createMonitoringGroup(
-  payload: MonitoringGroupPayload
+  payload: MonitoringGroupPayload,
+  authToken: string
 ): Promise<MonitoringGroup> {
+  if (authToken) console.log("Permission granted");
   const res = await fetch(`${GROUPS_BASE}/`, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },

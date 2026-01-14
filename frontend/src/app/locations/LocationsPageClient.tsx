@@ -23,9 +23,10 @@ import { PencilSimple, Plus, Trash, Copy } from "phosphor-react";
 
 interface Props {
   locations: Location[];
+  authToken: string;
 }
 
-export default function LocationsPageClient({ locations: initialLocations }: Props) {
+export default function LocationsPageClient({ locations: initialLocations, authToken: authToken }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<Location[]>(initialLocations);
@@ -59,6 +60,7 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
               onCreated={(created) => {
                 setItems(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -71,6 +73,7 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
               onEdited={(edited) => {
                 setItems(prev => prev.map(l => l.id === edited.id ? { ...l, ...edited } : l));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -83,6 +86,7 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
               onDeleted={(id) => {
                 setItems(prev => prev.filter(l => l.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -95,6 +99,7 @@ export default function LocationsPageClient({ locations: initialLocations }: Pro
               onDuplicated={(duplicated) => {
                 setItems(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />

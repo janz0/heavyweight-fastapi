@@ -16,12 +16,15 @@ def create_team(db: Session, payload: TeamCreate) -> TeamModel:
     db.refresh(obj)
     return obj
 
-def create_team_with_owner(db: Session, payload: TeamCreate, owner_id: UUID, owner_role: str = "owner",
+def create_team_with_owner(db: Session, payload: TeamCreate, owner_id: UUID, owner_role: str = "owner", org_id: UUID | None = None,
 ) -> TeamModel:
-    team = TeamModel(**payload.model_dump())
-    db.add(team)
+    data = payload.model_dump()
 
-    # Flush so team.id is generated but not committed yet
+    if org_id is not None:
+        data["org_id"] = org_id
+
+    team = TeamModel(**data)
+    db.add(team)
     db.flush()
 
     member = TeamMemberModel(

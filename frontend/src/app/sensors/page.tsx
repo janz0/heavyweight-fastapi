@@ -12,10 +12,12 @@ import { useColorMode } from "../src/components/ui/color-mode";
 import SensorsPageClient from "./SensorsPageClient";
 
 // Services + Types
+import { useAuth } from "@/lib/auth";
 import { listSensors } from "@/services/sensors";
 import type { MonitoringSensor } from "@/types/sensor";
 
 export default function SensorsPage() {
+  const { authToken } = useAuth();
   const { colorMode } = useColorMode();
   const accent = colorMode === 'light' ? '#3B82F6' : '#60A5FA';
 
@@ -25,10 +27,10 @@ export default function SensorsPage() {
 
   // fetch sensors on mount
   useEffect(() => {
-    listSensors()
+    listSensors(authToken)
       .then((data) => setSensors(data))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, []);
+  }, [authToken]);
 
   // Loading state
   if (!sensors && !error) {
@@ -48,5 +50,5 @@ export default function SensorsPage() {
     );
   }
 
-  return <SensorsPageClient sensors={sensors!} />;
+  return <SensorsPageClient sensors={sensors!} authToken={authToken!} />;
 }

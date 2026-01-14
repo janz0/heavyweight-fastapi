@@ -19,7 +19,7 @@ export default function Sidebar() {
   const hoverArrowColor = useColorModeValue("gray.300", "gray.500");
   const hoverButton = useColorModeValue("gray.100", "black");
   const isActiveColor = useColorModeValue("rgba(194, 213, 255, 0.40)", "blue.400")
-  const sidebarWidth = isOpen ? "200px" : isBoxHovered ? "30px" : "24px";  // expanded vs. collapsed
+  const sidebarWidth = isOpen ? "200px" : isBoxHovered ? "28px" : "24px";  // expanded vs. collapsed
   const iconBgColor = isBoxHovered && !isOpen ? hoverArrowColor : arrowColor;
   const pathname = usePathname();
   const sidebarBg = useColorModeValue(
@@ -58,69 +58,67 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <Box as="nav" display={{base: "none", md: "initial"}} zIndex={10} overflow="visible" borderTopLeftRadius={"lg"} bgImage={sidebarBg} position="relative" _hover={isOpen ? undefined : { bgImage: sidebarHoverBg }} w={sidebarWidth} h="100%" transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
+    <Box as="nav" display={{base: "none", md: "initial"}} zIndex={10} overflow="visible" borderTopLeftRadius={"lg"} bgImage={sidebarBg} position="sticky" _hover={isOpen ? undefined : { bgImage: sidebarHoverBg }} w={sidebarWidth} h="100%" transition="width 0.5s ease-in-out" onClick={() => {if (!isOpen) {setIsOpen(!isOpen);}}} cursor={isOpen ? "auto" : "pointer"} onMouseEnter={() => {setIsBoxHovered(true); setShrinkHome(true)}}
       onMouseLeave={() => {setIsBoxHovered(false); setShrinkHome(false)}}>
-      <Box position="fixed" w="inherit" >
-        <Tooltip
-          content={
-            <Text fontSize="xs" m={1}>
-              {!isOpen ? "Open Navigation" : "Close Navigation"}: <Kbd variant="subtle" size="sm">ctrl</Kbd> + <Kbd variant="subtle" size="sm">.</Kbd>
-            </Text>
-          }
-          showArrow
-          openDelay={100}
-          closeDelay={100}
-          positioning={{ placement: "right" }}
+      <Tooltip
+        content={
+          <Text fontSize="xs" m={1}>
+            {!isOpen ? "Open Navigation" : "Close Navigation"}: <Kbd variant="subtle" size="sm">ctrl</Kbd> + <Kbd variant="subtle" size="sm">.</Kbd>
+          </Text>
+        }
+        showArrow
+        openDelay={100}
+        closeDelay={100}
+        positioning={{ placement: "right" }}
+      >
+        <Icon
+          as="button"
+          bg={iconBgColor}
+          cursor="pointer"
+          position="absolute"
+          top="3"
+          right="-4"
+          borderRadius="full"
+          boxSize="24px"
+          placeItems="center"
+          opacity={isOpen && !isBoxHovered ? 0 : 1}
+          _hover={{ bg: hoverArrowColor }}
+          onClick={() => setIsOpen(!isOpen)}
+          transition="transform 0.3s ease-in-out"
+          transform={isOpen ? "rotate(180deg)" : "rotate(0deg)"}
         >
-          <Icon
-            as="button"
-            bg={iconBgColor}
-            cursor="pointer"
-            position="absolute"
-            top="3"
-            right="-4"
-            borderRadius="full"
-            boxSize="24px"
-            placeItems="center"
-            opacity={isOpen && !isBoxHovered ? 0 : 1}
-            _hover={{ bg: hoverArrowColor }}
-            onClick={() => setIsOpen(!isOpen)}
-            transition="transform 0.3s ease-in-out"
-            transform={isOpen ? "rotate(180deg)" : "rotate(0deg)"}
-          >
-            <CaretRight size={12} weight="bold" />
-          </Icon>
-        </Tooltip>
-        <VStack overflow="hidden" display={isOpen ? "flex" : "none"} alignItems={"left"} p="2" gap="0" truncate transition="display 2s">
-          <VStack alignItems={"inherit"}>
-            <Link href="/" passHref>
-              <Button z-index={1} justifyContent={"flex-start"} color={isHomeActive ? "blackAlpha.700" : textColor} bg={isHomeActive ? isActiveColor : "none" } _hover={{bg: isHomeActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
-                <Icon as={House} boxSize={4} />Home
-              </Button>
-            </Link>
-            <Link href="/projects" passHref>
-              <Button z-index={1} justifyContent={"flex-start"} color={isProjectsActive ? "blackAlpha.700" : textColor} bg={isProjectsActive ? isActiveColor : "none" } _hover={{bg: isProjectsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
-                <Icon as={Folder} boxSize={4} />Projects
-              </Button>
-            </Link>
-            <Link href="/locations" passHref>
-              <Button z-index={1} justifyContent={"flex-start"} color={isLocationsActive ? "blackAlpha.700" : textColor} bg={isLocationsActive ? isActiveColor : "none" } _hover={{bg: isLocationsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
-                <Icon as={MapPin} boxSize={4} />Locations
-              </Button>
-            </Link>
-            <Link href="/sensors" passHref>
-              <Button z-index={1} justifyContent={"flex-start"} color={isSensorsActive ? "blackAlpha.700" : textColor} bg={isSensorsActive ? isActiveColor : "none" } _hover={{bg: isSensorsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
-                <Icon as={Gauge} boxSize={4} />Sensors
-              </Button>
-            </Link>
-            <Link href="/sources" passHref>
-              <Button z-index={1} justifyContent={"flex-start"} color={isSourcesActive ? "blackAlpha.700" : textColor} bg={isSourcesActive ? isActiveColor : "none" } _hover={{bg: isSourcesActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
-                <Icon as={Database} boxSize={4} />Sources
-              </Button>
-            </Link>
-          </VStack>
+          <CaretRight size={12} weight="bold" />
+        </Icon>
+      </Tooltip>
+      <VStack overflow="hidden" display={isOpen ? "flex" : "none"} alignItems={"left"} p="2" gap="0" truncate transition="display 2s">
+        <VStack alignItems={"inherit"}>
+          <Link href="/" passHref>
+            <Button z-index={1} justifyContent={"flex-start"} color={isHomeActive ? "blackAlpha.700" : textColor} bg={isHomeActive ? isActiveColor : "none" } _hover={{bg: isHomeActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+              <Icon as={House} boxSize={4} />Home
+            </Button>
+          </Link>
+          <Link href="/projects" passHref>
+            <Button z-index={1} justifyContent={"flex-start"} color={isProjectsActive ? "blackAlpha.700" : textColor} bg={isProjectsActive ? isActiveColor : "none" } _hover={{bg: isProjectsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+              <Icon as={Folder} boxSize={4} />Projects
+            </Button>
+          </Link>
+          <Link href="/locations" passHref>
+            <Button z-index={1} justifyContent={"flex-start"} color={isLocationsActive ? "blackAlpha.700" : textColor} bg={isLocationsActive ? isActiveColor : "none" } _hover={{bg: isLocationsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+              <Icon as={MapPin} boxSize={4} />Locations
+            </Button>
+          </Link>
+          <Link href="/sensors" passHref>
+            <Button z-index={1} justifyContent={"flex-start"} color={isSensorsActive ? "blackAlpha.700" : textColor} bg={isSensorsActive ? isActiveColor : "none" } _hover={{bg: isSensorsActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+              <Icon as={Gauge} boxSize={4} />Sensors
+            </Button>
+          </Link>
+          <Link href="/sources" passHref>
+            <Button z-index={1} justifyContent={"flex-start"} color={isSourcesActive ? "blackAlpha.700" : textColor} bg={isSourcesActive ? isActiveColor : "none" } _hover={{bg: isSourcesActive ? "undefined" : hoverButton}} h="32px" w={isShrunk ? "90%" : "100%"} px="1" gap="8px">
+              <Icon as={Database} boxSize={4} />Sources
+            </Button>
+          </Link>
         </VStack>
-      </Box>
+      </VStack>
     </Box>
   );
 }

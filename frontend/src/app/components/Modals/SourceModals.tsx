@@ -2,7 +2,7 @@
 'use client';
 
 // React + Next Imports
-import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Chakra Imports + Icons
@@ -36,6 +36,7 @@ interface BaseSourceModalProps {
   projectId?: string;
   locationId?: string;
   source?: Source;
+  authToken: string;
 }
 
 const INTERVAL_OPTIONS = [
@@ -63,12 +64,14 @@ function SourceForm({
   initialProjectId,
   initialLocationId,
   submitLabel,
+  authToken,
 }: {
   onSubmit: (payload: SourcePayload) => Promise<void>;
   initialData?: Source;
   initialProjectId?: string;
   initialLocationId?: string;
   submitLabel: string;
+  authToken: string;
 }) {
   const fixedProjectId = initialProjectId ?? initialData?.details?.project_id;
   const isProjectLocked = Boolean(fixedProjectId && submitLabel == 'Create');
@@ -85,16 +88,17 @@ function SourceForm({
   }>({});
 
   useEffect(() => {
+    if (!authToken) return;
     (async () => {
       try {
-        const roots = await listDistinctRootDirectories(); // or the fallback
+        const roots = await listDistinctRootDirectories(authToken); // or the fallback
         setKnownRoots(roots);
       } catch (e) {
         console.error(e);
         // non-fatal; user can still type a new path
       }
     })();
-  }, []);
+  }, [authToken]);
 
   const rootsCollection = useMemo(
     () =>
@@ -261,13 +265,14 @@ function SourceForm({
 
   // load projects
   useEffect(() => {
-    listProjects()
+    if (!authToken) return;
+    listProjects(authToken)
       .then(setProjects)
       .catch(err => {
         console.error(err);
         toaster.create({ description: "Could not load projects", type: "error" });
       });
-  }, []);
+  }, [authToken]);
 
   // build project select collection
   const projectCollection = useMemo(
@@ -282,22 +287,20 @@ function SourceForm({
 
   // when project changes, reload locations
   useEffect(() => {
-    if (projectId) {
-      listLocations(projectId)
-        .then(setLocations)
-        .catch(err => {
-          console.error(err);
-          toaster.create({ description: "Could not load locations", type: "error" });
-        });
-    } else {
-      Promise.all(projects.map(p => listLocations(p.id)))
-        .then(arrays => setLocations(arrays.flat()))
-        .catch(err => {
-          console.error(err);
-          toaster.create({ description: "Could not load locations", type: "error" });
-        });
+    if (!authToken) return;
+
+    if (!projectId) {
+      setLocations([]);
+      return;
     }
-  }, [projectId, projects]);
+
+    listLocations(authToken, projectId)
+      .then(setLocations)
+      .catch(err => {
+        console.error(err);
+        toaster.create({ description: "Could not load locations", type: "error" });
+      });
+  }, [authToken, projectId]);
 
   // When jsonErrLoc changes, select the whole line in the textarea
   useEffect(() => {
@@ -359,9 +362,7 @@ function SourceForm({
     []
   );
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
+  const handleSave = async () => {
     const nextErrors: typeof errors = {};
     let hasError = false;
 
@@ -453,7 +454,7 @@ function SourceForm({
 
   return (
     <>
-      <form id="source-form" noValidate onSubmit={handleSubmit}>
+      <form id="source-form" noValidate>
         <Dialog.Body>
           <HStack>
             <Field.Root required invalid={!!errors.projectId} mb={errors.projectId ? 6 : 4}>
@@ -503,6 +504,7 @@ function SourceForm({
               onCreated={(created) => {
                 setProjects(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
             
           </HStack>
@@ -560,6 +562,7 @@ function SourceForm({
               onCreated={(created) => {
                 setLocations(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           </HStack>
 
@@ -895,7 +898,7 @@ function SourceForm({
           <Dialog.ActionTrigger asChild>
             <Button colorScheme="gray" mr={3}>Cancel</Button>
           </Dialog.ActionTrigger>
-          <Button colorScheme="yellow" type="submit">{submitLabel}</Button>
+          <Button colorScheme="yellow" type="button" onClick={handleSave}>{submitLabel}</Button>
         </Dialog.Footer>
       </form>
       <Dialog.CloseTrigger asChild>
@@ -908,11 +911,11 @@ function SourceForm({
 // ----------------------
 // CreateSourceModal
 // ----------------------
-export function SourceCreateModal({ trigger, onCreated, projectId, locationId }: BaseSourceModalProps) {
+export function SourceCreateModal({ trigger, onCreated, projectId, locationId, authToken }: BaseSourceModalProps) {
   const [open, setOpen] = useState(false);
   const handleCreate = async (payload: SourcePayload) => {
     try {
-      const created = await createSource(payload);
+      const created = await createSource(payload, authToken);
       toaster.create({description: "Source created", type: "success" });
       onCreated?.(created);
       setOpen(false);
@@ -939,7 +942,7 @@ export function SourceCreateModal({ trigger, onCreated, projectId, locationId }:
             <Dialog.Header>
               <Dialog.Title>Create Source</Dialog.Title>
             </Dialog.Header>
-            <SourceForm onSubmit={handleCreate} submitLabel="Create" initialProjectId={projectId} initialLocationId={locationId}/>
+            <SourceForm onSubmit={handleCreate} submitLabel="Create" initialProjectId={projectId} initialLocationId={locationId} authToken={authToken}/>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -950,13 +953,13 @@ export function SourceCreateModal({ trigger, onCreated, projectId, locationId }:
 // ----------------------
 // EditSourceModal
 // ----------------------
-export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalProps) {
+export function SourceEditModal({ trigger, source, onEdited, authToken }: BaseSourceModalProps) {
   const [open, setOpen] = useState(false);
   const handleUpdate = async (payload: SourcePayload) => {
     if (!source) return;
 
     try {
-      const edited = await updateSource(source.id, payload);
+      const edited = await updateSource(source.id, payload, authToken);
       toaster.create({ description: "Source updated", type: "success" });
       onEdited?.(edited);
       setOpen(false);
@@ -983,7 +986,7 @@ export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalPr
             <Dialog.Header>
               <Dialog.Title>Edit Source</Dialog.Title>
             </Dialog.Header>
-            <SourceForm onSubmit={handleUpdate} initialData={source} submitLabel="Save" />
+            <SourceForm onSubmit={handleUpdate} initialData={source} submitLabel="Save" authToken={authToken} />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -994,14 +997,14 @@ export function SourceEditModal({ trigger, source, onEdited }: BaseSourceModalPr
 // ----------------------
 // DeleteSourceModal
 // ----------------------
-export function SourceDeleteModal({ trigger, source, onDeleted }: BaseSourceModalProps) {
+export function SourceDeleteModal({ trigger, source, onDeleted, authToken }: BaseSourceModalProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
   const handleDelete = async () => {
     if (!source) return;
     try {
-      await deleteSource(source.id);
+      await deleteSource(source.id, authToken);
       toaster.create({ description: "Source deleted", type: "success" });
       const detailRoute = /^\/sources\/[^\/]+$/;
       if (detailRoute.test(pathname)) {
@@ -1055,9 +1058,9 @@ export function SourceDeleteModal({ trigger, source, onDeleted }: BaseSourceModa
 // ----------------------
 // DuplicateSourceModal
 // ----------------------
-export function SourceDuplicateModal({ trigger, source, onDuplicated }: BaseSourceModalProps) {
+export function SourceDuplicateModal({ trigger, source, onDuplicated, authToken }: BaseSourceModalProps) {
   const handleDuplicate = async (payload: SourcePayload) => {
-    const duplicated = await createSource(payload);
+    const duplicated = await createSource(payload, authToken);
     toaster.create({ description: "Source created successfully", type: "success" });
     onDuplicated?.(duplicated);
   };
@@ -1085,6 +1088,7 @@ export function SourceDuplicateModal({ trigger, source, onDuplicated }: BaseSour
               onSubmit={handleDuplicate}
               initialData={cloneData as Source}
               submitLabel="Duplicate"
+              authToken={authToken}
             />
           </Dialog.Content>
         </Dialog.Positioner>

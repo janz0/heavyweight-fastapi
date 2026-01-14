@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, Date, Integer, DateTime, text
+from sqlalchemy import Column, Text, Date, Integer, DateTime, text, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from app.config.database import DBBase
@@ -11,6 +11,8 @@ class Project(DBBase):
     __tablename__ = "projects"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    org_id = Column(PGUUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    team_id = Column(PGUUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     project_number = Column(Text, nullable=True)
     project_name = Column(Text, nullable=False)
     description = Column(Text, nullable=True)

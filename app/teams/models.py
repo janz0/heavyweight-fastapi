@@ -13,10 +13,13 @@ class Team(DBBase):
     __tablename__ = "teams"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    org_id = Column(PGUUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    
     name = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
+    org = relationship("Organization", lazy="selectin")
     members = relationship("TeamMember", back_populates="team", lazy="selectin", cascade="all, delete-orphan")
 
     @hybrid_property

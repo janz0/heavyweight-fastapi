@@ -32,7 +32,6 @@ def get_team_members(db: Session, team_id: UUID) -> List[TeamMemberSchema]:
     members = db.execute(stmt).scalars().all()
     return [TeamMemberSchema.model_validate(m) for m in members]
 
-
 def get_teams_for_user(db: Session, user_id: UUID, skip: int = 0) -> List[TeamSchema]:
     stmt = (
         select(TeamModel)
@@ -44,6 +43,15 @@ def get_teams_for_user(db: Session, user_id: UUID, skip: int = 0) -> List[TeamSc
     teams = db.execute(stmt).scalars().all()
     return [TeamSchema.model_validate(t) for t in teams]
 
+def get_teams_for_org(db: Session, org_id: UUID, skip: int = 0) -> list[TeamSchema]:
+    stmt = (
+        select(TeamModel)
+        .where(TeamModel.org_id == org_id)
+        .order_by(TeamModel.name.asc())
+        .offset(skip)
+    )
+    teams = db.execute(stmt).scalars().all()
+    return [TeamSchema.model_validate(t) for t in teams]
 
 def get_team_member(
     db: Session,

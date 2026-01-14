@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, useMemo } from "react";
 import {
   Button,
   Box,
@@ -13,8 +13,11 @@ import {
   HStack,
   Spinner,
   Flex,
+  Icon,
   Table,
   InputGroup,
+  Combobox,
+  createListCollection,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
 import { createTeam, listTeams } from "@/services/teams";
@@ -22,6 +25,7 @@ import type { Team } from "@/types/teams";
 import { Plus } from "lucide-react";
 import { MagnifyingGlass } from "phosphor-react";
 import { useAuth } from "@/lib/auth";
+import { BsPeople, BsPeopleFill } from "react-icons/bs";
 
 interface TeamCreateModalProps {
   trigger: React.ReactElement;
@@ -47,10 +51,16 @@ function formatDateTime(value: string | Date | null | undefined): string {
   });
 }
 
+// Just for testing
+const org_members = ["React.js", "Vue.js", "Angular", "Svelte"];
+
+
 export function TeamCreateModal({ trigger, onCreated }: TeamCreateModalProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
   const { authToken } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -66,6 +76,11 @@ export function TeamCreateModal({ trigger, onCreated }: TeamCreateModalProps) {
 
     setSubmitting(true);
     try {
+      if (!authToken) {
+        toaster.create({ description: "You must be logged in to create a team.", type: "error" });
+        return;
+      }
+
       const created = await createTeam({ name: name.trim() }, authToken);
       toaster.create({
         description: "Team created",
@@ -85,6 +100,29 @@ export function TeamCreateModal({ trigger, onCreated }: TeamCreateModalProps) {
       setSubmitting(false);
     }
   };
+  const filteredItems = useMemo(() => {
+    const lower = memberSearch.toLowerCase();
+
+    const base = org_members.filter((item) =>
+      item.toLowerCase().includes(lower),
+    );
+
+    return base.sort((a, b) => {
+      const aSelected = memberIds.includes(a);
+      const bSelected = memberIds.includes(b);
+
+      if (aSelected && !bSelected) return -1; // selected first
+      if (!aSelected && bSelected) return 1;
+      return a.localeCompare(b); // then alphabetical
+    });
+  }, [memberSearch, memberIds]);
+  const collection = useMemo(
+    () => createListCollection({ items: filteredItems }),
+    [filteredItems],
+  )
+  const handleValueChange = (details: Combobox.ValueChangeDetails) => {
+    setMemberIds(details.value as string[])
+  }
 
   return (
     <Dialog.Root
@@ -92,15 +130,12 @@ export function TeamCreateModal({ trigger, onCreated }: TeamCreateModalProps) {
       open={open}
       onOpenChange={({ open }) => setOpen(open)}
     >
-      <Dialog.Trigger asChild>
-        {trigger}
-      </Dialog.Trigger>
-
+      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content border="2px solid">
           <Dialog.Header>
-            <Dialog.Title>Create Team</Dialog.Title>
+            <Dialog.Title><HStack><BsPeopleFill />Create new team</HStack></Dialog.Title>
           </Dialog.Header>
 
           <form onSubmit={handleSubmit}>
@@ -111,12 +146,60 @@ export function TeamCreateModal({ trigger, onCreated }: TeamCreateModalProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
+                  placeholder="Enter team name"
                 />
+              </Field.Root>
+              <Field.Root>
+                <Combobox.Root
+                  multiple
+                  value={memberIds}
+                  collection={collection}
+                  onValueChange={handleValueChange}
+                  onInputValueChange={(details) =>
+                    setMemberSearch(details.inputValue)
+                  }
+                >
+                  <Combobox.Label>Team Members</Combobox.Label>
+                  <HStack>
+                    {memberIds.map((id) => (
+                      <Box
+                        key={id}
+                        pl={1.5}
+                        py={0.5}
+                        pr={0}
+                        borderRadius="md"
+                        bg="bg.emphasized"
+                        fontSize="xs"
+                      >
+                        {id}
+                        <CloseButton size="2xs" _hover={{bg: "none"}} onClick={() => {setMemberIds((prev) => prev.filter((item) => item !== id));}}/>
+                      </Box>
+                    ))}
+                  </HStack>
+                  <Combobox.Control>
+                    <Combobox.Input placeholder="Search members"/>
+                    <Combobox.IndicatorGroup>
+                      <Combobox.ClearTrigger />
+                      <Combobox.Trigger />
+                    </Combobox.IndicatorGroup>
+                  </Combobox.Control>
+                  <Combobox.Positioner>
+                    <Combobox.Content>
+                      <Combobox.Empty>No members found</Combobox.Empty>
+                      {collection.items.map((item) => (
+                        <Combobox.Item item={item} key={item}>
+                            {item}
+                          <Combobox.ItemIndicator />
+                        </Combobox.Item>
+                      ))}
+                    </Combobox.Content>
+                  </Combobox.Positioner>
+                </Combobox.Root>
               </Field.Root>
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.ActionTrigger asChild>
-                <Button variant="outline" mr={3}>
+                <Button variant="outline">
                   Cancel
                 </Button>
               </Dialog.ActionTrigger>
@@ -182,18 +265,24 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
     >
       <Dialog.Backdrop />
       <Dialog.Positioner>
-        <Dialog.Content border="2px solid" maxH="80vh" overflowY="auto">
-          <Dialog.Header>
-            <Dialog.Title>Teams</Dialog.Title>
+        <Dialog.Content border="2px solid" maxH="80vh" overflowY="auto" rounded={"xl"}>
+          <Dialog.Header bg={"bg"}>
+            <VStack align="flex-start" gap={0}>
+              <Dialog.Title>Teams</Dialog.Title>
+              <Dialog.Description fontSize="sm" color="fg.muted" m={0} p={0}>
+                View and manage all your teams below.
+              </Dialog.Description>
+            </VStack>
           </Dialog.Header>
-
+          <Box w="full" borderBottomWidth="1px" borderColor="border.emphasized"></Box>
           <Flex h="full" align="stretch">
             {/* ───── Sidebar (1/5) ───── */}
             <Box
               w="20%"
               minW="220px"
+              h="full"
               borderRightWidth="1px"
-              borderColor="border.muted"
+              borderColor="border.emphasized"
               p={3}
             >
               <VStack align="stretch" gap={3}>
@@ -224,30 +313,45 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
                       placeholder="Search Teams"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
+                      _hover={{
+                        "&:not(:focus-visible)": {
+                          borderColor: "fg.muted",
+                        },
+                      }}
                     />
                   </InputGroup>
                 </Box>
 
-                {/* "All teams" nav item */}
-                <Box>
-                  <Button
-                    size="sm"
-                    variant={selectedView === "all" ? "solid" : "ghost"}
-                    w="full"
-                    justifyContent="flex-start"
-                    colorScheme={selectedView === "all" ? "blue" : undefined}
-                    onClick={() => setSelectedView("all")}
-                  >
-                    All teams
-                  </Button>
-                </Box>
-
                 {/* List of teams */}
                 <Box flex="1" overflowY="auto">
-                  <Text fontSize="xs" mb={1} color="gray.500">
-                    Teams
-                  </Text>
-                  <VStack align="stretch" gap={1} maxH="40vh" overflowY="auto">
+                  <VStack align="stretch" gap={0} maxH="40vh" overflowY="auto">
+                    <Button
+                      size="sm"
+                      variant={selectedView === "all" ? "surface" : "ghost"}
+                      w="full"
+                      justifyContent="flex-start"
+                      colorPalette={"gray"}
+                      onClick={() => setSelectedView("all")}
+                    >
+                      <Flex w="full" align="center" justify="space-between">
+                        <HStack gap={2}>
+                          <Icon
+                            as={selectedView === "all" ? BsPeopleFill : BsPeople}
+                            boxSize={4}
+                          />
+                          <Text>All teams</Text>
+                        </HStack>
+                        <Box
+                          as="span"
+                          px={2}
+                          py={0.5}
+                          borderRadius="full"
+                          fontSize="xs"
+                        >
+                          {teams.length}
+                        </Box>
+                      </Flex>
+                    </Button>
                     {loading && (
                       <HStack justify="center" py={2}>
                         <Spinner size="xs" />
@@ -266,17 +370,33 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
                         <Button
                           key={team.id}
                           size="sm"
-                          variant={
-                            selectedView === team.id ? "solid" : "ghost"
-                          }
+                          variant={selectedView === team.id ? "surface" : "ghost"}
                           w="full"
                           justifyContent="flex-start"
-                          colorScheme={
-                            selectedView === team.id ? "blue" : undefined
-                          }
+                          colorPalette={"gray"}
                           onClick={() => setSelectedView(team.id)}
                         >
-                          {team.name}
+                          <Flex w="full" align="center" justify="space-between">
+                            {/* Left side: icon + name */}
+                            <HStack gap={2}>
+                              <Icon
+                                as={selectedView === team.id ? BsPeopleFill : BsPeople}
+                                boxSize={4}
+                              />
+                              <Text>{team.name}</Text>
+                            </HStack>
+
+                            {/* Right side: member count */}
+                            <Box
+                              as="span"
+                              px={2}
+                              py={0.5}
+                              borderRadius="full"
+                              fontSize="xs"
+                            >
+                              {team.members_count}
+                            </Box>
+                          </Flex>
                         </Button>
                       ))}
                   </VStack>
@@ -365,12 +485,6 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
               )}
             </Box>
           </Flex>
-
-          <Dialog.Footer>
-            <Button variant="outline" ml="auto" onClick={onClose}>
-              Close
-            </Button>
-          </Dialog.Footer>
 
           <Dialog.CloseTrigger asChild>
             <CloseButton size="sm" />

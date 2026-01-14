@@ -1,82 +1,99 @@
 // File: src/services/sensors.ts
-import type { MonitoringSensor, MonitoringSensorPayload } from '@/types/sensor';
-
-const API = process.env.NEXT_PUBLIC_API_URL;
-const BASE = `${API}monitoring-sensors`;
-const PROJECTS_BASE = `${API}projects`;
-const LOCATIONS_BASE = `${API}locations`;
-const SOURCES_BASE = `${API}monitoring-sources`;
+import type { MonitoringSensor, MonitoringSensorPayload } from "@/types/sensor";
+import { apiFetchJson } from "@/services/api";
 
 /**
  * Fetch a list of monitoring sensors
  */
 export async function listSensors(
+  authToken?: string | null,
   projectId?: string,
   locId?: string,
   srcId?: string,
-  skip = 0,
+  skip = 0
 ): Promise<MonitoringSensor[]> {
-  let url: string;
+  // Prefer the most specific scope first
   if (locId) {
-    url = `${LOCATIONS_BASE}/${locId}/sensors?skip=${skip}`;
-  } else if (projectId) {
-    url = `${PROJECTS_BASE}/${projectId}/sensors?skip=${skip}`;
+    return apiFetchJson<MonitoringSensor[]>(
+      `/locations/${locId}/sensors?skip=${skip}`,
+      { method: "GET" },
+      authToken
+    );
   }
-  else if (srcId) {
-    url = `${SOURCES_BASE}/${srcId}/sensors?skip=${skip}`;
-  } else {
-    url = `${BASE}/?skip=${skip}`;
+
+  if (projectId) {
+    return apiFetchJson<MonitoringSensor[]>(
+      `/projects/${projectId}/sensors?skip=${skip}`,
+      { method: "GET" },
+      authToken
+    );
   }
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`List sensors failed (${res.status})`);
-  return res.json();
+
+  if (srcId) {
+    return apiFetchJson<MonitoringSensor[]>(
+      `/monitoring-sources/${srcId}/sensors?skip=${skip}`,
+      { method: "GET" },
+      authToken
+    );
+  }
+
+  // fallback: list *all* sensors (should be org-filtered server-side)
+  return apiFetchJson<MonitoringSensor[]>(
+    `/monitoring-sensors/?skip=${skip}`,
+    { method: "GET" },
+    authToken
+  );
 }
 
 export async function getSensorByName(
-  name: string
+  name: string,
+  authToken?: string | null
 ): Promise<MonitoringSensor> {
-  const res = await fetch(`${BASE}/name/${name}`);
-  if (!res.ok) throw new Error(`Fetch sensor failed (${res.status})`);
-  return (await res.json()) as MonitoringSensor;
+  return apiFetchJson<MonitoringSensor>(
+    `/monitoring-sensors/name/${encodeURIComponent(name)}`,
+    { method: "GET" },
+    authToken
+  );
 }
 
 export async function createSensor(
-  payload: MonitoringSensorPayload
+  payload: MonitoringSensorPayload,
+  authToken?: string | null
 ): Promise<MonitoringSensor> {
-  const res = await fetch(`${BASE}/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Create sensor failed (${res.status}): ${txt}`);
-  }
-  return (await res.json()) as MonitoringSensor;
+  return apiFetchJson<MonitoringSensor>(
+    `/monitoring-sensors/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    authToken
+  );
 }
 
 export async function updateSensor(
   id: string,
-  payload: MonitoringSensorPayload
+  payload: MonitoringSensorPayload,
+  authToken?: string | null
 ): Promise<MonitoringSensor> {
-  const res = await fetch(`${BASE}/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Update sensor failed (${res.status}): ${txt}`);
-  }
-  return (await res.json()) as MonitoringSensor;
+  return apiFetchJson<MonitoringSensor>(
+    `/monitoring-sensors/${id}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    authToken
+  );
 }
 
 export async function deleteSensor(
-  id: string
+  id: string,
+  authToken?: string | null
 ): Promise<void> {
-  const res = await fetch(`${BASE}/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Delete sensor failed (${res.status}): ${txt}`);
-  }
+  await apiFetchJson<void>(
+    `/monitoring-sensors/${id}`,
+    { method: "DELETE" },
+    authToken
+  );
 }

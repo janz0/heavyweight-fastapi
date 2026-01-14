@@ -6,8 +6,9 @@ from app.project.models import Project as ProjectModel
 from app.project.schemas import ProjectCreate, ProjectUpdate
 from app.project.selectors import get_project_model
 
-def create_project(db: Session, payload: ProjectCreate) -> ProjectModel:
-    obj = ProjectModel(**payload.model_dump())
+
+def create_project(db: Session, payload: ProjectCreate, org_id: UUID) -> ProjectModel:
+    obj = ProjectModel(**payload.model_dump(), org_id=org_id)
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -16,9 +17,10 @@ def create_project(db: Session, payload: ProjectCreate) -> ProjectModel:
 def update_project(
     db: Session,
     project_id: UUID,
-    payload: ProjectUpdate
+    payload: ProjectUpdate,
+    org_id: UUID
 ) -> ProjectModel | None:
-    obj = get_project_model(db, project_id)   # ← raw ORM instance
+    obj = get_project_model(db, project_id, org_id=org_id)
     if not obj:
         return None
 
@@ -29,8 +31,11 @@ def update_project(
     db.refresh(obj)
     return obj
 
-def delete_project(db: Session, project_id: UUID) -> None:
-    obj = db.get(ProjectModel, project_id)
-    if obj:
-        db.delete(obj)
-        db.commit()
+def delete_project(db: Session, project_id: UUID, org_id: UUID) -> bool:
+    obj = get_project_model(db, project_id=project_id, org_id=org_id)
+    if not obj:
+        return False
+
+    db.delete(obj)
+    db.commit()
+    return True

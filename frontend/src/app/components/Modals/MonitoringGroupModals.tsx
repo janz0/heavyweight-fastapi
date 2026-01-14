@@ -1,7 +1,7 @@
 // File: app/locations/components/MonitoringGroupModals.tsx
 'use client';
 
-import React, { FormEvent, useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import SearchInput from "../UI/SearchInput";
 import {
@@ -52,43 +52,47 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 // ==============================
 function MonitoringGroupForm({
   onSubmit,
-  onClose,
   initialData,
   initialLocationId,
   submitLabel,
+  authToken
 }: {
   onSubmit: (payload: MonitoringGroupPayload) => Promise<void>;
-  onClose: () => void;
   initialData?: MonitoringGroup;
   initialLocationId?: string;
   submitLabel: string;
+  authToken: string;
 }) {
   const { colorMode } = useColorMode();
   const bc = colorMode === "light" ? "black" : "white";
 
   const fixedLocationId = initialLocationId ?? initialData?.mon_loc_id;
-  const isLocked = Boolean(fixedLocationId);
+  const isLocked = Boolean(fixedLocationId && submitLabel === "Create");
 
   const router = useRouter();
   const [groupName, setGroupName] = useState(initialData?.group_name ?? "");
   const [groupType, setGroupType] = useState(initialData?.group_type ?? "");
-  const [active, setActive] = useState(
-    initialData ? initialData.active === 1 : true
-  );
+  const [active, setActive] = useState(initialData ? initialData.active === 1 : true);
 
   const [locations, setLocations] = useState<Location[]>([]);
-  const [locationIds, setLocationIds] = useState<string[]>(
-    fixedLocationId ? [fixedLocationId] : []
-  );
+  const [locationId, setLocationId] = useState<string>(fixedLocationId ?? "");
+
+  const [errors, setErrors] = useState<{
+    locationId?: string;
+    groupName?: string;
+    groupType?: string;
+  }>({});
 
   useEffect(() => {
-    listLocations()
+    if (!authToken) return;
+    listLocations(authToken)
       .then(setLocations)
       .catch((err) => {
         console.error(err);
         toaster.create({ type: "error", description: "Could not load locations" });
       });
-  }, []);
+  }, [authToken]);
+
   const locationCollection = useMemo(
     () =>
       createListCollection({
@@ -102,46 +106,68 @@ function MonitoringGroupForm({
       setGroupName(initialData.group_name);
       setGroupType(initialData.group_type);
       setActive(initialData.active === 1);
+      setLocationId(initialData.mon_loc_id);
     } else {
       setGroupName("");
       setGroupType("");
       setActive(true);
+      setLocationId(fixedLocationId ?? "");
     }
-  }, [initialData]);
+  }, [initialData, fixedLocationId]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!locationIds[0]) {
-      toaster.create({
-        type: "error",
-        description: "You must select a location.",
-      });
+  const handleSave = async () => {
+    const nextErrors: typeof errors = {};
+    let hasError = false;
+
+    if (!locationId) {
+      nextErrors.locationId = "Location is required";
+      hasError = true;
+    }
+    if (!groupName.trim()) {
+      nextErrors.groupName = "Group name is required";
+      hasError = true;
+    }
+    if (!groupType.trim()) {
+      nextErrors.groupType = "Group type is required";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(nextErrors);
+      toaster.create({ type: "error", description: "Please fix the highlighted fields." });
       return;
     }
+
+    setErrors({});
+
     const payload: MonitoringGroupPayload = {
-      mon_loc_id: locationIds[0],
-      group_name: groupName,
-      group_type: groupType,
+      mon_loc_id: locationId,
+      group_name: groupName.trim(),
+      group_type: groupType.trim(),
       data: {},
       active: active ? 1 : 0,
     };
+
     await onSubmit(payload);
     router.refresh();
   };
 
   return (
-    <form id="group-form" onSubmit={handleSubmit}>
-      <Field.Root required mb={4}>
+    <>
+      <Field.Root required invalid={!!errors.locationId} mb={errors.locationId ? 6 : 4}>
         <Field.Label>Location</Field.Label>
         <Select.Root
           collection={locationCollection}
-          value={locationIds}
-          onValueChange={(e) => setLocationIds(e.value)}
+          value={locationId ? [locationId] : []}
+          onValueChange={(e) => {
+            setLocationId(e.value[0] ?? "");
+            if (errors.locationId) setErrors((p) => ({ ...p, locationID: undefined }));
+          }}
           disabled={isLocked}
         >
           <Select.HiddenSelect />
           <Select.Control>
-            <Select.Trigger borderColor={bc}>
+            <Select.Trigger borderColor={!errors.locationId ? bc : "none"}>
               <Select.ValueText
                 placeholder={
                   isLocked ? undefined : "Select a location"
@@ -163,22 +189,37 @@ function MonitoringGroupForm({
             </Select.Content>
           </Select.Positioner>
         </Select.Root>
+        <Field.ErrorText position="absolute" left={0} top="100%">
+          {errors.locationId}
+        </Field.ErrorText>
       </Field.Root>
-      <Field.Root required mb={4}>
+      <Field.Root required invalid={!!errors.groupName} mb={errors.groupName ? 6 : 4}>
         <Field.Label>Group Name</Field.Label>
         <Input
           value={groupName}
-          borderColor={bc}
-          onChange={(e) => setGroupName(e.target.value)}
+          borderColor={!errors.groupName ? bc : "none"}
+          onChange={(e) => {
+            setGroupName(e.target.value);
+            if (errors.groupName) setErrors((p) => ({ ...p, groupName: undefined }));
+          }}
         />
+        <Field.ErrorText position="absolute" left={0} top="100%">
+          {errors.groupName}
+        </Field.ErrorText>
       </Field.Root>
-      <Field.Root required mb={4}>
+      <Field.Root required invalid={!!errors.groupType} mb={errors.groupType ? 6 : 4}>
         <Field.Label>Group Type</Field.Label>
         <Input
           value={groupType}
-          borderColor={bc}
-          onChange={(e) => setGroupType(e.target.value)}
+          borderColor={!errors.groupType ? bc : "none"}
+          onChange={(e) => {
+            setGroupType(e.target.value);
+            if (errors.groupType) setErrors((p) => ({ ...p, groupType: undefined }));
+          }}
         />
+        <Field.ErrorText position="absolute" left={0} top="100%">
+          {errors.groupType}
+        </Field.ErrorText>
       </Field.Root>
       <Field.Root justifyItems="center" mb={4}>
         <Flex gap="2" align="center">
@@ -195,14 +236,14 @@ function MonitoringGroupForm({
         </Flex>
       </Field.Root>
       <Dialog.Footer>
-        <Button colorScheme="gray" mr={3} type="button" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button colorScheme="blue" type="submit">
+        <Dialog.ActionTrigger asChild>
+        <Button colorScheme="gray" mr={3}>Cancel</Button>
+        </Dialog.ActionTrigger>
+        <Button colorScheme="blue" onClick={handleSave}>
           {submitLabel}
         </Button>
       </Dialog.Footer>
-    </form>
+    </>
   );
 }
 
@@ -210,19 +251,23 @@ function MonitoringGroupForm({
 // CreateMonitoringGroupModal
 // ==============================
 export function MonitoringGroupCreateModal({
-  isOpen,
-  onClose,
+  trigger,
+  onCreated,
   locationId,
+  authToken
 }: {
-  isOpen: boolean;
-  onClose: () => void;
+  trigger: React.ReactElement;
+  onCreated?: (g: MonitoringGroup) => void;
   locationId?: string;
+  authToken: string;
 }) {
+  const [open, setOpen] = useState(false);
   const handleCreate = async (payload: MonitoringGroupPayload) => {
     try {
-      await createMonitoringGroup(payload);
+      const created = await createMonitoringGroup(payload, authToken);
       toaster.create({ type: "success", description: "Group created successfully" });
-      onClose();
+      onCreated?.(created);
+      setOpen(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       toaster.create({
@@ -233,9 +278,10 @@ export function MonitoringGroupCreateModal({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()} size="md">
+    <Dialog.Root open={open} onOpenChange={({open}) => setOpen(open)} size="md">
+      {trigger && <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>}
       <Portal>
-        <Dialog.Backdrop onClick={onClose} />
+        <Dialog.Backdrop />
         <Dialog.Positioner >
           <Dialog.Content border="2px solid" >
             <Dialog.Header>
@@ -244,16 +290,16 @@ export function MonitoringGroupCreateModal({
                 <IconButton
                   aria-label="Close"
                   variant="ghost"
-                  onClick={onClose}
+                  onClick={() => setOpen(false)}
                 ><X size={16} /></IconButton>
               </Dialog.CloseTrigger>
             </Dialog.Header>
             <Dialog.Body>
               <MonitoringGroupForm
                 onSubmit={handleCreate}
-                onClose={onClose}
                 initialLocationId={locationId}
                 submitLabel="Create"
+                authToken={authToken}
               />
             </Dialog.Body>
           </Dialog.Content>
@@ -270,15 +316,17 @@ export function MonitoringGroupEditModal({
   isOpen,
   onClose,
   group,
+  authToken
 }: {
   isOpen: boolean;
   onClose: () => void;
   group?: MonitoringGroup;
+  authToken: string;
 }) {
   const handleUpdate = async (payload: MonitoringGroupPayload) => {
     if (!group) return;
     try {
-      await createMonitoringGroup(payload);
+      await createMonitoringGroup(payload, authToken);
       toaster.create({ type: "success", description: "Group created successfully" });
       onClose();
     } catch (err: unknown) {
@@ -309,9 +357,9 @@ export function MonitoringGroupEditModal({
             <Dialog.Body>
               <MonitoringGroupForm
                 onSubmit={handleUpdate}
-                onClose={onClose}
                 initialData={group}
                 submitLabel="Save"
+                authToken={authToken}
               />
             </Dialog.Body>
           </Dialog.Content>
@@ -388,16 +436,17 @@ export function MonitoringGroupAssignModal({
   groups,
   sensors,
   sources,
+  authToken
 }: {
   isOpen: boolean;
   onClose: () => void;
   groups?: MonitoringGroup[];
   sensors?: MonitoringSensor[];
   sources?: Source[];
+  authToken: string;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [isCreateGroupOpen, setCreateGrp] = useState(false);
 
   const [localGroups, setLocalGroups] = useState<MonitoringGroup[]>(groups ?? []);
   const [localSensors, setLocalSensors] = useState<MonitoringSensor[]>(sensors ?? []);
@@ -405,7 +454,7 @@ export function MonitoringGroupAssignModal({
 
   const router = useRouter();
 
-const handleApply = async () => {
+  const handleApply = async () => {
     if (!selectedId) {
       toaster.create({ type: "warning", description: "Select a group first." });
       return;
@@ -464,14 +513,14 @@ const handleApply = async () => {
         }
 
         if (!sensors || sensors.length === 0) {
-          const fetchedSensors = await listSensors();
+          const fetchedSensors = await listSensors(authToken);
           if (!cancelled) setLocalSensors(fetchedSensors);
         } else {
           setLocalSensors(sensors);
         }
 
         if (!sources || sources.length === 0) {
-          const fetchedSources = await listSources();
+          const fetchedSources = await listSources(authToken);
           if (!cancelled) setLocalSources(fetchedSources);
         } else {
           setLocalSources(sources);
@@ -489,7 +538,7 @@ const handleApply = async () => {
     return () => {
       cancelled = true;
     };
-  }, [groups, sensors, sources]);
+  }, [groups, sensors, sources, authToken]);
 
   const options = useMemo(
     () => localGroups.map((g) => ({ id: g.id, label: g.group_name })),
@@ -649,7 +698,7 @@ const handleApply = async () => {
                       </Table.Root>
                     </Box>
                     <Box justifySelf={"right"} py={2} pt={3}>
-                      <Button onClick={() => setCreateGrp(true)} borderRadius="md" boxShadow="sm" color="black" bg="orange" size={{base: "xs", md:"sm"}}>
+                      <Button borderRadius="md" boxShadow="sm" color="black" bg="orange" size={{base: "xs", md:"sm"}}>
                         <Plus/><Text display={{base: "none", md: "block"}}>Add New</Text>
                       </Button>
                     </Box>
@@ -755,7 +804,6 @@ const handleApply = async () => {
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
-      <MonitoringGroupCreateModal isOpen={isCreateGroupOpen} onClose={() => setCreateGrp(false)} />
     </Dialog.Root>
   );
 }

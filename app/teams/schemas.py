@@ -19,6 +19,7 @@ class TeamUpdate(BaseModel):
 
 class Team(TeamBase):
     id: UUID
+    org_id: UUID
     created_at: datetime
     last_updated: datetime
     members_count: int

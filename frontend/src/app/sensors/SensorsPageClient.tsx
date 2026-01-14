@@ -25,9 +25,10 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip)
 
 interface Props {
   sensors: MonitoringSensor[];
+  authToken: string;
 }
 
-export default function SensorsPageClient({ sensors: initialSensors }: Props) {
+export default function SensorsPageClient({ sensors: initialSensors, authToken: authToken }: Props) {
   const { colorMode } = useColorMode();
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<MonitoringSensor[]>(initialSensors);
@@ -62,6 +63,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
               onCreated={(created) => {
                 setItems(prev => [created, ...prev]);
               }}
+              authToken={authToken}
             />
           }
           editElement={(item) => (
@@ -74,6 +76,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
               onEdited={(edited) => {
                 setItems(prev => prev.map(p => p.id === edited.id ? { ...p, ...edited } : p));
               }}
+              authToken={authToken}
             />
           )}
           deleteElement={(item) => (
@@ -86,6 +89,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
               onDeleted={(id) => {
                 setItems(prev => prev.filter(p => p.id !== id));
               }}
+              authToken={authToken}
             />
           )}
           duplicateElement={(item) => (
@@ -98,6 +102,7 @@ export default function SensorsPageClient({ sensors: initialSensors }: Props) {
               onDuplicated={(duplicated) => {
                 setItems(prev => [duplicated, ...prev]);
               }}
+              authToken={authToken}
             />
           )}
         />

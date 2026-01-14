@@ -1,4 +1,5 @@
 from typing import Optional, List, Union
+from fastapi import HTTPException, status
 from app.monitoring_source.models import Source
 from app.monitoring_source import schemas, selectors
 from app.monitoring_sensor_fields.schemas import (
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from uuid import UUID
 from app.monitoring_sensor import services as sensor_services
+from app.project.models import Project
 
 def touch_source(db: Session, source_id: UUID) -> Optional[Source]:
     """Update ``last_updated`` for a ``Source`` without changing other fields."""
@@ -22,7 +24,17 @@ def touch_source(db: Session, source_id: UUID) -> Optional[Source]:
     db.refresh(obj)
     return obj
 
-def create_source(db: Session, payload: schemas.SourceCreate) -> Source:
+def create_source(db: Session, payload: schemas.SourceCreate, org_id: UUID) -> Source:
+    ok = (
+        db.query(Location.id)
+          .join(Project, Location.project_id == Project.id)
+          .filter(Location.id == payload.mon_loc_id)
+          .filter(Project.org_id == org_id)
+          .first()
+    )
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Location not in your organization")
+
     obj = Source(**payload.model_dump())
     db.add(obj)
     db.commit()
@@ -48,12 +60,15 @@ def delete_source(db: Session, source_id: UUID) -> None:
 def list_sources_for_project(
     db: Session,
     project_id: UUID,
-    skip: int = 0,
+    org_id: UUID,
+    skip: int = 0
 ) -> List[Source]:
     return (
         db.query(Source)
           .join(Location, Source.mon_loc_id == Location.id)
+          .join(Project, Location.project_id == Project.id)
           .filter(Location.project_id == project_id)
+          .filter(Project.org_id == org_id)
           .order_by(Source.source_name)
           .offset(skip)
           .all()
@@ -62,11 +77,15 @@ def list_sources_for_project(
 def list_sources_for_location(
     db: Session,
     loc_id: UUID,
+    org_id: UUID,
     skip: int = 0,
 ) -> List[Source]:
     return (
         db.query(Source)
-          .filter(Source.mon_loc_id == loc_id)
+          .join(Source.mon_loc)
+          .join(Location.project)
+          .filter(Location.id == loc_id)
+          .filter(Project.org_id == org_id)
           .order_by(Source.source_name)
           .offset(skip)
           .all()

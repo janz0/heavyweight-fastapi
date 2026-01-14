@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -28,6 +28,15 @@ class UserRead(UserBase):
 
     class Config:
         orm_mode = True
+
+class OrgContext(BaseModel):
+    org_id: UUID
+    role: str
+
+class UserMe(UserRead):
+    org: Optional[OrgContext] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 #––– Auth models –––
 class Token(BaseModel):
